@@ -1,7 +1,7 @@
-#!/usr/bin/perl
+#!/usr/bin/env perl
 =head1 NAME
 
-WINI - Something like wiki
+WINI - WIKI markup ni NIta nanika (Japanese: "Something like wiki markup")
 
 =head1 SYNOPSIS
 
@@ -118,11 +118,37 @@ Some text decoration macros use non-alphabetical characters as their name.  The 
 
 use strict;
 use Data::Dumper;
-use Pry;
+use File::Basename;
+use FindBin;
+use Pod::Usage;
+use Getopt::Long;
 
-my $baseurl = "http://localhost";
+my $scriptname = basename($0);
 
-my $txt = <<'EOD';
+if ($scriptname eq 'wini.pm' or $scriptname eq 'wini'){
+  my($input, $output, $fhi, $fho, $test);
+  GetOptions(
+    "h|help" => sub {help()},
+    "i=s"    => \$input,
+    "o=s"    => \$output,
+    "t"      => \$test
+  );
+  unless($test){
+    if($input){
+      open($fhi, '<utf8:', $input) or die "Cannot access to $input";
+    }else{
+      $fhi = *STDIN;
+    }
+    if($output){
+      open($fhi, '<utf8:', $input) or die "Cannot access to $input";
+    }else{
+      $fho = *STDOUT;
+    }
+
+  }else{
+    my $baseurl = "http://localhost";
+
+    my $txt = <<'EOD';
 ABC
 DEG
 
@@ -144,23 +170,24 @@ DEG
 *: nomark list item2
 * i3
 
-|             a | b  | c  |
-|..classX     1 | 2  | 3  |
+
+|hhh,hh            a | b  | c  |
+|..classX     x |- 2  |...colclass3 3  |
 |          *  8 |.class2 9  | 10 | 
 |^         * 11 | 12 | 13 |
 |.classY..classX.classZ...classZZ     14 | 15 | 16 |
 
-abc
-{{B|def
+{{/|abc}}
+{{*/|def
 ghij}}
 {{B|klm}}
 
 {{* ** **|strong strong}}
 EOD
 
-print "---\n$txt---\n";
+    print "---\n$txt---\n";
 
-print <<'EOD';
+    print <<'EOD';
 <!DOCTYPE html>
 <html>
 <head>
@@ -173,21 +200,26 @@ print <<'EOD';
 <body>
 EOD
 
-print wini($txt); #, {para=>'br'});
+    print wini($txt); #, {para=>'br'});
 
-print <<'EOD';
+    print <<'EOD';
 
 </body>
 </html>
 EOD
+  }
+}
+
+sub help{
+  print pod2usage(-verbose => 2, -input => $FindBin::Bin . "/" . $FindBin::Script);
+}
 
 
 sub close_listtag{
   my($ref, $l) = @_;
-  my $n = $#$l;
   map{
-    $$ref .= (' ' x ($n-$_)) . (($l->[$_] eq 'ul')?'</ul>':($l->[$_] eq 'ol')?'</ol>':'</dl>') . "\n";
-  } 0..$n;
+    $$ref .= (' ' x ($#$l-$_)) . (($l->[$_] eq 'ul')?'</ul>':($l->[$_] eq 'ol')?'</ol>':'</dl>') . "\n";
+  } 0..$#$l;
 }
 
 sub wini{
@@ -208,7 +240,7 @@ sub wini{
   my @localclass = ('wini');
   ($is_bs4) and push(@localclass, "col-sm-12");
   my $myclass = ' class="'.join(' ',@localclass).'"';
-  foreach my $t (split(/\n{2,}/, $t0)){
+  foreach my $t (split(/\n{2,}/, $t0)){ # for each paragraph
     my $lastlistdepth=0;
     my $ptype; # type of each paragraph (list, header, normal paragraph, etc.)
     while(1){ # loop while subst needed
@@ -252,7 +284,6 @@ sub wini{
           $t2 .= sprintf("%*s<$listtag>$cr",$listdepth,' ');
         }
         # new list end?
-        #($lastlistdepth>$listdepth) and $listtypes[$listdepth]=0;
         for(my $i = $lastlistdepth-$listdepth; $i>0; $i--){
           $t2 .= sprintf("%*s</%s>$cr", $i+$listdepth, ' ', $listtagc[$i+$listdepth]);
         }
@@ -269,10 +300,9 @@ sub wini{
 
     $r .= ($ptype eq 'header' or $ptype eq 'list') ? "$t2\n"
         : ($para eq 'br')                          ? "$t2<br>$cr"
-        : ($para eq 'nb')                          ? $t2 
-                                                   : "<p${myclass}>\n$t2</p>$cr$cr"
-
-
+        : ($para eq 'nb')                          ? $t2
+        : $t2=~/<(?:p|table|[uod]l)[^>]*>/         ? $t2
+                                                   : "<p${myclass}>\n$t2</p>$cr$cr";
   } # foreach $t
   
   return($r);
@@ -345,10 +375,6 @@ sub make_a{
     $href = $a;
   }elsif($a =~ /^[\d_]+$/){
     $href = "$baseurl?aid=$a";
-#  }elsif(my($str) = $a =~ /^"(.*)"/){
-#    $str =~ s/([^ 0-9a-zA-Z])/"%".uc(unpack("H2",$1))/eg;
-#    $str =~ s/ /+/g;
-#    $href = "$baseurl?txt=$str";
   }elsif(my($img) = $a=~/^!(.*)/){
     return(qq!<img src="$img" alt="$b">!);
   }else{
@@ -378,8 +404,7 @@ sub make_table{
     }
   }
   
-  #my @rowspan = map {0} 0..$#{$tableitem[1]};
-  my @colclass; 
+#  my @colclass; 
   for($ln=$#tableitem; $ln>=1; $ln--){
     if($tableitem[$ln][1]=~/\^\^/ and $ln>1){ # row merge
       for(my $i=2; $i<=$#{$tableitem[$ln]}; $i+=2){
@@ -389,50 +414,57 @@ sub make_table{
     }
     my $colspan=0;
     my $val='';
-    #my %copt;
-    my $ctag;
-    my @rowclass;
+    #my $ctag;
+    #my @rowclass;
     for(my $cn=$#{$tableitem[$ln]}; $cn>=0; $cn--){
-      my $col = $tableitem[$ln][$cn];
+      my $col   = $tableitem[$ln][$cn];
+      my $col_n = $cn/2+1;
       if($cn%2==1){ # border
-        #undef %copt;
-        $ctag = ($col=~/\bh\b/)?'th':'td';
+        #$ctag = ($col=~/\bh\b/)?'th':'td';
+        $out[$ln][$col_n]{ctag} = 'td';
+        while($col=~/(?<![!h])([!h]+)(?![!h])/g){
+          my $h=$1;
+          if($h eq 'h'){ # cell
+            $out[$ln][$col_n]{ctag} = 'th';
+          }elsif($h eq 'hh'){ # row
+            $out[$ln][0]{ctag} = 'th';
+          }else{ #col
+            $out[0][$col_n]{ctag} = 'th';            
+          }
+        }
 
         if($col=~/-/){ # colspan
           $colspan++;
+          $tableitem[$ln][$cn-1]   .= "\n" . $tableitem[$ln][$cn+1];
+          (defined $out[$ln][$col_n]{copt}{colspan}) or $out[$ln][$col_n]{copt}{colspan} = 1;
+          $out[$ln][$col_n-1]{copt}{colspan} = $out[$ln][$col_n]{copt}{colspan}+1;  
           next;
         }elsif($colspan>0){
-          #$copt{colspan} = $colspan+1;
           $colspan=0;
         }
 
         if($col=~/\^/){ # rowspan
           $tableitem[$ln-1][$cn+1] .= "\n" . $tableitem[$ln][$cn+1]; # merge data block to upper row 
-          # $rowspan[$cn]++;
-          (defined $out[$ln][$cn]{copt}{rowspan}) or $out[$ln][$cn]{copt}{rowspan} = 1;
-          $out[$ln-1][$cn]{copt}{rowspan} = $out[$ln][$cn]{copt}{rowspan}+1;
+          (defined $out[$ln][$col_n]{copt}{rowspan}) or $out[$ln][$col_n]{copt}{rowspan} = 1;
+          $out[$ln-1][$col_n]{copt}{rowspan} = $out[$ln][$col_n]{copt}{rowspan}+1;
           next;
-#        }elsif($rowspan[$cn]>0){
-#          $copt{rowspan} = $rowspan[$cn]+1; # <td rowspan="...
-#          $rowspan[$cn]=0;
         }
 
         if(my(@class)=$col=~/(?<!\.)(\.{1,3}[a-zA-Z0-9_]+)/g){
           foreach my $c (@class){
             my($a,$b) = $c=~/(\.*)(.*)/;
             if($a eq '.'){ # cell class
-              push(@{$out[$ln][$cn]{copt}{class}}, $b);
+              push(@{$out[$ln][$col_n]{copt}{class}}, $b);
             }elsif($a eq '..'){ # row class
-              push(@rowclass, $b);
+              push(@{$out[$ln][0]{copt}{class}}, $b);
             }elsif($a eq '...'){# col class
-              push(@{$colclass[$cn]}, $b);
-              print STDERR "$a $b colclass ", join(",", @colclass), ".\n";              
+              push(@{$out[0][$col_n]{copt}{class}}, $b);
+            }else{ # table class
+              push(@{$out[0][0]{copt}{class}}, $b);
             }
           }
         }
-        my $c1 = $cn/2+1;
-        $out[$ln][$c1]{ctag} = $ctag;
-        $out[$ln][$c1]{val}  = $val;
+        $out[$ln][$col_n]{val}  = $val;
       }else{ # value
         $val = $col;
       }
@@ -446,38 +478,45 @@ sub make_table{
       $cell->{wini} =~ s/[ \n]+/ /g;
       $out[$ln][$i] = $cell; # $out[$ln][0]: data for row (tr)
     }
-    ($rowclass[0]) and $out[$ln][0] = ' class="' . join(' ', @rowclass) . '"';
+    #($rowclass[0]) and $out[$ln][0] = ' class="' . join(' ', @rowclass) . '"';
   } # for $ln
-  for(my $cn=1; $cn<=$#{$out[1]}; $cn++){ # set colclass to cells
-    map {(defined $colclass[$cn]) and push(@{$out[$_][$cn]{copt}{class}}, @{$colclass[$cn]}) } 1..$#out;
+  for(my $i=1; $i<=$#{$out[1]}; $i++){ # set colclass to cells
+    map {(defined $out[0][$i]{copt}{class}) and push(@{$out[$_][$i]{copt}{class}}, @{$out[0][$i]{copt}{class}}) } 1..$#out;
   }
 
   my $outtxt = qq!<table class="markdowntable">\n!;
   for(my $rn=1; $rn<=$#out; $rn++){
-    my $i=0;
-    $outtxt .= "<tr$out[$rn][0]>";
+    $outtxt .= '<tr' .
+      join('', map{ qq{ $_="} . join(' ', @{$out[$rn][0]{copt}{$_}}) . qq{"}} (keys %{$out[$rn][0]{copt}}));
+    #foreach my $k (keys %{$out[$rn][0]{copt}}){
+    #  $outtxt .= qq{ $k="} . join(' ', @{$out[$rn][0]{copt}{$k}}) . qq{"};
+    #}
+    $outtxt .= '>';
     $outtxt .= join("", 
-      map { # for each cell
-        $i++;
-        if((defined $_->{copt}{rowspan} and $_->{copt}{rowspan}<=1) or (defined $_->{copt}{colspan} and $_->{copt}{colspan}<=1)){
+      map { # for each cell ($_: col No.)
+        if((defined $out[$rn][$_]{copt}{rowspan} and $out[$rn][$_]{copt}{rowspan}<=1) or (defined $out[$rn][$_]{copt}{colspan} and $out[$rn][$_]{copt}{colspan}<=1)){
           '';
         }else{
           my $copt = '';
           foreach my $c (qw/class colspan rowspan/){
-            if(defined $_->{copt}{$c}){
+            (defined $out[$rn][$_]{copt}{$c}) and
               $copt .= sprintf(qq{ $c="%s"},
-                (ref $_->{copt}{$c} eq 'ARRAY') ? join(' ', @{$_->{copt}{$c}}) : $_->{copt}{$c});
+                         (ref $out[$rn][$_]{copt}{$c} eq 'ARRAY') ? join(' ', @{$out[$rn][$_]{copt}{$c}}) : $out[$rn][$_]{copt}{$c});
             }
+            my $ctag = (
+              ($out[$rn][$_]{ctag} eq 'th') or 
+              ($out[0][$_]{ctag}   eq 'th') or
+              ($out[$rn][0]{ctag}  eq 'th')
+            )?'th':'td';
+            sprintf("<$ctag$copt>%s</$ctag>", $out[$rn][$_]{wini});
           }
-          sprintf("<%s$copt>$i %s</%s>", $_->{ctag}, $_->{wini}, $_->{ctag} )
-        }
-      } @{$out[$rn]}[1 .. $#{$out[1]}]
+       } (1 .. $#{$out[1]})
     );
     $outtxt .= "</tr>\n";
-  }
+  } # foreach $rn
   $outtxt .= "</table>\n";
   $outtxt=~s/\t+/ /g; # tab is separator of cells vertically unified
-  return($outtxt);
+  return("\n$outtxt\n");
 }
 
 1;
