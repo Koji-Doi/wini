@@ -476,7 +476,6 @@ sub make_table{
         while($col=~/(([][_~=@|])(?:\2*))(\d*)/g){ # border setting
           my($m, $btype, $n) = (length($1), $2, sprintf("solid %dpx",($3 ne '')?$3:1));
           my %btype;
-print STDERR ">>> $col: $m $btype $n\n";
           ($btype=~/[[@|]/) and $btype{left}   = $n;
           ($btype=~/[]@|]/) and $btype{right}  = $n;
           ($btype=~/[~@=]/) and $btype{top}    = $n;
