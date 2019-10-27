@@ -1,0 +1,52 @@
+! Large heading
+
+!! Middle heading
+
+!!! Small heading
+
+* list item 1
+** nested list item 1-1
+** nested list item 1-2
+* list item 2
+* list item 3
+
+# numbered list item 1
+# numbered list item 2
+
+Paragraphs should be separated by null line, like wiki or markdown. Line breaks in plain text are ignored. 
+Thus this is not a first sentence of the second paragraph, but the second sentence of the first paragraph.
+
+This is the second paragraph.
+WINI also supports text decoration, such as {{i|italic}}, {{b|bold}}, {{u|underline}}, {{s|strike}}. They are distingushed from logical emphasis, such as {{B| B-tagged}}, {{**|strong-tagged}} texts.
+
+Tables can be represented easily as follows. 
+Users can easily set colspan, rowspan and ruled line width.
+
+|!!~~3__2  Game | Players |-     |-      |
+|!!^            |__3    A |    B |    C  |
+|             1 |       1 |    5 |    3  |
+|             2 |       4 |    5 |    10 |
+|==3!!!   Total |       5 |   10 |    13 |
+
+Ruled lines can be erased individually.
+
+|!!~~3__2  Game | Players |-       |-        |
+|!!^            |__3]0  A ||0    B |[0    C  |
+|             1 |]0     1 ||0.em 5 |[0    3  |
+|             2 |]0     4 ||0    5 |[0.em 10 |
+|==3!!! Total   |]0     5 ||0   10 |[0.em 13 |
+
+To make table without vertical ruled lines, border widths should be set 0 not only for table but all cells.
+
+|!!@@@@0~~3__2|0  Game ||0 Players |-       |-           |
+|!!^                   ||0__3    A ||0    B ||0       C  |
+||0                  1 ||0       1 ||0.em 5 ||0       3  |
+||0                  2 ||0       4 ||0    5 ||0.em    10 |
+|==3|0!!!        Total ||0       5 ||0   10 ||0.em    13 |
+
+By class definition and CSS setting, appearance of tables can be flexibly modified.
+
+|.b-r  AAAAAAA |.b-g   BBB |.b-b.f-w CCC |
+|.a-r  abcd    |.f-m   DDD |.f-p     EEE |
+|.a-l  abcd    |.f-b50 FFF |.f-r.b-b GGG |
+|..a-c a       |       b   |         c   |
