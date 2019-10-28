@@ -12,7 +12,13 @@ WINIは、前述の通りwiki markupを参考に開発されたが、もちろ�
 * HTML5への変換を念頭に置いており、クラス定義などHTML5の特徴を反映した文法構成をとる。
 * pure perlで書かれたscriptで簡単にwiniテキスト→html5テキストの変換ができる。
 
-WINI is a new markup language designed with reference to wiki markup. Thus, WINI grammar is very similar to that of wiki. The name 'WINI' stands for "WIki ni NIta nanika", which means "something like wiki" in Japanese. Otherwise, WINI has several strong points in comparison with wiki markup and other existing markup languages.
+WINI is a new markup language designed with reference to wiki markup. Thus, WINI grammar is very similar to that of wiki. The name 'WINI' stands for "WIki ni NIta nanika", which means "something like wiki" in Japanese.
+
+The script file wini.pm is a perl module supporting WINI markup. This script can also be used as a stand-alone perl script. Users easily can get HTML5 documents from WINI source texts, by using wini.pm as a filter command.
+
+Although WINI is designed with reference to wiki markup as mentioned above, it has several strong points in comparison with wiki markup and other existing markup languages.
+
+Strong points of WINI include:
 
 * Easiness to learn: WINI grammar is similar to that of wiki markup. The grammer is very simple. Not only persons with experience of wiki typesetting, but everyone can find out usage easily.
 * HTML5 compatibility:  WINI is designed with a strong emphasis on affinity with HTML5 and easiness of complex HTML table construction. WINI is a useful system to produce modern and valid HTML5 texts quickly.
