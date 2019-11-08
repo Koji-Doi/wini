@@ -93,6 +93,8 @@ Users can specify the output directory rather than the file. If -o value ends wi
 
 =item * --whole     add HTML5 headar and footer to output. The result output will be a complete HTML5 document.
 
+=item * --version   show version.
+
 =item * --help      show this help.
 
 =back
@@ -107,6 +109,7 @@ use Pod::Usage;
 use Getopt::Long;
 
 my $scriptname = basename($0);
+my $version    = "0 rel. 191109";
 my @save;
 
 __PACKAGE__->stand_alone() if !caller() || caller() eq 'PAR';
@@ -116,6 +119,7 @@ sub stand_alone(){
   my($input, $output, $fhi, $fho, $test, $whole);
   GetOptions(
     "h|help" => sub {help()},
+    "v|version" => sub {print STDERR "wini.pm Version $version\n"; exit()},
     "i=s"    => \$input,
     "o=s"    => \$output,
     "t"      => \$test,
