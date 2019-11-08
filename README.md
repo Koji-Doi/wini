@@ -8,9 +8,9 @@ wini.pmはWINIによるタイプセッティングを実現するためのperl m
 
 WINIは、前述の通りwiki markupを参考に開発され、簡易マークアップ言語としての多くの長所を共有している。
 
-* 直感的で簡素で理解しやすい。文法を知らなくても内容を把握できる。wiki markupと共通な部分も多く、経験者であれば習得はさらに容易だろう。しかし、wiki markupがいけてないと作者が思う部分は、
-* HTML5への変換を念頭に置いており、クラス定義などHTML5の特徴を反映した文法構成をとる。
-* pure perlで書かれたscriptで簡単にwiniテキスト→html5テキストの変換ができる。
+* 文法を知らなくても内容を把握できる。
+* 文法の習得が容易。視覚的な分かりやすさが重視されていて理解がたやすい。
+* データ作成が容易。簡潔なマークアップ文字をプレインテキストに挿入していくのみなので、執筆に神経を集中できる。
 
 その上で、WINIはもちろん幾つかの特徴を有している。
 
@@ -26,9 +26,9 @@ Although WINI is designed with reference to wiki markup as mentioned above, it h
 
 Strong points of WINI include:
 
-* Easiness to learn: WINI grammar is similar to that of wiki markup. The grammer is very simple. Not only persons with experience of wiki typesetting, but everyone can find out usage easily.
-* HTML5 compatibility:  WINI is designed with a strong emphasis on affinity with HTML5 and easiness of complex HTML table construction. WINI is a useful system to produce modern and valid HTML5 texts quickly.
-           
+* High HTML5 compatibility:  WINI is designed with a strong emphasis on affinity with HTML5 and easiness of complex HTML table construction.
+* Original establishment of grammer, especially for table construction. 
+
 The script file wini.pm is a perl module supporting WINI markup. This script can also be used as a stand-alone perl script. Users easily can get HTML5 documents from WINI source texts, by using wini.pm as a filter command.
 
 ## スタートアップ / Start Up
