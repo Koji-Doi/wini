@@ -1,11 +1,12 @@
 #!/usr/bin/env perl
 =head1 NAME
 
-wini.pm - WIKI markup ni NIta nanika (Japanese: "Something like wiki markup")
+wini.pm - WIki markup ni NIta nanika (Japanese: "Something like wiki markup")
 
 =head1 SYNOPSIS
 
  use wini;
+
  my $htmltext = wini(<<'EOT');
  ! Large heading
  !! Middle heading
@@ -78,15 +79,15 @@ Strong points of WINI include:
 
 =back
 
-Today many people try to build and maintain blogs, wikipedia-like sites, etc. They produce or update a huge number of such pages daily within a time limit. For SEO, outputs should follow the valid html5 grammer. Complex data should be presented in complex HTML tables. Average writers must have a hard time to fulfill such requirements. WINI must be one of the best partners for all those people!
+Today many people try to build and maintain blogs, wikipedia-like sites, etc. They produce or update a huge number of such pages daily within a time limit. For SEO, outputs should follow the valid html5 grammer. Complex data should be presented in complex HTML tables. Average writers must have a hard time to fulfill such requirements. WINI will resque all those people!
 
 =head1 Options
 
 =over 4
 
-=item * -i INPUT    set input file name to INPUT. If the file named INPUT does not exists, wini.pm try to search INPUT.wini. If -i is not set, wini.pm takes data from standard input.
+=item * -i INPUT    set input file name to INPUT. If the file named 'INPUT' does not exists, wini.pm looks for 'INPUT.wini'. If -i is not set, wini.pm takes data from standard input.
 
-=item * -o OUTPUT   set output file name. If both -o and -i are omitted, wini.pm output data to standard output.
+=item * -o OUTPUT   set output file name. If both -o and -i are omitted, wini.pm outputs HTML-translated text to standard output.
 If -o is omitted and the input file name is 'input.wini', the output file will be 'input.wini.html'.
 Users can specify the output directory rather than the file. If -o value ends with 'output/', output file will be output/input.wini.html. if 'output/' does not exist, wini.pm will create it.
 
@@ -108,7 +109,10 @@ use Getopt::Long;
 my $scriptname = basename($0);
 my @save;
 
-if ($scriptname eq 'wini.pm' or $scriptname eq 'wini'){
+__PACKAGE__->stand_alone() if !caller() || caller() eq 'PAR';
+
+# Following function is executed when this script is called as stand-alone script
+sub stand_alone(){
   my($input, $output, $fhi, $fho, $test, $whole);
   GetOptions(
     "h|help" => sub {help()},
@@ -255,7 +259,8 @@ sub wini{
   } # foreach $t
 
   $r=~s/\x00i=(\d+)\x01/$save[$1]/ge;
-  (defined $opt->{whole}) and
+  if(defined $opt->{whole}){
+    my ($red, $green, $blue, $magenta, $purple, $yellow) = map {qq!rgb($_)!} ('213,94,0', '0,158,115', '0,114,178', '218,0,250', '204,121,167', '240,228,66');
     $r = <<"EOD";
 <!DOCTYPE html>
 <html lang="ja">
@@ -265,23 +270,27 @@ sub wini{
   table.winitable td, table.winitable th  {border: 1px black solid}
   table.winitable                         {border-collapse: collapse; border: 2px black solid;}
   ol, ul, dl                              {padding-left: 1em}
-  .b-r                                    {background-color: red;}
-  .b-g                                    {background-color: green;}
-  .b-b                                    {background-color: black;}
+  /* barrier free color codes: https://jfly.uni-koeln.de/html/manuals/pdf/color_blind.pdf */
+  .b-r                                    {background-color: $red;}
+  .b-g                                    {background-color: $green;}
+  .b-b                                    {background-color: $blue;}
   .b-w                                    {background-color: white;}
+  .b-b25                                  {background-color: #CCC;}
   .b-b50                                  {background-color: #888;}
-  .b-m                                    {background-color: magenta;}
-  .b-p                                    {background-color: purple;}
-  .f-r                                    {color: red;}
-  .f-g                                    {color: green;}
-  .f-b                                    {color: black;}
+  .b-b75                                  {background-color: #444;}
+  .b-b100                                 {background-color: #000;}
+  .b-m                                    {background-color: $magenta;}
+  .b-p                                    {background-color: $purple;}
+  .f-r                                    {color: $red;}
+  .f-g                                    {color: $green;}
+  .f-b                                    {color: $blue;}
   .f-w                                    {color: white;}
+  .f-b25                                  {color: #CCC;}
   .f-b50                                  {color: #888;}
-  .f-m                                    {color: magenta;}
-  .f-p                                    {color: purple;}
-  .a-l                                    {text-align: left;}
-  .a-r                                    {text-align: right;}
-  .a-c                                    {text-align: center;}
+  .f-b75                                  {color: #444;}
+  .f-b100                                 {color: #000;}
+  .f-m                                    {color: $magenta;}
+  .f-p                                    {color: $purple;}
  </style>
  <title>WINI test page</title>
  </head>
@@ -290,6 +299,7 @@ $r
  </body>
 </html>
 EOD
+  }
   return($r);
 }
 
@@ -354,7 +364,7 @@ sub save{ # pre, code, cite ...
     my %opts;
     foreach my $o (@opts){
       my($k,$v) = $o=~/(.*?)=(.*)/;
-      $opts{$k} = $v;
+      ($k) and $opts{$k} = $v;
     }
     ($opts{cite}) or $opts{cite} = 'http://example.com';
     return(<<"EOD");
@@ -369,7 +379,6 @@ EOD
   }
 }
 }
-
 
 # [[label|type|ja_name|en_name|ja_desc|en_desc|maxlen|minlen|maxval|minval|regexp|ncol|nrow]]
 sub readblank{
@@ -400,16 +409,37 @@ sub make_a{
   return(qq!<a href="$href">$b</a>!);
 }
 
+{
+my $table_no;
 sub make_table{
   my($in)=@_;
+  (defined $table_no) or $table_no=1;
   my $ln=0;
   my @winiitem;
   my @htmlitem;
-  foreach my $line (split(/\n/, $in)){
+  my $caption;
+
+  #get caption & table setting - remove '^|-' lines from $in
+  $in =~ s!(^\|-(.*$))\n!
+    $caption=$2; my($c, $o) = split(/ \|(?= |$)/, $caption, 2); # $caption=~s{[| ]*$}{};
+    while($o =~ /([^=\s]+)="([^"]*)"/g){
+      my($k,$v) = ($1,$2);
+      push(@{$htmlitem[0][0]{copt}{style}{$k}}, $v);
+    }
+    if($o=~/\&([lrcjse])/){
+      push(@{$htmlitem[0][0]{copt}{style}{'text-align'}}, 
+        {qw/l left r right c center j justify s start e end/}->{$1});
+    }
+
+    $caption=wini($c, {para=>'nb', nocr=>1});
+  ''!emg;
+
+  my @lines = split(/\n/, $in);
+  foreach my $line (@lines){
     $line=~s/[\n\r]*//g;
     ($line eq '') and next;
     $ln++;
-    my @cols = split(/( *\|\S*)/, $line); # $cols[0] is always undef. so delete.
+    my @cols = split(/((?:^| +)\|\S*)/, $line); # $cols[0] is always undef. so delete.
     # standardize
     $cols[-1]=~/^\s+$/  and delete $cols[-1];
     $cols[-1]!~/^\s*\|/ and push(@cols, '|');
@@ -420,7 +450,9 @@ sub make_table{
     }
   }
   
+  my @rowlen;
   for($ln=$#winiitem; $ln>=1; $ln--){
+    $rowlen[$ln]=0;
     if($winiitem[$ln][1]=~/\^\^/ and $ln>1){ # row merge
       for(my $i=2; $i<=$#{$winiitem[$ln]}; $i+=2){
         $winiitem[$ln-1][$i] .= "\n".$winiitem[$ln][$i]; # copy to upper winiitem
@@ -430,6 +462,7 @@ sub make_table{
     }
     my $colspan=0;
     my $val='';
+
     for(my $cn=$#{$winiitem[$ln]}; $cn>=0; $cn--){
       my $col   = $winiitem[$ln][$cn];
       my $col_n = $cn/2+1;
@@ -485,10 +518,32 @@ sub make_table{
                        :($m==3)?(  0, $col_n)  # for all cells in the target col
                        :($m==2)?($ln, 0)       # for all cells in the target row
                        :        ($ln, $col_n); # for target cell
-            push(@{$htmlitem[$r][$c]{copt}{style}}, sprintf("border-$k: %s;", $btype{$k}));
+            push(@{$htmlitem[$r][$c]{copt}{style}{"border-$k"}}, $btype{$k});
           }
         } # while border
 
+        if($col=~/(&{1,2})([lrcjsetmb])/){ # text-align
+          my($a,$b)=($1,$2);
+          my $h = ($b=~/l/)?'left'
+                 :($b=~/r/)?'right'
+                 :($b=~/c/)?'center'
+                 :($b=~/j/)?'justify'
+                 :($b=~/s/)?'start'
+                 :($b=~/e/)?'end':undef;
+          (defined $h) and push(@{$htmlitem[$ln][($a eq '&&')?0:$col_n]{copt}{style}{'text-align'}}, $h);
+          my $v = ($b=~/t/)?'top'
+              :($b=~/m/)?'middle'
+              :($b=~/b/)?'bottom':undef;
+          (defined $v) and push(@{$htmlitem[$ln][($a eq '&&')?0:$col_n]{copt}{style}{'vertical-align'}}, $v);
+        }
+        while($col=~/(%{1,2})(\d+)/g){ # height/width
+          my($a,$b)=($1,$2);
+          if($a eq '%%'){ # height -> tr and table
+            push(@{$htmlitem[$ln][0]{copt}{style}{height}}, "$b%");
+          }else{ # width -> td and table
+            push(@{$htmlitem[$ln][$col_n]{copt}{style}{width}}, "$b%");
+          }
+        }
         $htmlitem[$ln][$col_n]{val}  = $val;
       }else{ # value
         $val = $col;
@@ -502,36 +557,63 @@ sub make_table{
       $cell->{wini} =~ s/\t *//g;
       $cell->{wini} =~ s/[ \n]+/ /g;
       $htmlitem[$ln][$i] = $cell; # $htmlitem[$ln][0]: data for row (tr)
+      $rowlen[$ln] += (defined $htmlitem[$ln][$i]{wini})?(length($htmlitem[$ln][$i]{wini})):0;
     }
   } # for $ln
+
   for(my $i=1; $i<=$#{$htmlitem[1]}; $i++){ # set colclass to cells
     map {
       (defined $htmlitem[0][$i]{copt}{class}) and push(@{$htmlitem[$_][$i]{copt}{class}}, @{$htmlitem[0][$i]{copt}{class}}) 
     }1..$#htmlitem;
   }
 
-  my $outtxt = qq!<table class="winitable"!;
-  (defined $htmlitem[0][0]{copt}{style}[0]) and $outtxt .= q{ style="} . join(' ', @{$htmlitem[0][0]{copt}{style}}) .'"' ;
+  (defined $htmlitem[0][0]{copt}{style}{height}[0]) 
+        or $htmlitem[0][0]{copt}{style}{height}[0] = sprintf("%drem", (scalar @lines)*2);
+  (defined $htmlitem[0][0]{copt}{style}{width}[0]) 
+        or $htmlitem[0][0]{copt}{style}{width}[0] = sprintf("%drem", ((sort @rowlen)[-1])*2);
+
+  # make html
+  my $outtxt = qq!<table id="winitable${table_no}" class="winitable"!;
+  if(defined $htmlitem[0][0]{copt}{style}){ # table style
+    $outtxt .= q{ style="};
+    foreach my $k (keys %{$htmlitem[0][0]{copt}{style}}){
+      $outtxt .= sprintf("$k:%s; ", join(' ', @{$htmlitem[0][0]{copt}{style}{$k}}));
+    }
+    $outtxt .= q{"};
+  }
   $outtxt .= ">\n";
+  (defined $caption) and $outtxt .= "<caption>$caption</caption>\n";
   for(my $rn=1; $rn<=$#htmlitem; $rn++){
     ($htmlitem[$rn][0] eq '^^') and next;
 
-    $outtxt .= '<tr' .
-      join('', map{ qq! $_="! . join(' ', @{$htmlitem[$rn][0]{copt}{$_}}) . '"' } (keys %{$htmlitem[$rn][0]{copt}}));
-    #foreach my $k (keys %{$htmlitem[$rn][0]{copt}}){
-    #  $htmlitemtxt .= qq{ $k="} . join(' ', @{$htmlitem[$rn][0]{copt}{$k}}) . qq{"};
-    #}
-    $outtxt .= '>';
+    my $ropt = '';
+    if(defined $htmlitem[$rn][0]{copt}{style}){
+      $ropt .= ' style="' . 
+       join(' ', map{ sprintf("$_:%s;", join(' ', @{$htmlitem[$rn][0]{copt}{style}{$_}})) } (keys %{$htmlitem[$rn][0]{copt}{style}})) . '"';
+    }
+    if(defined $htmlitem[$rn][0]{copt}{class}[0]){
+      $ropt .= q{ class="} . join(' ',  @{$htmlitem[$rn][0]{copt}{class}}) . q{"};
+    }
+    $outtxt .= qq!<tr$ropt>!;
     $outtxt .= join("", 
       map { # for each cell ($_: col No.)
         if((defined $htmlitem[$rn][$_]{copt}{rowspan} and $htmlitem[$rn][$_]{copt}{rowspan}<=1) or (defined $htmlitem[$rn][$_]{copt}{colspan} and $htmlitem[$rn][$_]{copt}{colspan}<=1)){
           '';
         }else{
           my $copt = '';
-          foreach my $c (qw/class colspan rowspan style/){
+          foreach my $c (qw/class colspan rowspan/){
             (defined $htmlitem[$rn][$_]{copt}{$c}) and
               $copt .= sprintf(qq{ $c="%s"},
-                         (ref $htmlitem[$rn][$_]{copt}{$c} eq 'ARRAY') ? join(' ', @{$htmlitem[$rn][$_]{copt}{$c}}) : $htmlitem[$rn][$_]{copt}{$c});
+                         (ref $htmlitem[$rn][$_]{copt}{$c} eq 'ARRAY') 
+                           ? join(' ', @{$htmlitem[$rn][$_]{copt}{$c}}) 
+                           : $htmlitem[$rn][$_]{copt}{$c});
+          }
+          if(defined $htmlitem[$rn][$_]{copt}{style}){
+            $copt .= q! style="!;
+            foreach my $c (keys %{$htmlitem[$rn][$_]{copt}{style}}){
+              $copt .= sprintf("$c:%s;", join(' ', @{$htmlitem[$rn][$_]{copt}{style}{$c}}));
+            }
+            $copt .= q!"!;
           }
           my $ctag = (
             ($htmlitem[$rn][$_]{ctag} eq 'th') or 
@@ -547,6 +629,9 @@ sub make_table{
   $outtxt .= "</table>\n";
   $outtxt=~s/\t+/ /g; # tab is separator of cells vertically unified
   return("\n$outtxt\n");
+
 }
+
+} # table env
 
 1;
