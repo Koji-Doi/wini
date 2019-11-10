@@ -118,12 +118,12 @@ __PACKAGE__->stand_alone() if !caller() || caller() eq 'PAR';
 sub stand_alone(){
   my($input, $output, $fhi, $fho, $test, $whole);
   GetOptions(
-    "h|help" => sub {help()},
+    "h|help"    => sub {help()},
     "v|version" => sub {print STDERR "wini.pm Version $version\n"; exit()},
-    "i=s"    => \$input,
-    "o=s"    => \$output,
-    "t"      => \$test,
-    "whole"  => \$whole
+    "i=s"       => \$input,
+    "o=s"       => \$output,
+    "t"         => \$test,
+    "whole"     => \$whole
   );
   ($test) and ($input, $output)=("test.wini", "test.html");
   if ($input) {
@@ -188,7 +188,7 @@ sub wini{
   $t0 =~ s/{{r}}/&#x7d;/g;   # }
 
   # pre, code, citation, ...
-  $t0 =~ s/{{(pre|code|q(?: [^|]+)?)\|(.*?)}}/&save($1,$2)/esmg;  
+  $t0 =~ s/{{(pre|code|q(?: [^|]+?)?)}}(.+?){{end}}/&save($1,$2)/esmg;  
 
   # conv table to html
   $t0 =~ s/(^\s*\|.*?)[\n\r]+(?!\|)/make_table($1)/esmg;
@@ -212,7 +212,7 @@ sub wini{
         $t =~ s!{{b\|([^{}]*?)}}!<span style="font-weight:bold;">$1</span>!g or
         $t =~ s!{{u\|([^{}]*?)}}!<span style="border-bottom: solid 1px;">$1</span>!g or
         $t =~ s!{{s\|([^{}]*?)}}!<span style="text-decoration: line-through;">$1</span>!g or
-        $t =~ s!{{([-_/*]+[-_/* ]*)\|([^{}]*?)}}!xtags($1,$2)!eg or
+        $t =~ s!{{([-_/*]+[-_/* ]*)\|([^{}]*?)}}!macro($1,$2)!eg or
         $t =~ s!\[(.*?)\]!make_a($1, $baseurl)!eg
       ) or last; # no subst need, then escape inner loop
     } # loop while subst needed
@@ -307,7 +307,7 @@ EOD
   return($r);
 }
 
-sub xtags{
+sub macro{
   # {{/*_-|text}}
   my($tag0, $text)=@_;
   my @styles;
@@ -335,9 +335,7 @@ sub readpars{
     }
   }
   foreach my $k (@list){
-    if(exists $pars{$k}){
-      
-    }else{
+    if(not exists $pars{$k}){
       my $x = shift(@pars);
       $pars{$k}=$x;
     }
@@ -395,22 +393,16 @@ sub readblank{
 # [xxxx] -> <a href="www">...</a>
 sub make_a{
   my($t, $baseurl)=@_;
-  my($a, $b)               = $t=~/\s*([!#]*".*?")\s+(.*)/;
-  (defined $a) or ($a, $b) = $t=~/(\S*)(?:\s+(.*))?/;
-  $a=~s/"//g;
-  $b = escape($b);
-  my $href;
-  if($a =~ m!https?://!){
-    $href = $a;
-  }elsif($a =~ /^[\d_]+$/){
-    $href = "$baseurl?aid=$a";
-  }elsif(my($img) = $a=~/^!(.*)/){
-    return(qq!<img src="$img" alt="$b">!);
+  my($prefix, $url, $text)         = $t=~/^\s*([!#])?"(.*)"(?:\s+(.*))?/;
+  ($url) or ($prefix, $url, $text) = $t=~/^\s*([!#])?(\S*)(?:\s+(.*))?/;
+  $text = escape($text) || $url;
+  if($prefix eq '!'){
+    return(qq!<img src="$url" alt="$text">!);
+  }elsif($url=~/^[\d_]+$/){
+    return(qq!<a href="$baseurl?aid=$url">$text</a>!);
   }else{
-    $href = $a;
+    return(qq!<a href="$url">$text</a>!);
   }
-  ($b eq '') and $b=$a;
-  return(qq!<a href="$href">$b</a>!);
 }
 
 {
