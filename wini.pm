@@ -213,6 +213,14 @@ sub wini{
         $t =~ s!{{u\|([^{}]*?)}}!<span style="border-bottom: solid 1px;">$1</span>!g or
         $t =~ s!{{s\|([^{}]*?)}}!<span style="text-decoration: line-through;">$1</span>!g or
         $t =~ s!{{([-_/*]+[-_/* ]*)\|([^{}]*?)}}!macro($1,$2)!eg or
+        $t =~ s!{{([.#][^{}|]+)\|([^{}]*?)}}!
+          my($a,$b,  @c)=($1,$2);
+          push(my(@class), $a=~/\.([^.#]+)/g);
+          push(my(@id),    $a=~/#([^.#]+)/g);
+          (defined $class[0]) and push(@c, q{class="}.join(" ", @class).q{"});
+          (defined $id[0])    and push(@c, q{id="}   .join(" ", @id)   .q{"});
+          $_ = "<span " . join(" ", @c) . ">$b</span>"; 
+        !eg or
         $t =~ s!\[(.*?)\]!make_a($1, $baseurl)!eg
       ) or last; # no subst need, then escape inner loop
     } # loop while subst needed
@@ -314,7 +322,7 @@ sub macro{
   my $r;
   my $strong=0;
   while($tag0=~/(\*+)/g){
-    (length($1)>1) ? $strong++ : push(@styles, 'font-weight:bold;');
+    (length($1)>1) ? ($strong=length($1)-1) : push(@styles, 'font-weight:bold;');
   }
   ($tag0=~/_/)  and push(@styles, 'border-bottom: solid 1px;');
   ($tag0=~/-/)  and push(@styles, 'text-decoration: line-through;');
@@ -415,11 +423,13 @@ sub make_table{
   my @htmlitem;
   my $caption;
 
+  push(@{$htmlitem[0][0]{copt}{class}}, 'winitable');
   #get caption & table setting - remove '^|-' lines from $in
   $in =~ s!(^\|-(.*$))\n!
     $caption=$2; my($c, $o) = split(/ \|(?= |$)/, $caption, 2); # $caption=~s{[| ]*$}{};
     while($o =~ /([^=\s]+)="([^"]*)"/g){
       my($k,$v) = ($1,$2);
+      ($k eq 'class') and push(@{$htmlitem[0][0]{copt}{class}}, $v), next;
       push(@{$htmlitem[0][0]{copt}{style}{$k}}, $v);
     }
     if($o=~/\&([lrcjse])/){
@@ -569,7 +579,7 @@ sub make_table{
         or $htmlitem[0][0]{copt}{style}{width}[0] = sprintf("%drem", ((sort @rowlen)[-1])*2);
 
   # make html
-  my $outtxt = qq!<table id="winitable${table_no}" class="winitable"!;
+  my $outtxt = qq!<table id="winitable${table_no}" class="! . join(' ', @{$htmlitem[0][0]{copt}{class}}) . '"';
   if(defined $htmlitem[0][0]{copt}{style}){ # table style
     $outtxt .= q{ style="};
     foreach my $k (keys %{$htmlitem[0][0]{copt}{style}}){
