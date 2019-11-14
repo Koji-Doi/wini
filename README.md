@@ -22,9 +22,13 @@ WINI is a new markup language designed with reference to wiki markup. Thus, WINI
 
 The script file wini.pm is a perl module supporting WINI markup. This script can also be used as a stand-alone perl script. Users easily can get HTML5 documents from WINI source texts, by using wini.pm as a filter command.
 
-Although WINI is designed with reference to wiki markup as mentioned above, it has several strong points in comparison with wiki markup and other existing markup languages.
+WINI is designed with reference to wiki markup as mentioned above, and thus several strong points are inherited from existing markup languages. 
 
-Strong points of WINI include:
+* Readers can grip the contents  intuitively, even if they are not familiar with WINI grammer.
+* WINI grammer is simple and easy to learn by visual analogy.
+* Type setting can be easily achieved by insertion of simple markup characters into plain text.
+
+At the same time WINI has some  strong points such as:
 
 * High HTML5 compatibility:  WINI is designed with a strong emphasis on affinity with HTML5 and easiness of complex HTML table construction.
 * Original establishment of grammer, especially for table construction. 
@@ -40,3 +44,12 @@ The script file wini.pm is a perl module supporting WINI markup. This script can
 0. perl.pmの詳しい使い方については`perl wini.pm -h`で表示されるヘルプを参照してほしい。
 0. 必要に応じてperl.pmをperlのライブラリモジュールを格納しているディレクトリにコピーする。これで自作スクリプト中で`use wini;`することによりwini変換関数が利用できるようになる。
 0. winiマークアップの文法についてはwini-j.mdまたはwini.mdを参照してほしい。(In preparation)
+
+## Start up
+
+1. Prepare the environment where perl 5.8.0 or later can be used.
+0. Download this registry, and extend (unzip) files in an appropriate directory.
+0. Try `perl wini.pm < test.wini > out.html`. If the result out.html is the same as test.html in the registry, it is ready to start wini operating. 
+0. Try `perl wini.pm -h` to find out detailed usage of wini.pm.
+0. If necessary, copy wini.pm to the directory listed in @INC to use wini.pm as a module file.  WINI translation functions in wini.pm will be available in perl scripts, by adding `use wini;`.
+0. Refer wini.md to find out the detailed grammar of WINI. (In preparation)
