@@ -37,7 +37,7 @@ The script file wini.pm is a perl module supporting WINI markup. This script can
 
 ## スタートアップ / Start Up
 
-0. 何はともあれ、perl5.8.0以上が使える環境を用意する。winiを実装したwini.pmは、perl本体とperlの標準モジュールがあれば利用できる。
+0. 何はともあれ、perl5.8.1以上が使える環境を用意する。winiを実装したwini.pmは、perl本体とperlの標準モジュールがあれば利用できる。
 0. 次に当レポジトリをダウンロードして適当なディレクトリに展開する。
 0. 上記ディレクトリ内で、`perl wini.pm < test.wini > out.html`を実行する。
 0. test.htmlと同一内容のout.htmlができていれば、ひとまずperlの設定に問題は無いだろう。
