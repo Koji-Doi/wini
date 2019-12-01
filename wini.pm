@@ -8,9 +8,9 @@ wini.pm - WIki markup ni NIta nanika (Japanese: "Something like wiki markup")
  use wini;
 
  my $htmltext = wini(<<'EOT');
- ! Large heading
- !! Middle heading
- !!! Small heading
+ ! Large header
+ !! Middle header
+ !!! Small header
 
  * list item 1
  ** nested list item 1-1
@@ -109,7 +109,7 @@ use Pod::Usage;
 use Getopt::Long;
 
 my $scriptname = basename($0);
-my $version    = "0 rel. 191109";
+my $version    = "0 rel. 191202";
 my @save;
 
 __PACKAGE__->stand_alone() if !caller() || caller() eq 'PAR';
@@ -201,9 +201,10 @@ sub wini{
     my $lastlistdepth=0;
     my $ptype; # type of each paragraph (list, header, normal paragraph, etc.)
     while(1){ # loop while subst needed
-      if(my($x,$cont) = $t=~/^(!+)\s*(.*)$/m){ # !!!...
-        my $tag0 = length($x)+2; ($tag0>5) and $tag0="5";
-        $t=~s#^(!+)\s*(.*)$#<h${tag0}${myclass}>$2</h${tag0}>#m;
+      if(my($x,$id,$cont) = $t=~/^(!+)([-\w]*)\s*(.*)$/m){ # !!!...
+        ($id) and $id=qq{ id="$id"};
+        my $tag0 = length($x); ($tag0>5) and $tag0="5";
+        $t=~s#^(!+)\s*(.*)$#<h${tag0}${myclass}${id}>$cont</h${tag0}>#m;
         $ptype = 'header';
       }
       (
@@ -212,7 +213,8 @@ sub wini{
         $t =~ s!{{b\|([^{}]*?)}}!<span style="font-weight:bold;">$1</span>!g or
         $t =~ s!{{u\|([^{}]*?)}}!<span style="border-bottom: solid 1px;">$1</span>!g or
         $t =~ s!{{s\|([^{}]*?)}}!<span style="text-decoration: line-through;">$1</span>!g or
-        $t =~ s!{{([-_/*]+[-_/* ]*)\|([^{}]*?)}}!macro($1,$2)!eg or
+        $t =~ s!{{ruby\|([^{}]*?)}}!ruby($1)!eg or
+        $t =~ s!{{([-_/*]+[-_/* ]*)\|([^{}]*?)}}!symmacro($1,$2)!eg or
         $t =~ s!{{([.#][^{}|]+)\|([^{}]*?)}}!
           my($a,$b,  @c)=($1,$2);
           push(my(@class), $a=~/\.([^.#]+)/g);
@@ -279,30 +281,30 @@ sub wini{
  <head>
  <meta charset="UTF-8">
  <style>
-  table.winitable td, table.winitable th  {border: 1px black solid}
-  table.winitable                         {border-collapse: collapse; border: 2px black solid;}
+  table.winitable                         {border-collapse: collapse; border: black solid;}
   ol, ul, dl                              {padding-left: 1em}
+
   /* barrier free color codes: https://jfly.uni-koeln.de/html/manuals/pdf/color_blind.pdf */
-  .b-r                                    {background-color: $red;}
-  .b-g                                    {background-color: $green;}
-  .b-b                                    {background-color: $blue;}
+  .b-r                                    {background-color: rgb(213,94,0);}  /* red */
+  .b-g                                    {background-color: rgb(0,158,115);} /* green */
+  .b-b                                    {background-color: rgb(0,114,178);} /* blue */
   .b-w                                    {background-color: white;}
   .b-b25                                  {background-color: #CCC;}
   .b-b50                                  {background-color: #888;}
   .b-b75                                  {background-color: #444;}
   .b-b100                                 {background-color: #000;}
-  .b-m                                    {background-color: $magenta;}
-  .b-p                                    {background-color: $purple;}
-  .f-r                                    {color: $red;}
-  .f-g                                    {color: $green;}
-  .f-b                                    {color: $blue;}
-  .f-w                                    {color: white;}
-  .f-b25                                  {color: #CCC;}
-  .f-b50                                  {color: #888;}
-  .f-b75                                  {color: #444;}
-  .f-b100                                 {color: #000;}
-  .f-m                                    {color: $magenta;}
-  .f-p                                    {color: $purple;}
+  .b-m                                    {background-color: rgb(218,0,250);}
+  .b-p                                    {background-color: rgb(204,121,167);}
+  .f-r                                    {color: rgb(213,94,0);    border-color: black;} /* red */
+  .f-g                                    {color: rgb(0,158,115);   border-color: black;} /* green */
+  .f-b                                    {color: rgb(0,114,178);   border-color: black;} /* blue */
+  .f-w                                    {color: white;            border-color: black;}
+  .f-b25                                  {color: #CCC;             border-color: black;}
+  .f-b50                                  {color: #888;             border-color: black;}
+  .f-b75                                  {color: #444;             border-color: black;}
+  .f-b100                                 {color: #000;             border-color: black;}
+  .f-m                                    {color: rgb(218,0,250);   border-color: black;} /* magenta */
+  .f-p                                    {color: rgb(204,121,167); border-color: black;} /* purple */
  </style>
  <title>WINI test page</title>
  </head>
@@ -315,7 +317,7 @@ EOD
   return($r);
 }
 
-sub macro{
+sub symmacro{
   # {{/*_-|text}}
   my($tag0, $text)=@_;
   my @styles;
@@ -402,7 +404,7 @@ sub readblank{
 sub make_a{
   my($t, $baseurl)=@_;
   my($prefix, $url, $text)         = $t=~/^\s*([!#])?"(.*)"(?:\s+(.*))?/;
-  ($url) or ($prefix, $url, $text) = $t=~/^\s*([!#])?(\S*)(?:\s+(.*))?/;
+  ($url) or ($prefix, $url, $text) = $t=~/^\s*([!])?(\S*)(?:\s+(.*))?/;
   $text = escape($text) || $url;
   if($prefix eq '!'){
     return(qq!<img src="$url" alt="$text">!);
@@ -411,6 +413,12 @@ sub make_a{
   }else{
     return(qq!<a href="$url">$text</a>!);
   }
+}
+
+sub ruby{
+  my($x) = @_; # text1|ruby1|text2|ruby2 ...
+  my @txt = split(/\|/, $x);
+  return('<ruby>' . join("", map {my $a=$_*2; "$txt[$a]<rp>(</rp><rt>$txt[$a+1]</rt><rp>)</rp>"} (0..$#txt/2)) . '</ruby>');
 }
 
 {
@@ -425,20 +433,36 @@ sub make_table{
 
   push(@{$htmlitem[0][0]{copt}{class}}, 'winitable');
   #get caption & table setting - remove '^|-' lines from $in
-  $in =~ s!(^\|-(.*$))\n!
+  $in =~ s&(^\|-(.*$))\n&
     $caption=$2; my($c, $o) = split(/ \|(?= |$)/, $caption, 2); # $caption=~s{[| ]*$}{};
     while($o =~ /([^=\s]+)="([^"]*)"/g){
       my($k,$v) = ($1,$2);
-      ($k eq 'class') and push(@{$htmlitem[0][0]{copt}{class}}, $v), next;
+      ($k eq 'class')  and push(@{$htmlitem[0][0]{copt}{class}}, $v), next;
+      ($k eq 'border') and $htmlitem[0][0]{copt}{border}=$v         , next;
       push(@{$htmlitem[0][0]{copt}{style}{$k}}, $v);
     }
-    if($o=~/\&([lrcjse])/){
-      push(@{$htmlitem[0][0]{copt}{style}{'text-align'}}, 
-        {qw/l left r right c center j justify s start e end/}->{$1});
+    while($o=~/\.([-\w]+)/g){
+      push(@{$htmlitem[0][0]{copt}{class}}, $1);
     }
-
+    while($o=~/#([-\w]+)/g){
+      push(@{$htmlitem[0][0]{copt}{id}}, $1);
+    }
+    while($o=~/\&([lrcjsebtm]+)/g){
+      my $h = {qw/l left r right c center j justify s start e end/}->{$1};
+      (defined $h) and push(@{$htmlitem[0][0]{copt}{style}{'text-align'}}, $h);
+      my $v = {qw/t top m middle b bottom/}->{$1};
+      (defined $v) and push(@{$htmlitem[0][0]{copt}{style}{'vertical-align'}}, $v);
+    }
+    if($o=~/(?<!\w)([][_~@=])+(\d+)?/){
+      my($a,$b) = ($1, $2);
+      ($a=~/\@/)    and $htmlitem[0][0]{copt}{style}{border}[0] = $b;      
+      ($a=~/[[@]/)  and $htmlitem[0][0]{copt}{style}{border}[3] = $b;      
+      ($a=~/[]@]/)  and $htmlitem[0][0]{copt}{style}{border}[2] = $b;      
+      ($a=~/[_@=]/) and $htmlitem[0][0]{copt}{style}{border}[4] = $b;      
+      ($a=~/[~@=]/) and $htmlitem[0][0]{copt}{style}{border}[1] = $b;      
+    }
     $caption=wini($c, {para=>'nb', nocr=>1});
-  ''!emg;
+  ''&emg;
 
   my @lines = split(/\n/, $in);
   foreach my $line (@lines){
@@ -454,7 +478,7 @@ sub make_table{
       $cols[$cn]=~s/\s*$//;
       $winiitem[$ln][$cn] = $cols[$cn];
     }
-  }
+  } # foreach @lines
   
   my @rowlen;
   for($ln=$#winiitem; $ln>=1; $ln--){
@@ -472,7 +496,7 @@ sub make_table{
     for(my $cn=$#{$winiitem[$ln]}; $cn>=0; $cn--){
       my $col   = $winiitem[$ln][$cn];
       my $col_n = $cn/2+1;
-      if($cn%2==1){ # border
+      if($cn%2==1){ # separator
         $col = substr($col,1); # remove the first '|'
         #$ctag = ($col=~/\bh\b/)?'th':'td';
         $htmlitem[$ln][$col_n]{ctag} = 'td';
@@ -481,7 +505,7 @@ sub make_table{
         $col=~s/\.\.([^.]+)/    unshift(@{$htmlitem[$ln][     0]{copt}{class}}, $1), ''/eg;
         $col=~s/\.([^.]+)/      unshift(@{$htmlitem[$ln][$col_n]{copt}{class}}, $1), ''/eg;
         while($col=~/(?<!!)(!+)(?!!)/g){
-          my $h=$1;
+          my($h) = $1;
           if(length($h) == 1){ # cell
             $htmlitem[$ln][$col_n]{ctag} = 'th';
           }elsif(length($h) == 2){ # row
@@ -489,7 +513,7 @@ sub make_table{
           }elsif(length($h) == 3){ #col
             $htmlitem[0][$col_n]{ctag} = 'th';            
           }
-        }
+        } # header
 
         if($col=~/-/){ # colspan
           $colspan++;
@@ -503,14 +527,14 @@ sub make_table{
           next;
         }elsif($colspan>0){
           $colspan=0;
-        }
+        } # colspan
 
         if($col=~/\^/){ # rowspan
           $winiitem[$ln-1][$cn+1] .= "\n" . $winiitem[$ln][$cn+1]; # merge data block to upper row 
           (defined $htmlitem[$ln][$col_n]{copt}{rowspan}) or $htmlitem[$ln][$col_n]{copt}{rowspan} = 1;
           $htmlitem[$ln-1][$col_n]{copt}{rowspan} = $htmlitem[$ln][$col_n]{copt}{rowspan}+1;
           next;
-        }
+        } # rowspan
 
         while($col=~/(([][_~=@|])(?:\2*))(\d*)/g){ # border setting
           my($m, $btype, $n) = (length($1), $2, sprintf("solid %dpx",($3 ne '')?$3:1));
@@ -528,26 +552,19 @@ sub make_table{
           }
         } # while border
 
-        if($col=~/(&{1,2})([lrcjsetmb])/){ # text-align
+        while($col=~/(&{1,2})([lrcjsetmb])/g){ # text-align
           my($a,$b)=($1,$2);
-          my $h = ($b=~/l/)?'left'
-                 :($b=~/r/)?'right'
-                 :($b=~/c/)?'center'
-                 :($b=~/j/)?'justify'
-                 :($b=~/s/)?'start'
-                 :($b=~/e/)?'end':undef;
+          my $h = {qw/l left r right c center j justify s start e end/}->{$b};
           (defined $h) and push(@{$htmlitem[$ln][($a eq '&&')?0:$col_n]{copt}{style}{'text-align'}}, $h);
-          my $v = ($b=~/t/)?'top'
-              :($b=~/m/)?'middle'
-              :($b=~/b/)?'bottom':undef;
+          my $v = {qw/t top m middle b bottom/}->{$b};
           (defined $v) and push(@{$htmlitem[$ln][($a eq '&&')?0:$col_n]{copt}{style}{'vertical-align'}}, $v);
-        }
-        while($col=~/(%{1,2})(\d+)/g){ # height/width
+        } # text align
+        while($col=~/(\${1,2})(\d+)/g){ # height/width
           my($a,$b)=($1,$2);
-          if($a eq '%%'){ # height -> tr and table
-            push(@{$htmlitem[$ln][0]{copt}{style}{height}}, "$b%");
+          if($a eq '$$'){ # height -> tr and table
+            push(@{$htmlitem[$ln][0]{copt}{style}{height}}, "${b}px");
           }else{ # width -> td and table
-            push(@{$htmlitem[$ln][$col_n]{copt}{style}{width}}, "$b%");
+            push(@{$htmlitem[$ln][$col_n]{copt}{style}{width}}, "${b}px");
           }
         }
         $htmlitem[$ln][$col_n]{val}  = $val;
@@ -579,15 +596,25 @@ sub make_table{
         or $htmlitem[0][0]{copt}{style}{width}[0] = sprintf("%drem", ((sort @rowlen)[-1])*2);
 
   # make html
-  my $outtxt = qq!<table id="winitable${table_no}" class="! . join(' ', @{$htmlitem[0][0]{copt}{class}}) . '"';
-  if(defined $htmlitem[0][0]{copt}{style}){ # table style
-    $outtxt .= q{ style="};
-    foreach my $k (keys %{$htmlitem[0][0]{copt}{style}}){
-      $outtxt .= sprintf("$k:%s; ", join(' ', @{$htmlitem[0][0]{copt}{style}{$k}}));
-    }
-    $outtxt .= q{"};
+  unshift(@{$htmlitem[0][0]{copt}{id}}, "winitable${table_no}");
+  my $outtxt = sprintf(qq!<table id="%s", class="%s"!, join(' ', @{$htmlitem[0][0]{copt}{id}}), join(' ', @{$htmlitem[0][0]{copt}{class}}));
+  if(defined $htmlitem[0][0]{copt}{border}){
+    $outtxt .= ' border="1"';
   }
-  $outtxt .= ">\n";
+  $outtxt .= q{ style="border-collapse: collapse; };
+  (defined $htmlitem[0][0]{copt}{border}) and $outtxt .= sprintf("border: solid %dpx; ", $htmlitem[0][0]{copt}{border});
+  foreach my $k (grep {/border/} keys %{$htmlitem[0][0]{copt}{style}}){
+    
+  }
+  (defined $htmlitem[0][0]{copt}{style}{border}[1]) and $outtxt .= "border-top: $htmlitem[0][0]{copt}{style}{border}[1]px; ";
+  (defined $htmlitem[0][0]{copt}{style}{border}[2]) and $outtxt .= "border-right: $htmlitem[0][0]{copt}{style}{border}[2]px; ";
+  (defined $htmlitem[0][0]{copt}{style}{border}[3]) and $outtxt .= "border-left: $htmlitem[0][0]{copt}{style}{border}[3]px; ";
+  (defined $htmlitem[0][0]{copt}{style}{border}[4]) and $outtxt .= "border-bottom: $htmlitem[0][0]{copt}{style}{border}[4]px; ";
+  foreach my $k (grep {$_ ne 'border'} keys %{$htmlitem[0][0]{copt}{style}}){
+    $outtxt .= sprintf("$k: %s; ", join(' ', @{$htmlitem[0][0]{copt}{style}{$k}}));
+  }
+
+  $outtxt .= qq{">\n};
   (defined $caption) and $outtxt .= "<caption>$caption</caption>\n";
   for(my $rn=1; $rn<=$#htmlitem; $rn++){
     ($htmlitem[$rn][0] eq '^^') and next;
