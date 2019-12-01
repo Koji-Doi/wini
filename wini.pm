@@ -401,18 +401,22 @@ sub readblank{
 }
 
 # [xxxx] -> <a href="www">...</a>
+{
+my $img_no=0;
 sub make_a{
   my($t, $baseurl)=@_;
   my($prefix, $url, $text)         = $t=~/^\s*([!#])?"(.*)"(?:\s+(.*))?/;
   ($url) or ($prefix, $url, $text) = $t=~/^\s*([!])?(\S*)(?:\s+(.*))?/;
   $text = escape($text) || $url;
   if($prefix eq '!'){
-    return(qq!<img src="$url" alt="$text">!);
+    $img_no++;
+    return(qq!<img src="$url" id="image${img_no}" alt="$text">!);
   }elsif($url=~/^[\d_]+$/){
     return(qq!<a href="$baseurl?aid=$url">$text</a>!);
   }else{
     return(qq!<a href="$url">$text</a>!);
   }
+}
 }
 
 sub ruby{
