@@ -183,12 +183,12 @@ sub wini{
   my $para              = 'p'; # p or br or none
   (defined $opt->{para}) and $para = $opt->{para};
 
-  $t0 =~ s/{{l}}/&#x7b;/g;   # {
-  $t0 =~ s/{{bar}}/&#x7c;/g; # |
-  $t0 =~ s/{{r}}/&#x7d;/g;   # }
+  $t0 =~ s/\{\{l}}/&#x7b;/g;   # {
+  $t0 =~ s/\{\{bar}}/&#x7c;/g; # |
+  $t0 =~ s/\{\{r}}/&#x7d;/g;   # }
 
   # pre, code, citation, ...
-  $t0 =~ s/{{(pre|code|q(?: [^|]+?)?)}}(.+?){{end}}/&save($1,$2)/esmg;  
+  $t0 =~ s/\{\{(pre|code|q(?: [^|]+?)?)}}(.+?)\{\{end}}/&save($1,$2)/esmg;  
 
   # conv table to html
   $t0 =~ s/(^\s*\|.*?)[\n\r]+(?!\|)/make_table($1)/esmg;
@@ -208,14 +208,14 @@ sub wini{
         $ptype = 'header';
       }
       (
-        $t =~ s!{{([IBUS])\|([^{}]*?)}}!{my $x=lc $1; "<$x>$2</$x>"}!esg or
-        $t =~ s!{{i\|([^{}]*?)}}!<span style="font-style:italic;">$1</span>!g or
-        $t =~ s!{{b\|([^{}]*?)}}!<span style="font-weight:bold;">$1</span>!g or
-        $t =~ s!{{u\|([^{}]*?)}}!<span style="border-bottom: solid 1px;">$1</span>!g or
-        $t =~ s!{{s\|([^{}]*?)}}!<span style="text-decoration: line-through;">$1</span>!g or
-        $t =~ s!{{ruby\|([^{}]*?)}}!ruby($1)!eg or
-        $t =~ s!{{([-_/*]+[-_/* ]*)\|([^{}]*?)}}!symmacro($1,$2)!eg or
-        $t =~ s!{{([.#][^{}|]+)\|([^{}]*?)}}!
+        $t =~ s!\{\{([IBUS])\|([^{}]*?)}}!{my $x=lc $1; "<$x>$2</$x>"}!esg or
+        $t =~ s!\{\{i\|([^{}]*?)}}!<span style="font-style:italic;">$1</span>!g or
+        $t =~ s!\{\{b\|([^{}]*?)}}!<span style="font-weight:bold;">$1</span>!g or
+        $t =~ s!\{\{u\|([^{}]*?)}}!<span style="border-bottom: solid 1px;">$1</span>!g or
+        $t =~ s!\{\{s\|([^{}]*?)}}!<span style="text-decoration: line-through;">$1</span>!g or
+        $t =~ s!\{\{ruby\|([^{}]*?)}}!ruby($1)!eg or
+        $t =~ s!\{\{([-_/*]+[-_/* ]*)\|([^{}]*?)}}!symmacro($1,$2)!eg or
+        $t =~ s!\{\{([.#][^{}|]+)\|([^{}]*?)}}!
           my($a,$b,  @c)=($1,$2);
           push(my(@class), $a=~/\.([^.#]+)/g);
           push(my(@id),    $a=~/#([^.#]+)/g);
