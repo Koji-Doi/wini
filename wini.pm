@@ -191,7 +191,7 @@ sub wini{
   $t0 =~ s/\{\{(pre|code|q(?: [^|]+?)?)}}(.+?)\{\{end}}/&save($1,$2)/esmg;  
 
   # conv table to html
-  $t0 =~ s/(^\s*\|.*?)[\n\r]+(?!\|)/make_table($1)/esmg;
+  $t0 =~ s/^\s*(\|.*?)[\n\r]+(?!\|)/make_table($1)/esmg;
 
   my $r;
   my @localclass = ('wini');
