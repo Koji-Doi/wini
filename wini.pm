@@ -109,7 +109,7 @@ use Pod::Usage;
 use Getopt::Long;
 
 my $scriptname = basename($0);
-my $version    = "0 rel. 191202";
+my $version    = "0 rel. 191213";
 my @save;
 
 __PACKAGE__->stand_alone() if !caller() || caller() eq 'PAR';
