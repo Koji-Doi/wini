@@ -281,7 +281,6 @@ sub wini{
  <head>
  <meta charset="UTF-8">
  <style>
-  table.winitable                         {border-collapse: collapse; border: black solid;}
   ol, ul, dl                              {padding-left: 1em}
 
   /* barrier free color codes: https://jfly.uni-koeln.de/html/manuals/pdf/color_blind.pdf */
@@ -438,7 +437,9 @@ sub make_table{
   push(@{$htmlitem[0][0]{copt}{class}}, 'winitable');
   #get caption & table setting - remove '^|-' lines from $in
   $in =~ s&(^\|-(.*$))\n&
-    $caption=$2; my($c, $o) = split(/ \|(?= |$)/, $caption, 2); # $caption=~s{[| ]*$}{};
+    $caption=$2;
+    $caption=~s/\|\s*$//;
+    my($c, $o) = split(/ \|(?= |$)/, $caption, 2); # $caption=~s{[| ]*$}{};
     while($o =~ /([^=\s]+)="([^"]*)"/g){
       my($k,$v) = ($1,$2);
       ($k eq 'class')  and push(@{$htmlitem[0][0]{copt}{class}}, $v), next;
@@ -457,13 +458,15 @@ sub make_table{
       my $v = {qw/t top m middle b bottom/}->{$1};
       (defined $v) and push(@{$htmlitem[0][0]{copt}{style}{'vertical-align'}}, $v);
     }
-    if($o=~/(?<!\w)([][_~@=])+(\d+)?/){
-      my($a,$b) = ($1, $2);
-      ($a=~/\@/)    and $htmlitem[0][0]{copt}{style}{border}[0] = $b;      
-      ($a=~/[[@]/)  and $htmlitem[0][0]{copt}{style}{border}[3] = $b;      
-      ($a=~/[]@]/)  and $htmlitem[0][0]{copt}{style}{border}[2] = $b;      
-      ($a=~/[_@=]/) and $htmlitem[0][0]{copt}{style}{border}[4] = $b;      
-      ($a=~/[~@=]/) and $htmlitem[0][0]{copt}{style}{border}[1] = $b;      
+    #if($o=~/(?<!\w)([][_~@=|])+(\d+)?/){
+    while($o=~/(?<!\w)([][_~@=|])+([,;:]?)(\d+)?/g){
+      my($a, $aa, $b) = ($1, $2, $3);
+      my $b1    = sprintf("%s %dpx", ($aa)?(($aa eq ',')?'dotted':($aa eq ';')?'dashed':'double'):'solid', $b);
+#      ($a=~/\@/)   and $htmlitem[0][0]{copt}{style}{border}[0] = $b;      
+      ($a=~/[[@|]/) and $htmlitem[0][0]{copt}{style}{'border-left'}   = $b1;      
+      ($a=~/[]@|]/) and $htmlitem[0][0]{copt}{style}{'border-right'}  = $b1;      
+      ($a=~/[_@=]/) and $htmlitem[0][0]{copt}{style}{'border-bottom'} = $b1;      
+      ($a=~/[~@=]/) and $htmlitem[0][0]{copt}{style}{'border-top'}    = $b1;      
     }
     $caption=wini($c, {para=>'nb', nocr=>1});
   ''&emg;
@@ -501,6 +504,16 @@ sub make_table{
       my $col   = $winiitem[$ln][$cn];
       my $col_n = $cn/2+1;
       if($cn%2==1){ # separator
+        # border style initial setting from $htmlitem[0][0]{copt}{style} 191217 - 191220
+        foreach my $btype (map {"border-$_"} qw/left right bottom top/){
+          (defined $htmlitem[0][0]{copt}{style}{$btype}) and $htmlitem[$ln][$col_n]{copt}{style}{$btype}[0] = $htmlitem[0][0]{copt}{style}{$btype}; 
+        }
+#        foreach my $atype (map {"$_-align"} qw/text vertical/){
+#          if(defined $htmlitem[0][0]{copt}{style}{$atype}){
+#            $htmlitem[$ln][$col_n]{copt}{style}{$atype}[0] = $htmlitem[0][0]{copt}{style}{$atype};
+#          }
+#        }
+
         $col = substr($col,1); # remove the first '|'
         #$ctag = ($col=~/\bh\b/)?'th':'td';
         $htmlitem[$ln][$col_n]{ctag} = 'td';
@@ -540,8 +553,8 @@ sub make_table{
           next;
         } # rowspan
 
-        while($col=~/(([][_~=@|])(?:\2*))(\d*)/g){ # border setting
-          my($m, $btype, $n) = (length($1), $2, sprintf("solid %dpx",($3 ne '')?$3:1));
+        while($col=~/(([][_~=@|])(?:\2*))([,;:]?)(\d*)/g){ # border setting
+          my($m, $btype, $n) = (length($1), $2, sprintf("%s %dpx", ($3)?(($3 eq ',')?'dotted':($3 eq ';')?'dashed':'double'):'solid', ($4 ne '')?$4:1));
           my %btype;
           ($btype=~/[[@|]/) and $btype{left}   = $n;
           ($btype=~/[]@|]/) and $btype{right}  = $n;
@@ -552,7 +565,10 @@ sub make_table{
                        :($m==3)?(  0, $col_n)  # for all cells in the target col
                        :($m==2)?($ln, 0)       # for all cells in the target row
                        :        ($ln, $col_n); # for target cell
-            push(@{$htmlitem[$r][$c]{copt}{style}{"border-$k"}}, $btype{$k});
+            push(@{$htmlitem[$r][$c]{copt}{style}{"border-$k"}}, 
+              (defined $btype{$k})?$btype{$k}
+             :(defined $htmlitem[0][0]{copt}{style}{"border-$k"})?$htmlitem[0][0]{copt}{style}{"border-$k"}:undef
+            );
           }
         } # while border
 
@@ -601,24 +617,16 @@ sub make_table{
 
   # make html
   unshift(@{$htmlitem[0][0]{copt}{id}}, "winitable${table_no}");
-  my $outtxt = sprintf(qq!<table id="%s", class="%s"!, join(' ', @{$htmlitem[0][0]{copt}{id}}), join(' ', @{$htmlitem[0][0]{copt}{class}}));
+  my $outtxt = sprintf(qq!<table id="%s" class="%s"!, join(' ', @{$htmlitem[0][0]{copt}{id}}), join(' ', @{$htmlitem[0][0]{copt}{class}}));
   if(defined $htmlitem[0][0]{copt}{border}){
     $outtxt .= ' border="1"';
   }
   $outtxt .= q{ style="border-collapse: collapse; };
+  (defined $htmlitem[0][0]{copt}{style}{'text-align'})     and $outtxt .= qq{ text-align: $htmlitem[0][0]{copt}{style}{'text-align'}[0]; }; 
+  (defined $htmlitem[0][0]{copt}{style}{'vertical-align'}) and $outtxt .= qq{ vertical-align: $htmlitem[0][0]{copt}{style}{'vertical-align'}[0]; }; 
   (defined $htmlitem[0][0]{copt}{border}) and $outtxt .= sprintf("border: solid %dpx; ", $htmlitem[0][0]{copt}{border});
-  foreach my $k (grep {/border/} keys %{$htmlitem[0][0]{copt}{style}}){
-    
-  }
-  (defined $htmlitem[0][0]{copt}{style}{border}[1]) and $outtxt .= "border-top: $htmlitem[0][0]{copt}{style}{border}[1]px; ";
-  (defined $htmlitem[0][0]{copt}{style}{border}[2]) and $outtxt .= "border-right: $htmlitem[0][0]{copt}{style}{border}[2]px; ";
-  (defined $htmlitem[0][0]{copt}{style}{border}[3]) and $outtxt .= "border-left: $htmlitem[0][0]{copt}{style}{border}[3]px; ";
-  (defined $htmlitem[0][0]{copt}{style}{border}[4]) and $outtxt .= "border-bottom: $htmlitem[0][0]{copt}{style}{border}[4]px; ";
-  foreach my $k (grep {$_ ne 'border'} keys %{$htmlitem[0][0]{copt}{style}}){
-    $outtxt .= sprintf("$k: %s; ", join(' ', @{$htmlitem[0][0]{copt}{style}{$k}}));
-  }
 
-  $outtxt .= qq{">\n};
+  $outtxt .= qq{">\n}; # end of style
   (defined $caption) and $outtxt .= "<caption>$caption</caption>\n";
   for(my $rn=1; $rn<=$#htmlitem; $rn++){
     ($htmlitem[$rn][0] eq '^^') and next;
@@ -648,7 +656,7 @@ sub make_table{
           if(defined $htmlitem[$rn][$_]{copt}{style}){
             $copt .= q! style="!;
             foreach my $c (keys %{$htmlitem[$rn][$_]{copt}{style}}){
-              $copt .= sprintf("$c:%s;", join(' ', @{$htmlitem[$rn][$_]{copt}{style}{$c}}));
+              $copt .= sprintf("$c:%s; ", join(' ', @{$htmlitem[$rn][$_]{copt}{style}{$c}}));
             }
             $copt .= q!"!;
           }
