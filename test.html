@@ -3,30 +3,80 @@
  <head>
  <meta charset="UTF-8">
  <style>
-  table.winitable                         {border-collapse: collapse; border: black solid;}
-  ol, ul, dl                              {padding-left: 1em}
+.b-b       {
+            background-color: rgb(0,114,178); /* blue */;
+           }
+.b-b100    {
+            background-color: #000;
+           }
+.b-b25     {
+            background-color: #CCC;
+           }
+.b-b50     {
+            background-color: #888;
+           }
+.b-b75     {
+            background-color: #444;
+           }
+.b-g       {
+            background-color: rgb(0,158,115); /* green */;
+           }
+.b-m       {
+            background-color: rgb(218,0,250); /* magenta */;
+           }
+.b-p       {
+            background-color: rgb(204,121,167); /* purple */;
+           }
+.b-r       {
+            background-color: rgb(219,94,0); /* red */;
+           }
+.b-w       {
+            background-color: white;
+           }
+.f-b       {
+            color: rgb(0,114,178); /* blue */;
+            border-color: black;
+           }
+.f-b100    {
+            color: #000;
+            border-color: black;
+           }
+.f-b25     {
+            color: #CCC;
+            border-color: black;
+           }
+.f-b50     {
+            color: #888;
+            border-color: black;
+           }
+.f-b75     {
+            color: #444;
+            border-color: black;
+           }
+.f-g       {
+            color: rgb(0,158,115); /* green */;
+            border-color: black;
+           }
+.f-m       {
+            color: rgb(218,0,250); /* magenta */;
+            border-color: black;
+           }
+.f-p       {
+            color: rgb(204,121,167); /* purple */;
+            border-color: black;
+           }
+.f-r       {
+            color: rgb(219,94,0); /* red */;
+            border-color: black;
+           }
+.f-w       {
+            color: white;
+            border-color: black;
+           }
+ol, ul, dl {
+            padding-left: 1em;
+           }
 
-  /* barrier free color codes: https://jfly.uni-koeln.de/html/manuals/pdf/color_blind.pdf */
-  .b-r                                    {background-color: rgb(213,94,0);}  /* red */
-  .b-g                                    {background-color: rgb(0,158,115);} /* green */
-  .b-b                                    {background-color: rgb(0,114,178);} /* blue */
-  .b-w                                    {background-color: white;}
-  .b-b25                                  {background-color: #CCC;}
-  .b-b50                                  {background-color: #888;}
-  .b-b75                                  {background-color: #444;}
-  .b-b100                                 {background-color: #000;}
-  .b-m                                    {background-color: rgb(218,0,250);}
-  .b-p                                    {background-color: rgb(204,121,167);}
-  .f-r                                    {color: rgb(213,94,0);    border-color: black;} /* red */
-  .f-g                                    {color: rgb(0,158,115);   border-color: black;} /* green */
-  .f-b                                    {color: rgb(0,114,178);   border-color: black;} /* blue */
-  .f-w                                    {color: white;            border-color: black;}
-  .f-b25                                  {color: #CCC;             border-color: black;}
-  .f-b50                                  {color: #888;             border-color: black;}
-  .f-b75                                  {color: #444;             border-color: black;}
-  .f-b100                                 {color: #000;             border-color: black;}
-  .f-m                                    {color: rgb(218,0,250);   border-color: black;} /* magenta */
-  .f-p                                    {color: rgb(204,121,167); border-color: black;} /* purple */
  </style>
  <title>WINI test page</title>
  </head>
@@ -67,7 +117,7 @@ Tables can be represented easily as follows.
 Users can easily set colspan, rowspan and ruled line width.
 </p>
 
-<table id="winitable1", class="winitable" border="1" style="border-collapse: collapse; border: solid 1px; width: 18rem; text-align: center; style: width:200px; height: 12rem; ">
+<table id="winitable1" class="winitable" border="1" style="border-collapse: collapse;  text-align: center; border: solid 1px; ">
 <caption> <span style="font-style:italic;">Game Record</span>
 </caption>
 <tr style="border-top:solid 3px; border-bottom:solid 2px;"><th rowspan="2">Game </th><th colspan="3">Players </th></tr>
@@ -80,29 +130,29 @@ Users can easily set colspan, rowspan and ruled line width.
 Ruled lines can be erased individually.
 </p>
 
-<table id="winitable1", class="winitable" style="border-collapse: collapse; width: 18rem; height: 12rem; ">
+<table id="winitable1" class="winitable" style="border-collapse: collapse; ">
 <tr style="border-top:solid 3px; border-bottom:solid 2px;"><th rowspan="2">Game </th><th colspan="3">Players </th></tr>
-<tr style="border-bottom:solid 3px;"><th style="border-right:solid 0px;">A </th><th style="border-right:solid 0px;border-left:solid 0px;">B </th><th style="border-left:solid 0px;">C </th></tr>
-<tr><th>1 </th><td style="border-right:solid 0px;">1 </td><td class="em" style="border-right:solid 0px;border-left:solid 0px;">5 </td><td style="border-left:solid 0px;">3 </td></tr>
-<tr><th>2 </th><td style="border-right:solid 0px;">4 </td><td style="border-right:solid 0px;border-left:solid 0px;">5 </td><td class="em" style="border-left:solid 0px;">10 </td></tr>
-<tr style="border-top:solid 3px; border-bottom:solid 3px;"><th>Total </th><td style="border-right:solid 0px;">5 </td><td style="border-right:solid 0px;border-left:solid 0px;">10 </td><td class="em" style="border-left:solid 0px;">13 </td></tr>
+<tr style="border-bottom:solid 3px;"><th style="border-right:solid 0px; ">A </th><th style="border-right:solid 0px; border-left:solid 0px; ">B </th><th style="border-left:solid 0px; ">C </th></tr>
+<tr><th>1 </th><td style="border-right:solid 0px; ">1 </td><td class="em" style="border-right:solid 0px; border-left:solid 0px; ">5 </td><td style="border-left:solid 0px; ">3 </td></tr>
+<tr><th>2 </th><td style="border-right:solid 0px; ">4 </td><td style="border-right:solid 0px; border-left:solid 0px; ">5 </td><td class="em" style="border-left:solid 0px; ">10 </td></tr>
+<tr style="border-top:solid 3px; border-bottom:solid 3px;"><th>Total </th><td style="border-right:solid 0px; ">5 </td><td style="border-right:solid 0px; border-left:solid 0px; ">10 </td><td class="em" style="border-left:solid 0px; ">13 </td></tr>
 </table>
 <p class="wini">
 To make table without vertical ruled lines, border widths should be set 0 not only for table but all cells.
 </p>
 
-<table id="winitable1", class="winitable" style="border-collapse: collapse; width: 18rem; border-top: solid 0px; border-right: solid 0px; border-bottom: solid 0px; height: 12rem; border-left: solid 0px; ">
-<tr style="border-top:solid 3px; border-bottom:solid 2px;"><th rowspan="2" style="border-right:solid 0px;border-left:solid 0px;">Game </th><th colspan="3" style="border-right:solid 0px;border-left:solid 0px;">Players </th></tr>
-<tr style="border-bottom:solid 3px;"><th style="border-right:solid 0px;border-left:solid 0px;">A </th><th style="border-right:solid 0px;border-left:solid 0px;">B </th><th style="border-right:solid 0px;border-left:solid 0px;">C </th></tr>
-<tr><th style="border-right:solid 0px;border-left:solid 0px;">1 </th><td style="border-right:solid 0px;border-left:solid 0px;">1 </td><td class="em" style="border-right:solid 0px;border-left:solid 0px;">5 </td><td style="border-right:solid 0px;border-left:solid 0px;">3 </td></tr>
-<tr><th style="border-right:solid 0px;border-left:solid 0px;">2 </th><td style="border-right:solid 0px;border-left:solid 0px;">4 </td><td style="border-right:solid 0px;border-left:solid 0px;">5 </td><td class="em" style="border-right:solid 0px;border-left:solid 0px;">10 </td></tr>
-<tr style="border-top:solid 3px; border-bottom:solid 3px;"><th style="border-right:solid 0px;border-left:solid 0px;">Total </th><td style="border-right:solid 0px;border-left:solid 0px;">5 </td><td style="border-right:solid 0px;border-left:solid 0px;">10 </td><td class="em" style="border-right:solid 0px;border-left:solid 0px;">13 </td></tr>
+<table id="winitable1" class="winitable" style="border-collapse: collapse; ">
+<tr style="border-top:solid 3px; border-bottom:solid 2px;"><th rowspan="2" style="border-right:solid 0px; border-left:solid 0px; ">Game </th><th colspan="3" style="border-right:solid 0px; border-left:solid 0px; ">Players </th></tr>
+<tr style="border-bottom:solid 3px;"><th style="border-right:solid 0px; border-left:solid 0px; ">A </th><th style="border-right:solid 0px; border-left:solid 0px; ">B </th><th style="border-right:solid 0px; border-left:solid 0px; ">C </th></tr>
+<tr><th style="border-right:solid 0px; border-left:solid 0px; ">1 </th><td style="border-right:solid 0px; border-left:solid 0px; ">1 </td><td class="em" style="border-right:solid 0px; border-left:solid 0px; ">5 </td><td style="border-right:solid 0px; border-left:solid 0px; ">3 </td></tr>
+<tr><th style="border-right:solid 0px; border-left:solid 0px; ">2 </th><td style="border-right:solid 0px; border-left:solid 0px; ">4 </td><td style="border-right:solid 0px; border-left:solid 0px; ">5 </td><td class="em" style="border-right:solid 0px; border-left:solid 0px; ">10 </td></tr>
+<tr style="border-top:solid 3px; border-bottom:solid 3px;"><th style="border-right:solid 0px; border-left:solid 0px; ">Total </th><td style="border-right:solid 0px; border-left:solid 0px; ">5 </td><td style="border-right:solid 0px; border-left:solid 0px; ">10 </td><td class="em" style="border-right:solid 0px; border-left:solid 0px; ">13 </td></tr>
 </table>
 <p class="wini">
 By class definition and CSS setting, appearance of tables can be flexibly modified.
 </p>
 
-<table id="winitable1", class="winitable" style="border-collapse: collapse; width: 12rem; height: 10rem; ">
+<table id="winitable1" class="winitable" style="border-collapse: collapse; ">
 <tr><td class="b-r">AAAAAAA </td><td class="b-g">BBB </td><td class="f-w b-b">CCC </td></tr>
 <tr><td class="a-r">abcd </td><td class="f-m">DDD </td><td class="f-p">EEE </td></tr>
 <tr><td class="a-l">abcd </td><td class="f-b50">FFF </td><td class="b-b f-r">GGG </td></tr>

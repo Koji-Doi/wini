@@ -85,22 +85,24 @@ Today many people try to build and maintain blogs, wikipedia-like sites, etc. Th
 
 =over 4
 
-=item * -i INPUT    set input file name to INPUT. If the file named 'INPUT' does not exists, wini.pm looks for 'INPUT.wini'. If -i is not set, wini.pm takes data from standard input.
+=item * -i INPUT             set input file name to INPUT. If the file named 'INPUT' does not exists, wini.pm looks for 'INPUT.wini'. If -i is not set, wini.pm takes data from standard input.
 
-=item * -o OUTPUT   set output file name. If both -o and -i are omitted, wini.pm outputs HTML-translated text to standard output.
+=item * -o OUTPUT            set output file name. If both -o and -i are omitted, wini.pm outputs HTML-translated text to standard output.
 If -o is omitted and the input file name is 'input.wini', the output file will be 'input.wini.html'.
 Users can specify the output directory rather than the file. If -o value ends with 'output/', output file will be output/input.wini.html. if 'output/' does not exist, wini.pm will create it.
 
-=item * --whole     add HTML5 headar and footer to output. The result output will be a complete HTML5 document.
+=item * --whole              add HTML5 headar and footer to output. The result output will be a complete HTML5 document.
 
-=item * --version   show version.
+=item * --cssfile [out.css]  CSS is output to out.css, rather than written in html file. If '--cssfile' is set without a file name, "wini.css" is the output css file name.
+=item * --version            show version.
 
-=item * --help      show this help.
+=item * --help               show this help.
 
 =back
 
 =cut
 
+package WINI;
 use strict;
 use Data::Dumper;
 use File::Basename;
@@ -109,20 +111,53 @@ use Pod::Usage;
 use Getopt::Long;
 
 my $scriptname = basename($0);
-my $version    = "0 rel. 191213";
+my $version    = "0 rel. 191225";
 my @save;
+my $debug;
+
+# barrier free color codes: https://jfly.uni-koeln.de/html/manuals/pdf/color_blind.pdf
+our ($red, $green, $blue, $magenta, $purple) 
+  = map {sprintf('rgb(%s); /* %s */', @$_)} 
+    (['219,94,0', 'red'], ['0,158,115', 'green'], ['0,114,178', 'blue'], ['218,0,250', 'magenta'], ['204,121,167', 'purple']);
+my $css = {
+  'ol, ul, dl' => {'padding-left' => '1em'},
+  'tfoot'   => {'font-size'        => 'smaller'},
+
+  '.b-r'    => {'background-color' => $WINI::red},
+  '.b-g'    => {'background-color' => $WINI::green},
+  '.b-b'    => {'background-color' => $WINI::blue},
+  '.b-w'    => {'background-color' => 'white'},
+  '.b-b25'  => {'background-color' => '#CCC'},
+  '.b-b50'  => {'background-color' => '#888'},
+  '.b-b75'  => {'background-color' => '#444'},
+  '.b-b100' => {'background-color' => '#000'},
+  '.b-m'    => {'background-color' => $WINI::magenta},
+  '.b-p'    => {'background-color' => $WINI::purple},
+  '.f-r'    => {'color' => $WINI::red,    'border-color' => 'black'},
+  '.f-g'    => {'color' => $WINI::green,  'border-color' => 'black'},
+  '.f-b'    => {'color' => $WINI::blue,   'border-color' => 'black'},
+  '.f-w'    => {'color' => 'white',       'border-color' => 'black'},
+  '.f-b25'  => {'color' => '#CCC',        'border-color' => 'black'},
+  '.f-b50'  => {'color' => '#888',        'border-color' => 'black'},
+  '.f-b75'  => {'color' => '#444',        'border-color' => 'black'},
+  '.f-b100' => {'color' => '#000',        'border-color' => 'black'},
+  '.f-m'    => {'color' => $WINI::magenta,'border-color' => 'black'},
+  '.f-p'    => {'color' => $WINI::purple, 'border-color' => 'black'}
+};
 
 __PACKAGE__->stand_alone() if !caller() || caller() eq 'PAR';
 
 # Following function is executed when this script is called as stand-alone script
 sub stand_alone(){
-  my($input, $output, $fhi, $fho, $test, $whole);
+  my($input, $output, $fhi, $cssfile, $test, $fho, $whole);
   GetOptions(
     "h|help"    => sub {help()},
     "v|version" => sub {print STDERR "wini.pm Version $version\n"; exit()},
     "i=s"       => \$input,
     "o=s"       => \$output,
+    "cssfile:s" => \$cssfile, 
     "t"         => \$test,
+    "d"         => \$debug,
     "whole"     => \$whole
   );
   ($test) and ($input, $output)=("test.wini", "test.html");
@@ -155,8 +190,11 @@ sub stand_alone(){
     print STDERR "Will try to create file: $output\n";
     open($fho, '>:utf8', $output) or die "Cannot create file: $output";
   }
+  if(defined $cssfile){
+    ($cssfile eq '') and $cssfile="wini.css";
+  }
   my @input = <$fhi>;
-  print {$fho} wini(join('', @input), {whole=>$whole});
+  print {$fho} wini(join('', @input), {whole=>$whole, cssfile=>$cssfile});
 }
 
 sub help{
@@ -172,6 +210,24 @@ sub close_listtag{
   } 0..$#$l;
 }
 
+sub css{
+  my $css = shift;
+  my $out = '';
+  my $l   = 0;
+  map {my $ll=length($_); $ll>$l and $l=$ll} keys %$css;
+  foreach my $k (sort keys %$css){
+    my $x   = $css->{$k};
+    my($kx) = $k=~/^\d*(.*)/;
+    $out .= sprintf('%*s {', -$l, $kx)."\n";
+    foreach my $k2 (keys %$x){
+      my($k2x) = $k2=~/^\d*(.*)/;
+      $out.= (' ' x $l) . "  $k2x: $x->{$k2};\n";
+    }
+    $out.= (' ' x $l) . " }\n";
+  }
+  return($out);
+}
+
 sub wini{
 # wini($tagettext, {para=>'br', 'is_bs4'=>1, baseurl=>'http://example.com', nocr=>1});
   # para: paragraph mode (br:set <br>, p: set <p>, nb: no separation
@@ -180,6 +236,7 @@ sub wini{
   my $cr                = (defined $opt->{nocr} and $opt->{nocr}==1)
                           ?"\t":"\n"; # option to inhibit CR insertion (in table)
   my($baseurl, $is_bs4) = ($opt->{baseurl}, $opt->{is_bs4});
+  my $cssfile           = $opt->{cssfile};
   my $para              = 'p'; # p or br or none
   (defined $opt->{para}) and $para = $opt->{para};
 
@@ -273,43 +330,24 @@ sub wini{
   } # foreach $t
 
   $r=~s/\x00i=(\d+)\x01/$save[$1]/ge;
+  if($cssfile){
+    open(my $fho, '>', $cssfile) or die "Cannot modify $cssfile";
+    print {$fho} css($css);
+    close $fho;
+  }
   if(defined $opt->{whole}){
-    my ($red, $green, $blue, $magenta, $purple, $yellow) = map {qq!rgb($_)!} ('213,94,0', '0,158,115', '0,114,178', '218,0,250', '204,121,167', '240,228,66');
+    my $style = ($cssfile)?qq{<link rel="stylesheet" type="text/css" href="$cssfile">} : "<style>\n".css($css)."</style>\n";
     $r = <<"EOD";
 <!DOCTYPE html>
 <html lang="ja">
- <head>
- <meta charset="UTF-8">
- <style>
-  ol, ul, dl                              {padding-left: 1em}
-
-  /* barrier free color codes: https://jfly.uni-koeln.de/html/manuals/pdf/color_blind.pdf */
-  .b-r                                    {background-color: rgb(213,94,0);}  /* red */
-  .b-g                                    {background-color: rgb(0,158,115);} /* green */
-  .b-b                                    {background-color: rgb(0,114,178);} /* blue */
-  .b-w                                    {background-color: white;}
-  .b-b25                                  {background-color: #CCC;}
-  .b-b50                                  {background-color: #888;}
-  .b-b75                                  {background-color: #444;}
-  .b-b100                                 {background-color: #000;}
-  .b-m                                    {background-color: rgb(218,0,250);}
-  .b-p                                    {background-color: rgb(204,121,167);}
-  .f-r                                    {color: rgb(213,94,0);    border-color: black;} /* red */
-  .f-g                                    {color: rgb(0,158,115);   border-color: black;} /* green */
-  .f-b                                    {color: rgb(0,114,178);   border-color: black;} /* blue */
-  .f-w                                    {color: white;            border-color: black;}
-  .f-b25                                  {color: #CCC;             border-color: black;}
-  .f-b50                                  {color: #888;             border-color: black;}
-  .f-b75                                  {color: #444;             border-color: black;}
-  .f-b100                                 {color: #000;             border-color: black;}
-  .f-m                                    {color: rgb(218,0,250);   border-color: black;} /* magenta */
-  .f-p                                    {color: rgb(204,121,167); border-color: black;} /* purple */
- </style>
- <title>WINI test page</title>
- </head>
- <body>
+<head>
+<meta charset="UTF-8">
+$style
+<title>WINI test page</title>
+</head>
+<body>
 $r
- </body>
+</body>
 </html>
 EOD
   }
@@ -436,7 +474,7 @@ sub make_table{
 
   push(@{$htmlitem[0][0]{copt}{class}}, 'winitable');
   #get caption & table setting - remove '^|-' lines from $in
-  $in =~ s&(^\|-(.*$))\n&
+  $in =~ s&(^\|-([^-].*$))\n&
     $caption=$2;
     $caption=~s/\|\s*$//;
     my($c, $o) = split(/ \|(?= |$)/, $caption, 2); # $caption=~s{[| ]*$}{};
@@ -476,7 +514,7 @@ sub make_table{
     $line=~s/[\n\r]*//g;
     ($line eq '') and next;
     $ln++;
-    my @cols = split(/((?:^| +)\|\S*)/, $line); # $cols[0] is always undef. so delete.
+    my @cols = split(/((?:^| +)\|\S*)/, $line);
     # standardize
     $cols[-1]=~/^\s+$/  and delete $cols[-1];
     $cols[-1]!~/^\s*\|/ and push(@cols, '|');
@@ -489,6 +527,7 @@ sub make_table{
   
   my @rowlen;
   for($ln=$#winiitem; $ln>=1; $ln--){
+    ($winiitem[$ln][1] =~ /^\|---(.*)$/) and $htmlitem[$ln][0]{footnote}=1;
     $rowlen[$ln]=0;
     if($winiitem[$ln][1]=~/\^\^/ and $ln>1){ # row merge
       for(my $i=2; $i<=$#{$winiitem[$ln]}; $i+=2){
@@ -506,13 +545,10 @@ sub make_table{
       if($cn%2==1){ # separator
         # border style initial setting from $htmlitem[0][0]{copt}{style} 191217 - 191220
         foreach my $btype (map {"border-$_"} qw/left right bottom top/){
-          (defined $htmlitem[0][0]{copt}{style}{$btype}) and $htmlitem[$ln][$col_n]{copt}{style}{$btype}[0] = $htmlitem[0][0]{copt}{style}{$btype}; 
+          (not defined $htmlitem[$ln][0]{footnote}) and 
+            (defined $htmlitem[0][0]{copt}{style}{$btype}) and 
+              $htmlitem[$ln][$col_n]{copt}{style}{$btype}[0] = $htmlitem[0][0]{copt}{style}{$btype}; 
         }
-#        foreach my $atype (map {"$_-align"} qw/text vertical/){
-#          if(defined $htmlitem[0][0]{copt}{style}{$atype}){
-#            $htmlitem[$ln][$col_n]{copt}{style}{$atype}[0] = $htmlitem[0][0]{copt}{style}{$atype};
-#          }
-#        }
 
         $col = substr($col,1); # remove the first '|'
         #$ctag = ($col=~/\bh\b/)?'th':'td';
@@ -615,6 +651,8 @@ sub make_table{
   (defined $htmlitem[0][0]{copt}{style}{width}[0]) 
         or $htmlitem[0][0]{copt}{style}{width}[0] = sprintf("%drem", ((sort @rowlen)[-1])*2);
 
+  ($debug) and print(STDERR "winiitem\n", (Dumper @winiitem), "htmlitem\n", (Dumper @htmlitem));
+
   # make html
   unshift(@{$htmlitem[0][0]{copt}{id}}, "winitable${table_no}");
   my $outtxt = sprintf(qq!<table id="%s" class="%s"!, join(' ', @{$htmlitem[0][0]{copt}{id}}), join(' ', @{$htmlitem[0][0]{copt}{class}}));
@@ -622,15 +660,19 @@ sub make_table{
     $outtxt .= ' border="1"';
   }
   $outtxt .= q{ style="border-collapse: collapse; };
-  (defined $htmlitem[0][0]{copt}{style}{'text-align'})     and $outtxt .= qq{ text-align: $htmlitem[0][0]{copt}{style}{'text-align'}[0]; }; 
-  (defined $htmlitem[0][0]{copt}{style}{'vertical-align'}) and $outtxt .= qq{ vertical-align: $htmlitem[0][0]{copt}{style}{'vertical-align'}[0]; }; 
+  foreach my $k (qw/text-align vertical-align color background-color/){
+    (defined $htmlitem[0][0]{copt}{style}{$k}) and $outtxt .= qq{ $k: $htmlitem[0][0]{copt}{style}{$k}[0]; }; 
+  }
   (defined $htmlitem[0][0]{copt}{border}) and $outtxt .= sprintf("border: solid %dpx; ", $htmlitem[0][0]{copt}{border});
 
   $outtxt .= qq{">\n}; # end of style
   (defined $caption) and $outtxt .= "<caption>$caption</caption>\n";
+  $outtxt .= "<tbody>\n";
+  l1: {
   for(my $rn=1; $rn<=$#htmlitem; $rn++){
     ($htmlitem[$rn][0] eq '^^') and next;
 
+    ($htmlitem[$rn][0]{footnote}) and $outtxt .= "</tbody>\n<tfoot>\n";
     my $ropt = '';
     if(defined $htmlitem[$rn][0]{copt}{style}){
       $ropt .= ' style="' . 
@@ -670,7 +712,13 @@ sub make_table{
       } (1 .. $#{$htmlitem[1]})
     );
     $outtxt .= "</tr>\n";
+    if($htmlitem[$rn][0]{footnote}){
+       $outtxt .= "</tfoot>\n";
+       last l1;
+    }
   } # foreach $rn
+  $outtxt .= "</tbody>\n";
+  } # l1
   $outtxt .= "</table>\n";
   $outtxt=~s/\t+/ /g; # tab is separator of cells vertically unified
   return("\n$outtxt\n");
