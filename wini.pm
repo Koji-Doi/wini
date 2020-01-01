@@ -121,7 +121,9 @@ our ($red, $green, $blue, $magenta, $purple)
   = map {sprintf('rgb(%s); /* %s */', @$_)} 
     (['219,94,0', 'red'], ['0,158,115', 'green'], ['0,114,178', 'blue'], ['218,0,250', 'magenta'], ['204,121,167', 'purple']);
 my $css = {
-  'ol, ul, dl' => {'padding-left' => '1em'},
+  'ol, ul, dl' => {'padding-left'  => '1em'},
+  'table, figure' 
+            => {'margin'           => '1em'},
   'tfoot, figcaption'
             => {'font-size'        => 'smaller'},
   '.b-r'    => {'background-color' => $WINI::red},
@@ -285,13 +287,19 @@ sub wini{
       ) or last; # no subst need, then escape inner loop
     } # loop while subst needed
     my $t2='';
-
+       
     # for list items
     my $listtagc;
     my @is_dl; # $is_dl[1]: whether list type of depth 1 is 'dl'
     my @listtagc;
     foreach my $l (split("\n", $t)){
-      my($x, $listtype, $txt) = $l=~/^\s*([#*:;]*)([#*:;])\s*(.*)$/; # whether list item
+      # line/page break
+      if(($l=~s/^---$/<br style="page-break-after: always;">/) or
+         ($l=~s/^--$/<br style="clear: both;">/)){
+        $t2 .= $l; next;
+      }
+
+      my($x, $listtype, $txt) = $l=~/^\s*([#*:;]*)([#*:;])\s*(.*)$/; # whether list item      
       if($listtype ne ''){
         $ptype = 'list';
         my $listdepth = length($x)+length($listtype);
@@ -323,11 +331,11 @@ sub wini{
       $lastlistdepth=0;
     }
 
-    $r .= ($ptype eq 'header' or $ptype eq 'list') ? "$t2\n"
-        : ($para eq 'br')                          ? "$t2<br>$cr"
-        : ($para eq 'nb')                          ? $t2
-        : $t2=~/<(?:p|table|[uod]l)[^>]*>/         ? $t2
-                                                   : "<p${myclass}>\n$t2</p>$cr$cr";
+    $r .= ($ptype eq 'header' or $ptype eq 'list')                      ? "$t2\n"
+        : ($para eq 'br')                                               ? "$t2<br>$cr"
+        : ($para eq 'nb')                                               ? $t2
+        : $t2=~m{<(p|table|img|figure|blockquote|[uod]l)[^>]*>.*</\1>}s ? $t2
+                                                                        : "<p${myclass}>\n$t2</p>$cr$cr";
   } # foreach $t
 
   $r=~s/\x00i=(\d+)\x01/$save[$1]/ge;
@@ -749,6 +757,7 @@ sub make_table{
     if(defined $htmlitem[$rn][0]{copt}{class}[0]){
       $ropt .= q{ class="} . join(' ',  @{$htmlitem[$rn][0]{copt}{class}}) . q{"};
     }
+    ($ropt) and $ropt = " $ropt";
     $outtxt0 .= qq!<tr$ropt>!;
     $outtxt0 .= join("", 
       map { # for each cell ($_: col No.)
@@ -786,7 +795,7 @@ sub make_table{
   if((scalar @footnotes > 0) or $footnotetext){
     $outtxt .= (defined $htmlitem[0][0]{copt}{fborder})?qq{<tfoot style="border: solid $htmlitem[0][0]{copt}{fborder}px;">\n}:"<tfoot>\n";
     my $colspan = scalar @{$htmlitem[-1]} -1;
-    ($footnotetext) and $outtxt .= qq{<tr><td colspan="}. $colspan . qq{">$footnotetext</td></tr>\n};
+    ($footnotetext) and $outtxt .= $footnotetext;
     if(scalar @footnotes > 0){
       $outtxt .= sprintf(qq{<tr><td colspan="$colspan">%s</td></tr>\n}, join('&ensp;', @footnotes));
     }
