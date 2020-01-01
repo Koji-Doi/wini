@@ -113,16 +113,17 @@ use Getopt::Long;
 my $scriptname = basename($0);
 my $version    = "0 rel. 191225";
 my @save;
+my %ref; # $ref{image}{imageID} = 1; keys of %$ref: qw/image table formula citation math ref/
 my $debug;
 
-# barrier free color codes: https://jfly.uni-koeln.de/html/manuals/pdf/color_blind.pdf
+# barrier-free color codes: https://jfly.uni-koeln.de/html/manuals/pdf/color_blind.pdf
 our ($red, $green, $blue, $magenta, $purple) 
   = map {sprintf('rgb(%s); /* %s */', @$_)} 
     (['219,94,0', 'red'], ['0,158,115', 'green'], ['0,114,178', 'blue'], ['218,0,250', 'magenta'], ['204,121,167', 'purple']);
 my $css = {
   'ol, ul, dl' => {'padding-left' => '1em'},
-  'tfoot'   => {'font-size'        => 'smaller'},
-
+  'tfoot, figcaption'
+            => {'font-size'        => 'smaller'},
   '.b-r'    => {'background-color' => $WINI::red},
   '.b-g'    => {'background-color' => $WINI::green},
   '.b-b'    => {'background-color' => $WINI::blue},
@@ -441,13 +442,27 @@ sub readblank{
 {
 my $img_no=0;
 sub make_a{
+# [! image.png text]
+# [!"image.png" text]
+# [!!#fig1 image.png text]
+# [!<#fig1 image.png text]
+
   my($t, $baseurl)=@_;
   my($prefix, $url, $text)         = $t=~/^\s*([!#])?"(.*)"(?:\s+(.*))?/;
-  ($url) or ($prefix, $url, $text) = $t=~/^\s*([!])?(\S*)(?:\s+(.*))?/;
+  ($url) or ($prefix, $url, $text) = $t=~/^\s*([!]\S*)?\s+(\S*)(?:\s+(.*))?/;
   $text = escape($text) || $url;
-  if($prefix eq '!'){
+  my $style = ($prefix=~/</)?"float: left;":($prefix=~/>/)?"float: right;":undef;
+  if($prefix=~/!/){
     $img_no++;
-    return(qq!<img src="$url" id="image${img_no}" alt="$text">!);
+    my @ids = ("image${img_no}");
+    $prefix=~/#(.*)/ and push(@ids, $1);
+    map { $ref{image}{$_} = $img_no } @ids;
+    my $id = join(' ', @ids);
+    if($prefix=~/!!/){
+      return(qq!<figure style="$style"> <img src="$url" id="$id" alt="$ids[0]"><figcaption>$text</figcaption></figure>!);
+    }else{
+      return(qq!<img src="$url" id="$id" alt="$text" style="$style">!);
+    }
   }elsif($url=~/^[\d_]+$/){
     return(qq!<a href="$baseurl?aid=$url">$text</a>!);
   }else{
@@ -459,7 +474,8 @@ sub make_a{
 sub ruby{
   my($x) = @_; # text1|ruby1|text2|ruby2 ...
   my @txt = split(/\|/, $x);
-  return('<ruby>' . join("", map {my $a=$_*2; "$txt[$a]<rp>(</rp><rt>$txt[$a+1]</rt><rp>)</rp>"} (0..$#txt/2)) . '</ruby>');
+  my $t = join("", map {my $a=$_*2; "$txt[$a]<rp>(</rp><rt>$txt[$a+1]</rt><rp>)</rp>"} (0..$#txt/2));
+  return("<ruby>$t</ruby>");
 }
 
 {
@@ -471,18 +487,32 @@ sub make_table{
   my @winiitem;
   my @htmlitem;
   my $caption;
+  my $footnote_cnt=0;
+  my $footnotetext;
+  my @footnotes; # footnotes in cells
 
   push(@{$htmlitem[0][0]{copt}{class}}, 'winitable');
   #get caption & table setting - remove '^|-' lines from $in
+  
   $in =~ s&(^\|-([^-].*$))\n&
-    $caption=$2;
-    $caption=~s/\|\s*$//;
-    my($c, $o) = split(/ \|(?= |$)/, $caption, 2); # $caption=~s{[| ]*$}{};
+    my $caption0=$2;
+    $caption0=~s/\|\s*$//;
+    my($c, $o) = split(/ \|(?= |$)/, $caption0, 2); # $caption=~s{[| ]*$}{};
     while($o =~ /([^=\s]+)="([^"]*)"/g){
       my($k,$v) = ($1,$2);
       ($k eq 'class')  and push(@{$htmlitem[0][0]{copt}{class}}, $v), next;
       ($k eq 'border') and $htmlitem[0][0]{copt}{border}=$v         , next;
       push(@{$htmlitem[0][0]{copt}{style}{$k}}, $v);
+    }
+    if($o=~/(?<![<>])([<>])(?![<>])/){
+      $htmlitem[0][0]{copt}{style}{float}[0] = ($1 eq '<')?'left':'right';
+    }
+    while($o=~/([tbf])@(?!@)(\d*)/g){
+      $htmlitem[0][0]{copt}{$1.'border'} = ($2)?$2:1;
+    }
+    while($o=~/([tbf])@@(\d*)/g){
+      $htmlitem[0][0]{copt}{$1.'borderall'} = ($2)?$2:1;
+      (defined $htmlitem[0][0]{copt}{$1.'border'}) or $htmlitem[0][0]{copt}{$1.'border'} = ($2)?$2:1; 
     }
     while($o=~/\.([-\w]+)/g){
       push(@{$htmlitem[0][0]{copt}{class}}, $1);
@@ -507,7 +537,22 @@ sub make_table{
       ($a=~/[~@=]/) and $htmlitem[0][0]{copt}{style}{'border-top'}    = $b1;      
     }
     $caption=wini($c, {para=>'nb', nocr=>1});
+    $caption=~s/[\s\n\r]+$//;
   ''&emg;
+
+  # footnotes in cells
+  $in=~s&{{\^\|([^}|]*)(?:\|([^}]*))?}}&
+    $footnote_cnt++;
+    my($txt, $style) = ($1, $2);
+    my %cref = ('*'=>'lowast' ,'+'=>'plus', 'd'=>'dagger', 'D'=>'Dagger', 's'=>'sect', 'p'=>'para');
+    $style = $style || '*';
+    my($char, $char2) = $style=~/([*+dDsp])(\1)?/; # asterisk, plus, dagger, double-dagger, section, paragraph
+    $char or $char = (($style=~/\d/)?'0':substr($style,0,1));
+    my $prefix = ($char2)?("\&$cref{$char};" x $footnote_cnt) # *, **, ***, ...
+                          :"\&$cref{$char};${footnote_cnt}";  # *1, *2, *3, ...
+    push(@footnotes, "<sup>$prefix</sup>$txt");
+    "<sup>$prefix</sup>";  
+  &emg;
 
   my @lines = split(/\n/, $in);
   foreach my $line (@lines){
@@ -527,8 +572,11 @@ sub make_table{
   
   my @rowlen;
   for($ln=$#winiitem; $ln>=1; $ln--){
-    ($winiitem[$ln][1] =~ /^\|---(.*)$/) and $htmlitem[$ln][0]{footnote}=1;
+    if($winiitem[$ln][1] =~ /^\|---(.*)$/){
+      $htmlitem[$ln][0]{footnote}=1;
+    }
     $rowlen[$ln]=0;
+
     if($winiitem[$ln][1]=~/\^\^/ and $ln>1){ # row merge
       for(my $i=2; $i<=$#{$winiitem[$ln]}; $i+=2){
         $winiitem[$ln-1][$i] .= "\n".$winiitem[$ln][$i]; # copy to upper winiitem
@@ -568,7 +616,7 @@ sub make_table{
           }
         } # header
 
-        if($col=~/-/){ # colspan
+        if($col eq '-'){ # colspan
           $colspan++;
           $winiitem[$ln][$cn-1]   .= "\n" . $winiitem[$ln][$cn+1];
           if(defined $htmlitem[$ln][$col_n]{copt}{colspan}){
@@ -660,29 +708,49 @@ sub make_table{
     $outtxt .= ' border="1"';
   }
   $outtxt .= q{ style="border-collapse: collapse; };
-  foreach my $k (qw/text-align vertical-align color background-color/){
+  foreach my $k (qw/text-align vertical-align color background-color float/){
     (defined $htmlitem[0][0]{copt}{style}{$k}) and $outtxt .= qq{ $k: $htmlitem[0][0]{copt}{style}{$k}[0]; }; 
   }
   (defined $htmlitem[0][0]{copt}{border}) and $outtxt .= sprintf("border: solid %dpx; ", $htmlitem[0][0]{copt}{border});
 
   $outtxt .= qq{">\n}; # end of style
   (defined $caption) and $outtxt .= "<caption>$caption</caption>\n";
-  $outtxt .= "<tbody>\n";
-  l1: {
-  for(my $rn=1; $rn<=$#htmlitem; $rn++){
-    ($htmlitem[$rn][0] eq '^^') and next;
+  {
+  my $border = $htmlitem[0][0]{copt}{bborder};
+  
+  $outtxt .= (defined $htmlitem[0][0]{copt}{bborder})?qq{<tbody style="border:solid $htmlitem[0][0]{copt}{bborder}px;">\n}:"<tbody>\n";
+  }
 
-    ($htmlitem[$rn][0]{footnote}) and $outtxt .= "</tbody>\n<tfoot>\n";
+  for(my $rn=1; $rn<=$#htmlitem; $rn++){
+    my $outtxt0;
+    ($htmlitem[$rn][0] eq '^^') and next;
     my $ropt = '';
+    my @styles;
     if(defined $htmlitem[$rn][0]{copt}{style}){
-      $ropt .= ' style="' . 
-       join(' ', map{ sprintf("$_:%s;", join(' ', @{$htmlitem[$rn][0]{copt}{style}{$_}})) } (keys %{$htmlitem[$rn][0]{copt}{style}})) . '"';
+      push(@styles, map{ sprintf("$_:%s;", join(' ', @{$htmlitem[$rn][0]{copt}{style}{$_}})) } (keys %{$htmlitem[$rn][0]{copt}{style}}));
+      #$ropt .= ' style="' . 
+      # join(' ', map{ sprintf("$_:%s;", join(' ', @{$htmlitem[$rn][0]{copt}{style}{$_}})) } (keys %{$htmlitem[$rn][0]{copt}{style}})) . '"';
     }
+    my $border;
+    if(defined $htmlitem[$rn][0]{copt}{style}{tborderall}){
+      $border = $htmlitem[$rn][0]{copt}{style}{tborderall};
+    }
+    if(defined $htmlitem[$rn][0]{copt}{style}{bborderall} and (not defined $htmlitem[$rn][0]{footnote})){
+      $border = $htmlitem[$rn][0]{copt}{style}{bborderall};
+    }
+    if(defined $htmlitem[$rn][0]{copt}{style}{fborderall} and ( defined $htmlitem[$rn][0]{footnote})){
+      $border = $htmlitem[$rn][0]{copt}{style}{fborderall};
+    }
+    (defined $border) and push(@styles, "border: solid ${border}px");
+
+    #(defined $htmlitem[0][0]{copt}{border}) and $outtxt .= sprintf("border: solid %dpx; ", $htmlitem[0][0]{copt}{border});
+    (defined $styles[0]) and $ropt .= qq{style="} . join('; ', @styles) . '"';  
+
     if(defined $htmlitem[$rn][0]{copt}{class}[0]){
       $ropt .= q{ class="} . join(' ',  @{$htmlitem[$rn][0]{copt}{class}}) . q{"};
     }
-    $outtxt .= qq!<tr$ropt>!;
-    $outtxt .= join("", 
+    $outtxt0 .= qq!<tr$ropt>!;
+    $outtxt0 .= join("", 
       map { # for each cell ($_: col No.)
         if((defined $htmlitem[$rn][$_]{copt}{rowspan} and $htmlitem[$rn][$_]{copt}{rowspan}<=1) or (defined $htmlitem[$rn][$_]{copt}{colspan} and $htmlitem[$rn][$_]{copt}{colspan}<=1)){
           '';
@@ -711,18 +779,22 @@ sub make_table{
         }
       } (1 .. $#{$htmlitem[1]})
     );
-    $outtxt .= "</tr>\n";
-    if($htmlitem[$rn][0]{footnote}){
-       $outtxt .= "</tfoot>\n";
-       last l1;
-    }
+    $outtxt0 .= "</tr>\n";
+    ($htmlitem[$rn][0]{footnote}) ? ($footnotetext .= $outtxt0) : ($outtxt .= $outtxt0);
   } # foreach $rn
   $outtxt .= "</tbody>\n";
-  } # l1
+  if((scalar @footnotes > 0) or $footnotetext){
+    $outtxt .= (defined $htmlitem[0][0]{copt}{fborder})?qq{<tfoot style="border: solid $htmlitem[0][0]{copt}{fborder}px;">\n}:"<tfoot>\n";
+    my $colspan = scalar @{$htmlitem[-1]} -1;
+    ($footnotetext) and $outtxt .= qq{<tr><td colspan="}. $colspan . qq{">$footnotetext</td></tr>\n};
+    if(scalar @footnotes > 0){
+      $outtxt .= sprintf(qq{<tr><td colspan="$colspan">%s</td></tr>\n}, join('&ensp;', @footnotes));
+    }
+    $outtxt .= "</tfoot>\n";
+  }
   $outtxt .= "</table>\n";
   $outtxt=~s/\t+/ /g; # tab is separator of cells vertically unified
   return("\n$outtxt\n");
-
 }
 
 } # table env
