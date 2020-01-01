@@ -111,7 +111,7 @@ use Pod::Usage;
 use Getopt::Long;
 
 my $scriptname = basename($0);
-my $version    = "0 rel. 191225";
+my $version    = "0 rel. 20200102";
 my @save;
 my %ref; # $ref{image}{imageID} = 1; keys of %$ref: qw/image table formula citation math ref/
 my $debug;
@@ -122,7 +122,7 @@ our ($red, $green, $blue, $magenta, $purple)
     (['219,94,0', 'red'], ['0,158,115', 'green'], ['0,114,178', 'blue'], ['218,0,250', 'magenta'], ['204,121,167', 'purple']);
 my $css = {
   'ol, ul, dl' => {'padding-left'  => '1em'},
-  'table, figure' 
+  'table, figure, img' 
             => {'margin'           => '1em'},
   'tfoot, figcaption'
             => {'font-size'        => 'smaller'},
@@ -616,10 +616,13 @@ sub make_table{
         while($col=~/(?<!!)(!+)(?!!)/g){
           my($h) = $1;
           if(length($h) == 1){ # cell
+print STDERR "length h == 1\n";
             $htmlitem[$ln][$col_n]{ctag} = 'th';
           }elsif(length($h) == 2){ # row
+print STDERR "length h ==2 col=$col\n";
             $htmlitem[$ln][0]{ctag} = 'th';
           }elsif(length($h) == 3){ #col
+print STDERR "length h==3 col=$col\n";
             $htmlitem[0][$col_n]{ctag} = 'th';            
           }
         } # header
@@ -780,9 +783,10 @@ sub make_table{
             $copt .= q!"!;
           }
           my $ctag = (
+            (not $htmlitem[$rn][0]{footnote}) and (
             ($htmlitem[$rn][$_]{ctag} eq 'th') or 
             ($htmlitem[0][$_]{ctag}   eq 'th') or
-            ($htmlitem[$rn][0]{ctag}  eq 'th')
+            ($htmlitem[$rn][0]{ctag}  eq 'th'))
           )?'th':'td';
           sprintf("<$ctag$copt>%s</$ctag>", $htmlitem[$rn][$_]{wini});
         }
