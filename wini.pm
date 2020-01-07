@@ -247,6 +247,12 @@ sub wini{
   $t0 =~ s/\{\{bar}}/&#x7c;/g; # |
   $t0 =~ s/\{\{r}}/&#x7d;/g;   # }
 
+  # sub, sup
+  $t0 =~ s!__\{(.*?)}!<sub>$1</sub>!g;  
+  $t0 =~ s!\^\^\{(.*?)}!<sup>$1</sup>!g;
+  $t0 =~ s!__([^{])!<sub>$1</sub>!g;  
+  $t0 =~ s!\^\^([^{])!<sup>$1</sup>!g;
+  
   # pre, code, citation, ...
   $t0 =~ s/\{\{(pre|code|q(?: [^|]+?)?)}}(.+?)\{\{end}}/&save($1,$2)/esmg;  
 
