@@ -640,13 +640,10 @@ sub make_table{
         while($col=~/(?<!!)(!+)(?!!)/g){
           my($h) = $1;
           if(length($h) == 1){ # cell
-print STDERR "length h == 1\n";
             $htmlitem[$ln][$col_n]{ctag} = 'th';
           }elsif(length($h) == 2){ # row
-print STDERR "length h ==2 col=$col\n";
             $htmlitem[$ln][0]{ctag} = 'th';
           }elsif(length($h) == 3){ #col
-print STDERR "length h==3 col=$col\n";
             $htmlitem[0][$col_n]{ctag} = 'th';            
           }
         } # header
