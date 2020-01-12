@@ -111,7 +111,7 @@ use Pod::Usage;
 use Getopt::Long;
 
 my $scriptname = basename($0);
-my $version    = "0 rel. 20200113";
+my $version    = "ver. 0 rel. 20200113";
 my @save;
 my %ref; # $ref{image}{imageID} = 1; keys of %$ref: qw/image table formula citation math ref/
 my $debug;
@@ -491,9 +491,9 @@ sub make_a{
     }elsif($prefix eq '??'){
       return(qq!<figure$style> <a href="$url" target="$target"><img src="$url" alt="$id" id="$id"$class$imgopt></a><figcaption>$text</figcaption></figure>!);
     }elsif($prefix eq '?'){
-      return(qq!<a href= "$url" target="$target"><img src="$url" alt="$text" id="$id"$style$imgopt></a>!);      
+      return(qq!<a href="$url" target="$target"><img src="$url" alt="$text" id="$id"$class$style$imgopt></a>!);      
     }else{ # "!"
-      return(qq!<img src="$url" alt="$text" id="$id"$style$imgopt>!);
+      return(qq!<img src="$url" alt="$text" id="$id"$class$style$imgopt>!);
     }
   }elsif($url=~/^[\d_]+$/){
     return(qq!<a href="$baseurl?aid=$url" target="$target">$text</a>!);
