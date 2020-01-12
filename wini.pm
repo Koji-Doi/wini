@@ -458,29 +458,47 @@ my $img_no=0;
 sub make_a{
 # [! image.png text]
 # [!"image.png" text]
-# [!!#fig1 image.png text]
-# [!<#fig1 image.png text]
+# [!!image.png|#x text] # figure
+# [!image.png|< text]   # img with float:left
+# [http://example.com text]
+# [http://example.com|@@ text] # link with window specification
+# [#goat text]  # link within page
 
   my($t, $baseurl)=@_;
-  my($prefix, $url, $text)         = $t=~/^\s*([!#])?"(.*)"(?:\s+(.*))?/;
-  ($url) or ($prefix, $url, $text) = $t=~/^\s*([!]\S*)?\s+(\S*)(?:\s+(.*))?/;
+  my($prefix, $url0, $text)          = $t=~m{([!?#]*)"(\S+)"\s+(.*)};
+  ($url0) or ($prefix, $url0, $text) = $t=~m{([!?#]*)([^\s"]+)(?:\s+(.*))?};
+  my($url, $opts) = split(/\|/, $url0, 2);
+  ($prefix eq '#') and $url=$prefix.$url;
   $text = escape($text) || $url;
-  my $style = ($prefix=~/</)?"float: left;":($prefix=~/>/)?"float: right;":undef;
-  if($prefix=~/!/){
+
+  # options
+  my $style            = ($opts=~/</)?"float: left;":($opts=~/>/)?"float: right;":undef;
+  ($style) and $style  = qq{ style="$style"};
+  my @ids              = $opts=~/#([-\w]+)/g;
+  my @classes          = $opts=~/\.([-\w]+)/g;  $opts=~s/[.#][-\w]+//g;
+  my($width,$height)   = ($opts=~/(\d+)x(\d+)/)?($1,$2):(0,0);
+  my $imgopt           = ($width>0)?qq{ width="$width"}:'';
+  $height and $imgopt .= qq{ height="$height"};
+  my $target           = ($opts=~/@@/)?'_blank':($opts=~/@(\w+)/)?($1):'_self';
+
+  if($prefix=~/[!?]/){ # img, figure
     $img_no++;
-    my @ids = ("image${img_no}");
-    $prefix=~/#(.*)/ and push(@ids, $1);
-    map { $ref{image}{$_} = $img_no } @ids;
-    my $id = join(' ', @ids);
-    if($prefix=~/!!/){
-      return(qq!<figure style="$style"> <img src="$url" id="$id" alt="$ids[0]"><figcaption>$text</figcaption></figure>!);
-    }else{
-      return(qq!<img src="$url" id="$id" alt="$text" style="$style">!);
+    my $id = $ids[-1]; ($id) or $id = "image${img_no}";
+    my $class = join(' ', @classes); ($class) and $class = qq{ class="$class"};
+    $ref{image}{$id} = $img_no;
+    if($prefix eq '!!'){
+      return(qq!<figure$style> <img src="$url" alt="$id" id="$id"$class$imgopt><figcaption>$text</figcaption></figure>!);
+    }elsif($prefix eq '??'){
+      return(qq!<figure$style> <a href="$url" target="$target"><img src="$url" alt="$id" id="$id"$class$imgopt></a><figcaption>$text</figcaption></figure>!);
+    }elsif($prefix eq '?'){
+      return(qq!<a href= "$url" target="$target"><img src="$url" alt="$text" id="$id"$style$imgopt></a>!);      
+    }else{ # "!"
+      return(qq!<img src="$url" alt="$text" id="$id"$style$imgopt>!);
     }
   }elsif($url=~/^[\d_]+$/){
-    return(qq!<a href="$baseurl?aid=$url">$text</a>!);
+    return(qq!<a href="$baseurl?aid=$url" target="$target">$text</a>!);
   }else{
-    return(qq!<a href="$url">$text</a>!);
+    return(qq!<a href="$url" target="$target">$text</a>!);
   }
 }
 }
@@ -532,7 +550,7 @@ sub make_table{
       push(@{$htmlitem[0][0]{copt}{class}}, $1);
     }
     while($o=~/#([-\w]+)/g){
-      push(@{$htmlitem[0][0]{copt}{id}}, $1);
+      $htmlitem[0][0]{copt}{id}[0] = $1;
     }
     while($o=~/\&([lrcjsebtm]+)/g){
       my $h = {qw/l left r right c center j justify s start e end/}->{$1};
@@ -719,8 +737,8 @@ print STDERR "length h==3 col=$col\n";
   ($debug) and print(STDERR "winiitem\n", (Dumper @winiitem), "htmlitem\n", (Dumper @htmlitem));
 
   # make html
-  unshift(@{$htmlitem[0][0]{copt}{id}}, "winitable${table_no}");
-  my $outtxt = sprintf(qq!<table id="%s" class="%s"!, join(' ', @{$htmlitem[0][0]{copt}{id}}), join(' ', @{$htmlitem[0][0]{copt}{class}}));
+  ($htmlitem[0][0]{copt}{id}[0]) or $htmlitem[0][0]{copt}{id}[0] = "winitable${table_no}";
+  my $outtxt = sprintf(qq!<table id="%s" class="%s"!, $htmlitem[0][0]{copt}{id}[0], join(' ', @{$htmlitem[0][0]{copt}{class}}));
   if(defined $htmlitem[0][0]{copt}{border}){
     $outtxt .= ' border="1"';
   }
