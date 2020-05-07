@@ -111,7 +111,7 @@ use Pod::Usage;
 use Getopt::Long;
 
 my $scriptname = basename($0);
-my $version    = "ver. 0 rel. 20200113";
+my $version    = "ver. 0 rel. 20200508";
 my @save;
 my %ref; # $ref{image}{imageID} = 1; keys of %$ref: qw/image table formula citation math ref/
 my $debug;
