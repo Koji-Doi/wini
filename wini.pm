@@ -152,12 +152,13 @@ __PACKAGE__->stand_alone() if !caller() || caller() eq 'PAR';
 
 # Following function is executed when this script is called as stand-alone script
 sub stand_alone(){
-  my($input, $output, $fhi, $cssfile, $test, $fho, $whole);
+  my($input, $output, $fhi, $title, $cssfile, $test, $fho, $whole);
   GetOptions(
     "h|help"    => sub {help()},
     "v|version" => sub {print STDERR "wini.pm Version $version\n"; exit()},
     "i=s"       => \$input,
     "o=s"       => \$output,
+    "title=s"   => \$title,
     "cssfile:s" => \$cssfile, 
     "t"         => \$test,
     "d"         => \$debug,
@@ -197,7 +198,7 @@ sub stand_alone(){
     ($cssfile eq '') and $cssfile="wini.css";
   }
   my @input = <$fhi>;
-  print {$fho} wini(join('', @input), {whole=>$whole, cssfile=>$cssfile});
+  print {$fho} wini(join('', @input), {whole=>$whole, cssfile=>$cssfile, title=>$title});
 }
 
 sub help{
@@ -235,17 +236,15 @@ sub wini{
 # wini($tagettext, {para=>'br', 'is_bs4'=>1, baseurl=>'http://example.com', nocr=>1});
   # para: paragraph mode (br:set <br>, p: set <p>, nb: no separation
   # nocr: whether CRs are conserved in result text. 0(default): conserved, 1: not conserved
-  my($t0, $opt)         = @_;
-  my $cr                = (defined $opt->{nocr} and $opt->{nocr}==1)
+  my($t0, $opt)           = @_;
+  my $cr                  = (defined $opt->{nocr} and $opt->{nocr}==1)
                           ?"\t":"\n"; # option to inhibit CR insertion (in table)
-  my($baseurl, $is_bs4) = ($opt->{baseurl}, $opt->{is_bs4});
-  my $cssfile           = $opt->{cssfile};
-  my $para              = 'p'; # p or br or none
+  my($baseurl, $is_bs4)   = ($opt->{baseurl}, $opt->{is_bs4});
+  my $cssfile             = $opt->{cssfile};
+  my $para                = 'p'; # p or br or none
   (defined $opt->{para}) and $para = $opt->{para};
-
-  $t0 =~ s/\{\{l}}/&#x7b;/g;   # {
-  $t0 =~ s/\{\{bar}}/&#x7c;/g; # |
-  $t0 =~ s/\{\{r}}/&#x7d;/g;   # }
+  my $title               = 'WINI page';
+  (defined $opt->{title}) and $title = $opt->{title};
 
   # sub, sup
   $t0 =~ s!__\{(.*?)}!<sub>$1</sub>!g;  
@@ -289,7 +288,11 @@ sub wini{
           (defined $id[0])    and push(@c, q{id="}   .join(" ", @id)   .q{"});
           $_ = "<span " . join(" ", @c) . ">$b</span>"; 
         !eg or
-        $t =~ s!\[(.*?)\]!make_a($1, $baseurl)!eg
+        $t =~ s!\[(.*?)\]!make_a($1, $baseurl)!eg or
+        $t =~ s/\{\{l}}/&#x7b;/g or   # {
+        $t =~ s/\{\{bar}}/&#x7c;/g or # |
+        $t =~ s/\{\{r}}/&#x7d;/g      # }
+
       ) or last; # no subst need, then escape inner loop
     } # loop while subst needed
     my $t2='';
@@ -358,7 +361,7 @@ sub wini{
 <head>
 <meta charset="UTF-8">
 $style
-<title>WINI test page</title>
+<title>$title</title>
 </head>
 <body>
 $r
