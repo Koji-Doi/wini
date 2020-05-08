@@ -411,7 +411,6 @@ sub readpars{
 sub escape{
   ($_)=@_;
   ($_) or return('');
-  s/&/&amp;/g;
   s/</&lt;/g;
   s/>/&gt;/g;
   return($_);
