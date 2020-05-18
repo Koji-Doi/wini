@@ -85,18 +85,21 @@ Today many people try to build and maintain blogs, wikipedia-like sites, etc. Th
 
 =over 4
 
-=item * -i INPUT             set input file name to INPUT. If the file named 'INPUT' does not exists, wini.pm looks for 'INPUT.wini'. If -i is not set, wini.pm takes data from standard input.
+=item * -i INPUT             Set input file name to INPUT. If the file named 'INPUT' does not exists, wini.pm looks for 'INPUT.wini'. If -i is not set, wini.pm takes data from standard input.
 
-=item * -o OUTPUT            set output file name. If both -o and -i are omitted, wini.pm outputs HTML-translated text to standard output.
+=item * -o OUTPUT            Set output file name. If both -o and -i are omitted, wini.pm outputs HTML-translated text to standard output.
 If -o is omitted and the input file name is 'input.wini', the output file will be 'input.wini.html'.
 Users can specify the output directory rather than the file. If -o value ends with 'output/', output file will be output/input.wini.html. if 'output/' does not exist, wini.pm will create it.
 
-=item * --whole              add HTML5 headar and footer to output. The result output will be a complete HTML5 document.
+=item * --whole              Add HTML5 headar and footer to output. The result output will be a complete HTML5 document.
 
 =item * --cssfile [out.css]  CSS is output to out.css, rather than written in html file. If '--cssfile' is set without a file name, "wini.css" is the output css file name.
-=item * --version            show version.
 
-=item * --help               show this help.
+=item * --title [title]      Set text for <title>. Effective only when --whole option is set.
+
+=item * --version            Show version.
+
+=item * --help               Show this help.
 
 =back
 
@@ -111,7 +114,7 @@ use Pod::Usage;
 use Getopt::Long;
 
 my $scriptname = basename($0);
-my $version    = "ver. 0 rel. 20200508";
+my $version    = "ver. 0 rel. 20200519";
 my @save;
 my %ref; # $ref{image}{imageID} = 1; keys of %$ref: qw/image table formula citation math ref/
 my $debug;
@@ -261,17 +264,28 @@ sub wini{
   my $r;
   my @localclass = ('wini');
   ($is_bs4) and push(@localclass, "col-sm-12");
-  my $myclass = ' class="'.join(' ',@localclass).'"';
+  #my $myclass = ' class="'.join(' ',@localclass).'"';
   foreach my $t (split(/\n{2,}/, $t0)){ # for each paragraph
+    my @myclass = @localclass;
+    my($myclass, $myid) = ('', '');
     my $lastlistdepth=0;
     my $ptype; # type of each paragraph (list, header, normal paragraph, etc.)
     while(1){ # loop while subst needed
-      if(my($x,$id,$cont) = $t=~/^(!+)([-\w]*)\s*(.*)$/m){ # !!!...
-        ($id) and $id=qq{ id="$id"};
+#      if(my($x,$prefix,$id,$cont) = $t=~/^(!+)([.#])?([-\w]*)\s*(.*)$/m){ # !!!...
+      my($x, $id0, $cont) = $t=~/^(!+)([-#.\w]*)\s*(.*)$/m; # !!!...
+      if($x){ # if header
+        ($id0=~/^[^.#]/) and $id0=".$id0";
+        while($id0=~/([#.])([^#.]+)/g){
+          my($prefix, $label) = ($1, $2);
+          ($label) or next;
+          ($prefix eq '#') and push(@myclass, $label);
+          ($prefix eq '.') and $myid = qq{ id="$label"};
+        }
         my $tag0 = length($x); ($tag0>5) and $tag0="5";
-        $t=~s#^(!+)\s*(.*)$#<h${tag0}${myclass}${id}>$cont</h${tag0}>#m;
+        (defined $myclass[0]) and $myclass = qq{ class="} . join(" ", @myclass) . qq{"};
+        $t=~s#^(!+)\s*(.*)$#<h${tag0}${myclass}${myid}>$cont</h${tag0}>#m;
         $ptype = 'header';
-      }
+      } # endif header
       (
         $t =~ s!\{\{([IBUS])\|([^{}]*?)}}!{my $x=lc $1; "<$x>$2</$x>"}!esg or
         $t =~ s!\{\{i\|([^{}]*?)}}!<span style="font-style:italic;">$1</span>!g or
