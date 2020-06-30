@@ -589,7 +589,7 @@ sub make_table{
   ''&emg;
 
   # footnotes in cells
-  $in=~s&{{\^\|([^}|]*)(?:\|([^}]*))?}}&
+  $in=~s&\{\{\^\|([^}|]*)(?:\|([^}]*))?}}&
     $footnote_cnt++;
     my($txt, $style) = ($1, $2);
     my %cref = ('*'=>'lowast' ,'+'=>'plus', 'd'=>'dagger', 'D'=>'Dagger', 's'=>'sect', 'p'=>'para');
