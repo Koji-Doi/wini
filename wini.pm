@@ -112,6 +112,9 @@ use File::Basename;
 use FindBin;
 use Pod::Usage;
 use Getopt::Long;
+use Encode;
+*Data::Dumper::qquote = sub { return encode "utf8", shift } ;
+$Data::Dumper::Useperl = 1 ;
 
 my $scriptname = basename($0);
 my $version    = "ver. 0 rel. 20200519";
@@ -248,18 +251,18 @@ sub wini{
   (defined $opt->{para}) and $para = $opt->{para};
   my $title               = 'WINI page';
   (defined $opt->{title}) and $title = $opt->{title};
-
-  # sub, sup
-  $t0 =~ s!__\{(.*?)}!<sub>$1</sub>!g;  
-  $t0 =~ s!\^\^\{(.*?)}!<sup>$1</sup>!g;
-  $t0 =~ s!__([^{])!<sub>$1</sub>!g;  
-  $t0 =~ s!\^\^([^{])!<sup>$1</sup>!g;
   
   # pre, code, citation, ...
   $t0 =~ s/\{\{(pre|code|q(?: [^|]+?)?)}}(.+?)\{\{end}}/&save($1,$2)/esmg;  
 
   # conv table to html
   $t0 =~ s/^\s*(\|.*?)[\n\r]+(?!\|)/make_table($1)/esmg;
+
+  # sub, sup
+  $t0 =~ s!__\{(.*?)}!<sub>$1</sub>!g;  
+  $t0 =~ s!\^\^\{(.*?)}!<sup>$1</sup>!g;
+  $t0 =~ s!__([^{])!<sub>$1</sub>!g;  
+  $t0 =~ s!\^\^([^{])!<sup>$1</sup>!g;
 
   my $r;
   my @localclass = ('wini');
@@ -578,11 +581,10 @@ sub make_table{
     while($o=~/(?<!\w)([][_~@=|])+([,;:]?)(\d+)?/g){
       my($a, $aa, $b) = ($1, $2, $3);
       my $b1    = sprintf("%s %dpx", ($aa)?(($aa eq ',')?'dotted':($aa eq ';')?'dashed':'double'):'solid', $b);
-#      ($a=~/\@/)   and $htmlitem[0][0]{copt}{style}{border}[0] = $b;      
-      ($a=~/[[@|]/) and $htmlitem[0][0]{copt}{style}{'border-left'}   = $b1;      
-      ($a=~/[]@|]/) and $htmlitem[0][0]{copt}{style}{'border-right'}  = $b1;      
-      ($a=~/[_@=]/) and $htmlitem[0][0]{copt}{style}{'border-bottom'} = $b1;      
-      ($a=~/[~@=]/) and $htmlitem[0][0]{copt}{style}{'border-top'}    = $b1;      
+      ($a=~/[[@|]/) and $htmlitem[0][0]{copt}{style}{'border-left'}   = $b1;
+      ($a=~/[]@|]/) and $htmlitem[0][0]{copt}{style}{'border-right'}  = $b1;
+      ($a=~/[_@=]/) and $htmlitem[0][0]{copt}{style}{'border-bottom'} = $b1;
+      ($a=~/[~@=]/) and $htmlitem[0][0]{copt}{style}{'border-top'}    = $b1;
     }
     $caption=wini($c, {para=>'nb', nocr=>1});
     $caption=~s/[\s\n\r]+$//;
@@ -606,15 +608,22 @@ sub make_table{
   foreach my $line (@lines){
     $line=~s/[\n\r]*//g;
     ($line eq '') and next;
-    $ln++;
+    my $rowmerge=0;
     my @cols = split(/((?:^| +)\|\S*)/, $line);
+    ($line=~m{^\|\^\^}) ? $rowmerge=1
+                        : $ln++;
+
     # standardize
     $cols[-1]=~/^\s+$/  and delete $cols[-1];
     $cols[-1]!~/^\s*\|/ and push(@cols, '|');
     for (my $cn=1; $cn<$#cols; $cn++){
       $cols[$cn]=~s/^\s*//;
       $cols[$cn]=~s/\s*$//;
-      $winiitem[$ln][$cn] = $cols[$cn];
+      if($rowmerge){
+        ($cn%2==0) and $winiitem[$ln][$cn] .= "\n".$cols[$cn]; # separators are skipped
+      }else{
+        $winiitem[$ln][$cn] = $cols[$cn];
+      }
     }
   } # foreach @lines
   
@@ -624,7 +633,7 @@ sub make_table{
       $htmlitem[$ln][0]{footnote}=1;
     }
     $rowlen[$ln]=0;
-
+=test
     if($winiitem[$ln][1]=~/\^\^/ and $ln>1){ # row merge
       for(my $i=2; $i<=$#{$winiitem[$ln]}; $i+=2){
         $winiitem[$ln-1][$i] .= "\n".$winiitem[$ln][$i]; # copy to upper winiitem
@@ -632,6 +641,7 @@ sub make_table{
       }
       next;
     }
+=cut
     my $colspan=0;
     my $val='';
 
@@ -682,6 +692,7 @@ sub make_table{
           $winiitem[$ln-1][$cn+1] .= "\n" . $winiitem[$ln][$cn+1]; # merge data block to upper row 
           (defined $htmlitem[$ln][$col_n]{copt}{rowspan}) or $htmlitem[$ln][$col_n]{copt}{rowspan} = 1;
           $htmlitem[$ln-1][$col_n]{copt}{rowspan} = $htmlitem[$ln][$col_n]{copt}{rowspan}+1;
+          $htmlitem[$ln][$col_n]{copt}{rowspan} = -1; #200708
           next;
         } # rowspan
 
