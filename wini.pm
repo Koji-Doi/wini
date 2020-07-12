@@ -605,20 +605,33 @@ sub make_table{
   &emg;
 
   my @lines = split(/\n/, $in);
+  my $macro = '';
+  my %macros;
   foreach my $line (@lines){
     $line=~s/[\n\r]*//g;
     ($line eq '') and next;
-    my $rowmerge=0;
     my @cols = split(/((?:^| +)\|\S*)/, $line);
-    ($line=~m{^\|\^\^}) ? $rowmerge=1
-                        : $ln++;
 
     # standardize
     $cols[-1]=~/^\s+$/  and delete $cols[-1];
     $cols[-1]!~/^\s*\|/ and push(@cols, '|');
+    map{ s/^\s*//; s/\s*$//;} @cols;
+
+    # mode
+    my $rowmerge = ($line=~m{^\|\^\^}) ? 1 : 0;
+    if($rowmerge!=1){
+      $macro = ($line=~m{^\|([a-zA-Z\d]+)}) ? $1 : '';
+      ($macro eq '') and $ln++;
+    }
+
+    # inner-table macro entry
+    if($macro ne ''){
+      $macros{$macro} = ($rowmerge==1)?("$macros{$macro}\n$cols[2]") : $cols[2];
+      next;
+    }
+
+    # prepare %winiitem
     for (my $cn=1; $cn<$#cols; $cn++){
-      $cols[$cn]=~s/^\s*//;
-      $cols[$cn]=~s/\s*$//;
       if($rowmerge){
         ($cn%2==0) and $winiitem[$ln][$cn] .= "\n".$cols[$cn]; # separators are skipped
       }else{
@@ -629,9 +642,7 @@ sub make_table{
   
   my @rowlen;
   for($ln=$#winiitem; $ln>=1; $ln--){
-    if($winiitem[$ln][1] =~ /^\|---(.*)$/){
-      $htmlitem[$ln][0]{footnote}=1;
-    }
+    ($winiitem[$ln][1] =~ /^\|---(.*)$/) and $htmlitem[$ln][0]{footnote}=1;
     $rowlen[$ln]=0;
 =test
     if($winiitem[$ln][1]=~/\^\^/ and $ln>1){ # row merge
@@ -644,11 +655,19 @@ sub make_table{
 =cut
     my $colspan=0;
     my $val='';
+    for(my $cn=1; $cn<=$#{$winiitem[$ln]}; $cn+=2){
+      if($winiitem[$ln][$cn]=~/<(.*)/){
+        my $macro=$1;
+        (defined $macros{$macro}) and $winiitem[$ln][$cn+1] = $macros{$macro};
+      }
+    }
 
     for(my $cn=$#{$winiitem[$ln]}; $cn>=0; $cn--){
       my $col   = $winiitem[$ln][$cn];
       my $col_n = $cn/2+1;
       if($cn%2==1){ # separator
+        $col = substr($col,1); # remove the first '|'
+
         # border style initial setting from $htmlitem[0][0]{copt}{style} 191217 - 191220
         foreach my $btype (map {"border-$_"} qw/left right bottom top/){
           (not defined $htmlitem[$ln][0]{footnote}) and 
@@ -656,7 +675,6 @@ sub make_table{
               $htmlitem[$ln][$col_n]{copt}{style}{$btype}[0] = $htmlitem[0][0]{copt}{style}{$btype}; 
         }
 
-        $col = substr($col,1); # remove the first '|'
         #$ctag = ($col=~/\bh\b/)?'th':'td';
         $htmlitem[$ln][$col_n]{ctag} = 'td';
         $col=~s/\.\.\.\.([^.]+)/unshift(@{$htmlitem[  0][     0]{copt}{class}}, $1), ''/eg;
@@ -670,7 +688,7 @@ sub make_table{
           }elsif(length($h) == 2){ # row
             $htmlitem[$ln][0]{ctag} = 'th';
           }elsif(length($h) == 3){ #col
-            $htmlitem[0][$col_n]{ctag} = 'th';            
+            $htmlitem[0][$col_n]{ctag} = 'th';
           }
         } # header
 
@@ -763,9 +781,7 @@ sub make_table{
   # make html
   ($htmlitem[0][0]{copt}{id}[0]) or $htmlitem[0][0]{copt}{id}[0] = "winitable${table_no}";
   my $outtxt = sprintf(qq!<table id="%s" class="%s"!, $htmlitem[0][0]{copt}{id}[0], join(' ', @{$htmlitem[0][0]{copt}{class}}));
-  if(defined $htmlitem[0][0]{copt}{border}){
-    $outtxt .= ' border="1"';
-  }
+  (defined $htmlitem[0][0]{copt}{border}) and $outtxt .= ' border="1"';
   $outtxt .= q{ style="border-collapse: collapse; };
   foreach my $k (qw/text-align vertical-align color background-color float/){
     (defined $htmlitem[0][0]{copt}{style}{$k}) and $outtxt .= qq{ $k: $htmlitem[0][0]{copt}{style}{$k}[0]; }; 
@@ -774,11 +790,7 @@ sub make_table{
 
   $outtxt .= qq{">\n}; # end of style
   (defined $caption) and $outtxt .= "<caption>$caption</caption>\n";
-  {
-  my $border = $htmlitem[0][0]{copt}{bborder};
-  
   $outtxt .= (defined $htmlitem[0][0]{copt}{bborder})?qq{<tbody style="border:solid $htmlitem[0][0]{copt}{bborder}px;">\n}:"<tbody>\n";
-  }
 
   for(my $rn=1; $rn<=$#htmlitem; $rn++){
     my $outtxt0;
@@ -855,8 +867,9 @@ sub make_table{
   }
   $outtxt .= "</table>\n";
   $outtxt=~s/\t+/ /g; # tab is separator of cells vertically unified
+print Dumper %macros;
   return("\n$outtxt\n");
-}
+} # sub make_table
 
 } # table env
 
