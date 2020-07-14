@@ -117,7 +117,7 @@ use Encode;
 $Data::Dumper::Useperl = 1 ;
 
 my $scriptname = basename($0);
-my $version    = "ver. 0 rel. 20200709";
+my $version    = "ver. 0 rel. 20200714";
 my @save;
 my %ref; # $ref{image}{imageID} = 1; keys of %$ref: qw/image table formula citation math ref/
 my $debug;
@@ -253,7 +253,10 @@ sub wini{
   (defined $opt->{title}) and $title = $opt->{title};
   
   # pre, code, citation, ...
-  $t0 =~ s/\{\{(pre|code|q(?: [^|]+?)?)}}(.+?)\{\{end}}/&save($1,$2)/esmg;  
+  $t0 =~ s/\{\{(pre|code|q(?: [^|]+?)?)}}(.+?)\{\{end}}/&save_quote($1,$2)/esmg;  
+  $t0 =~ s/^'''\n(.*?)\n'''$/         &save_quote('pre',  $1)/esmg;
+  $t0 =~ s/^```\n(.*?)\n```$/         &save_quote('code', $1)/esmg;
+  $t0 =~ s/^"""([\w =]*)\n(.*?)\n"""$/&save_quote("q $1", $2)/esmg;
 
   # conv table to html
   $t0 =~ s/^\s*(\|.*?)[\n\r]+(?!\|)/make_table($1)/esmg;
@@ -435,18 +438,18 @@ sub escape{
 
 {
 my $i=-1;
-sub save{ # pre, code, cite ...
+sub save_quote{ # pre, code, cite ...
   my($cmd, $txt) = @_;
   $i++;
   $save[$i] = $txt;
   $cmd = lc $cmd;
   if($cmd eq 'def'){
     return('');
-  }elsif($cmd=~/^q/){
+  }elsif($cmd=~/^q/){ # q
     my(@opts) = $cmd=~/(\w+=\S+)/g;
     my %opts;
     foreach my $o (@opts){
-      my($k,$v) = $o=~/(.*?)=(.*)/;
+      my($k,$v) = $o=~/([^;]*?)=(.*)/;
       ($k) and $opts{$k} = $v;
     }
     ($opts{cite}) or $opts{cite} = 'http://example.com';
@@ -455,7 +458,7 @@ sub save{ # pre, code, cite ...
 \x00i=$i\x01
 </blockquote>
 EOD
-  }else{
+  }else{ # pre, code
     my($ltag, $rtag) = ($cmd eq 'code')?('<pre><code>','</code></pre>')
                                        :('<pre>',      '</pre>');
     return("$ltag\n\x00i=$i\x01\n$rtag");
