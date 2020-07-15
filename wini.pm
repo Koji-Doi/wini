@@ -377,7 +377,7 @@ sub wini{
     close $fho;
   }
   if(defined $opt->{whole}){
-    my $style = ($cssflamework)?qq{<link rel="stylesheet" type="text/css" href="$cssfile">}:'';
+    my $style = ($cssflamework)?qq{<link rel="stylesheet" type="text/css" href="$cssflamework">}:'';
     $style   .= ($cssfile)?qq{<link rel="stylesheet" type="text/css" href="$cssfile">} : "<style>\n".css($css)."</style>\n";
     $r = <<"EOD";
 <!DOCTYPE html>
