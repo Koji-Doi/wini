@@ -117,7 +117,7 @@ use Encode;
 $Data::Dumper::Useperl = 1 ;
 
 my $scriptname = basename($0);
-my $version    = "ver. 0 rel. 20200714";
+my $version    = "ver. 0 rel. 20200715";
 my @save;
 my %ref; # $ref{image}{imageID} = 1; keys of %$ref: qw/image table formula citation math ref/
 my $debug;
@@ -158,18 +158,20 @@ __PACKAGE__->stand_alone() if !caller() || caller() eq 'PAR';
 
 # Following function is executed when this script is called as stand-alone script
 sub stand_alone(){
-  my($input, $output, $fhi, $title, $cssfile, $test, $fho, $whole);
+  my($input, $output, $fhi, $title, $cssfile, $test, $fho, $whole, $cssflamework);
   GetOptions(
-    "h|help"    => sub {help()},
-    "v|version" => sub {print STDERR "wini.pm Version $version\n"; exit()},
-    "i=s"       => \$input,
-    "o=s"       => \$output,
-    "title=s"   => \$title,
-    "cssfile:s" => \$cssfile, 
-    "t"         => \$test,
-    "d"         => \$debug,
-    "whole"     => \$whole
+    "h|help"         => sub {help()},
+    "v|version"      => sub {print STDERR "wini.pm Version $version\n"; exit()},
+    "i=s"            => \$input,
+    "o=s"            => \$output,
+    "title=s"        => \$title,
+    "cssfile:s"      => \$cssfile, 
+    "t"              => \$test,
+    "d"              => \$debug,
+    "whole"          => \$whole,
+    "cssflamework:s" => \$cssflamework
   );
+  (defined $cssflamework) and ($cssflamework eq '') and $cssflamework='https://newcss.net/new.min.css';
   ($test) and ($input, $output)=("test.wini", "test.html");
   if ($input) {
     unless(open($fhi, '<:utf8', $input)){
@@ -204,7 +206,7 @@ sub stand_alone(){
     ($cssfile eq '') and $cssfile="wini.css";
   }
   my @input = <$fhi>;
-  print {$fho} wini(join('', @input), {whole=>$whole, cssfile=>$cssfile, title=>$title});
+  print {$fho} wini(join('', @input), {whole=>$whole, cssfile=>$cssfile, title=>$title, cssflamework=>$cssflamework});
 }
 
 sub help{
@@ -247,6 +249,7 @@ sub wini{
                           ?"\t":"\n"; # option to inhibit CR insertion (in table)
   my($baseurl, $is_bs4)   = ($opt->{baseurl}, $opt->{is_bs4});
   my $cssfile             = $opt->{cssfile};
+  my $cssflamework        = $opt->{cssflamework};
   my $para                = 'p'; # p or br or none
   (defined $opt->{para}) and $para = $opt->{para};
   my $title               = 'WINI page';
@@ -374,7 +377,8 @@ sub wini{
     close $fho;
   }
   if(defined $opt->{whole}){
-    my $style = ($cssfile)?qq{<link rel="stylesheet" type="text/css" href="$cssfile">} : "<style>\n".css($css)."</style>\n";
+    my $style = ($cssflamework)?qq{<link rel="stylesheet" type="text/css" href="$cssfile">}:'';
+    $style   .= ($cssfile)?qq{<link rel="stylesheet" type="text/css" href="$cssfile">} : "<style>\n".css($css)."</style>\n";
     $r = <<"EOD";
 <!DOCTYPE html>
 <html lang="ja">
