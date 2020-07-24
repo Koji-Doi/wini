@@ -7,7 +7,7 @@ wini.pm - WIki markup ni NIta nanika (Japanese: "Something like wiki markup")
 
  use wini;
 
- my $htmltext = wini(<<'EOT');
+ my($htmltext) = wini(<<'EOT');
  ! Large header
  !! Middle header
  !!! Small header
@@ -117,7 +117,7 @@ use Encode;
 $Data::Dumper::Useperl = 1 ;
 
 my $scriptname = basename($0);
-my $version    = "ver. 0 rel. 20200715";
+my $version    = "ver. 0 rel. 20200725";
 my @save;
 my %ref; # $ref{image}{imageID} = 1; keys of %$ref: qw/image table formula citation math ref/
 my $debug;
@@ -270,24 +270,38 @@ sub wini{
   $t0 =~ s/^```\n(.*?)\n```$/         &save_quote('code', $1)/esmg;
   $t0 =~ s/^"""([\w =]*)\n(.*?)\n"""$/&save_quote("q $1", $2)/esmg;
 
-  # footnote
-  if(exists $opt->{table}){
-      $t0=~s&\{\{\^\|([^}|]*)(?:\|([^}]*))?}}&
-        $footnote_cnt++;
-        my($txt, $style) = ($1, $2);
-        my %cref = ('*'=>'lowast' ,'+'=>'plus', 'd'=>'dagger', 'D'=>'Dagger', 's'=>'sect', 'p'=>'para');
-        $style = $style || '*';
-        my($char, $char2) = $style=~/([*+dDsp])(\1)?/; # asterisk, plus, dagger, double-dagger, section, paragraph
-        $char or $char = (($style=~/\d/)?'0':substr($style,0,1));
-        my $prefix = ($char2)?("\&$cref{$char};" x $footnote_cnt) # *, **, ***, ...
-                          :"\&$cref{$char};${footnote_cnt}";  # *1, *2, *3, ...
-        push(@{$opt->{footnote}}, "<sup>$prefix</sup>$txt");
-        "<sup>$prefix</sup>";  
-      &emg;
-  }
-
+    
   # conv table to html
   $t0 =~ s/^\s*(\|.*?)[\n\r]+(?!\|)/make_table($1)/esmg;
+
+  # footnote
+  if(exists $opt->{table}){
+    $t0=~s&\{\{\^\|([^}|]*)(?:\|([^}]*))?}}&
+      $footnote_cnt++;
+      my($txt, $style) = ($1, $2);
+      my %cref = ('*'=>'lowast' ,'+'=>'plus', 'd'=>'dagger', 'D'=>'Dagger', 's'=>'sect', 'p'=>'para');
+      $style = $style || '*';
+      my($char, $char2) = $style=~/([*+dDsp])(\1)?/; # asterisk, plus, dagger, double-dagger, section, paragraph
+      $char or $char = (($style=~/\d/)?'0':substr($style,0,1));
+      my $prefix = ($char2)?("\&$cref{$char};" x $footnote_cnt) # *, **, ***, ...
+        :"\&$cref{$char};${footnote_cnt}";  # *1, *2, *3, ...
+      push(@{$opt->{footnote}}, "<sup>$prefix</sup>$txt");
+      "<sup>$prefix</sup>";
+    &emg;
+  }else{
+    $t0=~s&\{\{\^\|([^}|]*)(?:\|([^}]*))?}}&
+      $footnote_cnt++;
+      my($txt, $style) = ($1, $2);
+      my %cref = ('*'=>'lowast' ,'+'=>'plus', 'd'=>'dagger', 'D'=>'Dagger', 's'=>'sect', 'p'=>'para');
+      $style = $style || '*';
+      my($char, $char2) = $style=~/([*+dDsp])(\1)?/; # asterisk, plus, dagger, double-dagger, section, paragraph
+      $char or $char = (($style=~/\d/)?'0':substr($style,0,1));
+      my $prefix = ($char2)?("\&$cref{$char};" x $footnote_cnt) # *, **, ***, ...
+        :"\&$cref{$char};${footnote_cnt}";  # *1, *2, *3, ...
+      push(@footnotes, "<sup>$prefix</sup>$txt");
+      "<sup>$prefix</sup>";
+    &emg;
+  }
 
   # sub, sup
   $t0 =~ s!__\{(.*?)}!<sub>$1</sub>!g;  
@@ -401,6 +415,9 @@ sub wini{
     open(my $fho, '>', $cssfile) or die "Cannot modify $cssfile";
     print {$fho} css($css);
     close $fho;
+  }
+  if(defined $footnotes[0]){
+    $r .= '<footer>' . join("\n", @footnotes) . '</footer>';
   }
   if(defined $opt->{whole}){
     my $style = ($cssflamework)?qq{<link rel="stylesheet" type="text/css" href="$cssflamework">}:'';
@@ -620,7 +637,7 @@ sub make_table{
       ($a=~/[_@=]/) and $htmlitem[0][0]{copt}{style}{'border-bottom'} = $b1;
       ($a=~/[~@=]/) and $htmlitem[0][0]{copt}{style}{'border-top'}    = $b1;
     }
-    $caption=wini($c, {para=>'nb', nocr=>1});
+    ($caption)=wini($c, {para=>'nb', nocr=>1});
     $caption=~s/[\s\n\r]+$//;
   ''&emg;
 
