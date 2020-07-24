@@ -129,29 +129,32 @@ our ($red, $green, $blue, $magenta, $purple)
 my $css = {
   'ol, ul, dl' => {'padding-left'  => '1em'},
   'table, figure, img' 
-            => {'margin'           => '1em'},
+               => {'margin'           => '1em'},
   'tfoot, figcaption'
-            => {'font-size'        => 'smaller'},
-  '.b-r'    => {'background-color' => $WINI::red},
-  '.b-g'    => {'background-color' => $WINI::green},
-  '.b-b'    => {'background-color' => $WINI::blue},
-  '.b-w'    => {'background-color' => 'white'},
-  '.b-b25'  => {'background-color' => '#CCC'},
-  '.b-b50'  => {'background-color' => '#888'},
-  '.b-b75'  => {'background-color' => '#444'},
-  '.b-b100' => {'background-color' => '#000'},
-  '.b-m'    => {'background-color' => $WINI::magenta},
-  '.b-p'    => {'background-color' => $WINI::purple},
-  '.f-r'    => {'color' => $WINI::red,    'border-color' => 'black'},
-  '.f-g'    => {'color' => $WINI::green,  'border-color' => 'black'},
-  '.f-b'    => {'color' => $WINI::blue,   'border-color' => 'black'},
-  '.f-w'    => {'color' => 'white',       'border-color' => 'black'},
-  '.f-b25'  => {'color' => '#CCC',        'border-color' => 'black'},
-  '.f-b50'  => {'color' => '#888',        'border-color' => 'black'},
-  '.f-b75'  => {'color' => '#444',        'border-color' => 'black'},
-  '.f-b100' => {'color' => '#000',        'border-color' => 'black'},
-  '.f-m'    => {'color' => $WINI::magenta,'border-color' => 'black'},
-  '.f-p'    => {'color' => $WINI::purple, 'border-color' => 'black'}
+               => {'font-size'        => 'smaller'},
+  '.b-r'       => {'background-color' => $WINI::red},
+  '.b-g'       => {'background-color' => $WINI::green},
+  '.b-b'       => {'background-color' => $WINI::blue},
+  '.b-w'       => {'background-color' => 'white'},
+  '.b-b25'     => {'background-color' => '#CCC'},
+  '.b-b50'     => {'background-color' => '#888'},
+  '.b-b75'     => {'background-color' => '#444'},
+  '.b-b100'    => {'background-color' => '#000'},
+  '.b-m'       => {'background-color' => $WINI::magenta},
+  '.b-p'       => {'background-color' => $WINI::purple},
+  '.f-r'       => {'color' => $WINI::red,    'border-color' => 'black'},
+  '.f-g'       => {'color' => $WINI::green,  'border-color' => 'black'},
+  '.f-b'       => {'color' => $WINI::blue,   'border-color' => 'black'},
+  '.f-w'       => {'color' => 'white',       'border-color' => 'black'},
+  '.f-b25'     => {'color' => '#CCC',        'border-color' => 'black'},
+  '.f-b50'     => {'color' => '#888',        'border-color' => 'black'},
+  '.f-b75'     => {'color' => '#444',        'border-color' => 'black'},
+  '.f-b100'    => {'color' => '#000',        'border-color' => 'black'},
+  '.f-m'       => {'color' => $WINI::magenta,'border-color' => 'black'},
+  '.f-p'       => {'color' => $WINI::purple, 'border-color' => 'black'},
+  '.tategaki'  => {'-ms-writing-mode' => 'tb-rl', 'writing-mode' => 'vertical-rl', '-webkit-text-orientation' => 'mixed',   'text-orientation' => 'mixed'},
+  '.tatetate'  => {'-ms-writing-mode' => 'tb-rl', 'writing-mode' => 'vertical-rl', '-webkit-text-orientation' => 'upright', 'text-orientation' => 'upright'},
+  '.yokoyoko'  => {'-ms-writing-mode' => 'tb-rl', 'writing-mode' => 'vertical-rl', '-webkit-text-orientation' => 'sideways', 'text-orientation' => 'sideways'}
 };
 
 __PACKAGE__->stand_alone() if !caller() || caller() eq 'PAR';
@@ -171,7 +174,7 @@ sub stand_alone(){
     "whole"          => \$whole,
     "cssflamework:s" => \$cssflamework
   );
-  (defined $cssflamework) and ($cssflamework eq '') and $cssflamework='https://newcss.net/new.min.css';
+  (defined $cssflamework) and ($cssflamework eq '') and $cssflamework='https://unpkg.com/mvp.css'; # 'https://newcss.net/new.min.css';
   ($test) and ($input, $output)=("test.wini", "test.html");
   if ($input) {
     unless(open($fhi, '<:utf8', $input)){
@@ -206,7 +209,8 @@ sub stand_alone(){
     ($cssfile eq '') and $cssfile="wini.css";
   }
   my @input = <$fhi>;
-  print {$fho} wini(join('', @input), {whole=>$whole, cssfile=>$cssfile, title=>$title, cssflamework=>$cssflamework});
+  push(@input, "\n");
+  print {$fho} (wini(join('', @input), {whole=>$whole, cssfile=>$cssfile, title=>$title, cssflamework=>$cssflamework}))[0];
 }
 
 sub help{
@@ -240,10 +244,15 @@ sub css{
   return($out);
 }
 
+{
+my $footnote_cnt=0;
+my @footnotes;
+
 sub wini{
 # wini($tagettext, {para=>'br', 'is_bs4'=>1, baseurl=>'http://example.com', nocr=>1});
   # para: paragraph mode (br:set <br>, p: set <p>, nb: no separation
   # nocr: whether CRs are conserved in result text. 0(default): conserved, 1: not conserved
+  # table: table-mode, where footnote macro is effective. Footnote texts are set to @{$opt->{footnote}}
   my($t0, $opt)           = @_;
   my $cr                  = (defined $opt->{nocr} and $opt->{nocr}==1)
                           ?"\t":"\n"; # option to inhibit CR insertion (in table)
@@ -260,6 +269,22 @@ sub wini{
   $t0 =~ s/^'''\n(.*?)\n'''$/         &save_quote('pre',  $1)/esmg;
   $t0 =~ s/^```\n(.*?)\n```$/         &save_quote('code', $1)/esmg;
   $t0 =~ s/^"""([\w =]*)\n(.*?)\n"""$/&save_quote("q $1", $2)/esmg;
+
+  # footnote
+  if(exists $opt->{table}){
+      $t0=~s&\{\{\^\|([^}|]*)(?:\|([^}]*))?}}&
+        $footnote_cnt++;
+        my($txt, $style) = ($1, $2);
+        my %cref = ('*'=>'lowast' ,'+'=>'plus', 'd'=>'dagger', 'D'=>'Dagger', 's'=>'sect', 'p'=>'para');
+        $style = $style || '*';
+        my($char, $char2) = $style=~/([*+dDsp])(\1)?/; # asterisk, plus, dagger, double-dagger, section, paragraph
+        $char or $char = (($style=~/\d/)?'0':substr($style,0,1));
+        my $prefix = ($char2)?("\&$cref{$char};" x $footnote_cnt) # *, **, ***, ...
+                          :"\&$cref{$char};${footnote_cnt}";  # *1, *2, *3, ...
+        push(@{$opt->{footnote}}, "<sup>$prefix</sup>$txt");
+        "<sup>$prefix</sup>";  
+      &emg;
+  }
 
   # conv table to html
   $t0 =~ s/^\s*(\|.*?)[\n\r]+(?!\|)/make_table($1)/esmg;
@@ -311,6 +336,7 @@ sub wini{
           (defined $id[0])    and push(@c, q{id="}   .join(" ", @id)   .q{"});
           $_ = "<span " . join(" ", @c) . ">$b</span>"; 
         !eg or
+        $t=~ s!\{\{v\|([^{}]*?)}}!<span class="tategaki">$1</span>!g or
         $t =~ s!\[(.*?)\]!make_a($1, $baseurl)!eg or
         $t =~ s/\{\{l}}/&#x7b;/g or   # {
         $t =~ s/\{\{bar}}/&#x7c;/g or # |
@@ -393,7 +419,8 @@ $r
 </html>
 EOD
   }
-  return($r);
+  return($r, $opt);
+} # sub wini
 }
 
 sub symmacro{
@@ -550,8 +577,8 @@ sub make_table{
   my @footnotes; # footnotes in cells
 
   push(@{$htmlitem[0][0]{copt}{class}}, 'winitable');
+
   #get caption & table setting - remove '^|-' lines from $in
-  
   $in =~ s&(^\|-([^-].*$))\n&
     my $caption0=$2;
     $caption0=~s/\|\s*$//;
@@ -598,6 +625,9 @@ sub make_table{
   ''&emg;
 
   # footnotes in cells
+
+=begin comment
+
   $in=~s&\{\{\^\|([^}|]*)(?:\|([^}]*))?}}&
     $footnote_cnt++;
     my($txt, $style) = ($1, $2);
@@ -610,6 +640,10 @@ sub make_table{
     push(@footnotes, "<sup>$prefix</sup>$txt");
     "<sup>$prefix</sup>";  
   &emg;
+
+=end comment
+
+=cut
 
   my @lines = split(/\n/, $in);
   my $macro = '';
@@ -651,7 +685,9 @@ sub make_table{
   for($ln=$#winiitem; $ln>=1; $ln--){
     ($winiitem[$ln][1] =~ /^\|---(.*)$/) and $htmlitem[$ln][0]{footnote}=1;
     $rowlen[$ln]=0;
-=test
+
+=begin comment
+
     if($winiitem[$ln][1]=~/\^\^/ and $ln>1){ # row merge
       for(my $i=2; $i<=$#{$winiitem[$ln]}; $i+=2){
         $winiitem[$ln-1][$i] .= "\n".$winiitem[$ln][$i]; # copy to upper winiitem
@@ -659,11 +695,15 @@ sub make_table{
       }
       next;
     }
+
+=end comment
+
 =cut
+
     my $colspan=0;
     my $val='';
     for(my $cn=1; $cn<=$#{$winiitem[$ln]}; $cn+=2){
-      if($winiitem[$ln][$cn]=~/<(.*)/){
+      if($winiitem[$ln][$cn]=~/<([a-zA-Z\d]+)/){
         my $macro=$1;
         (defined $macros{$macro}) and $winiitem[$ln][$cn+1] = $macros{$macro};
       }
@@ -764,7 +804,8 @@ sub make_table{
     for(my $i=1; $i<=$#{$htmlitem[$ln]}; $i++){ # set winified text to cells
       (defined $htmlitem[$ln][$i]) or next;
       my $cell = $htmlitem[$ln][$i];
-      $cell->{wini} = wini($cell->{val}, {para=>'nb', nocr=>1});
+      ($cell->{wini}, my $opt) = wini($cell->{val}, {para=>'nb', nocr=>1, table=>1});
+      (exists $opt->{footnote}) and push(@footnotes, @{$opt->{footnote}});
       $cell->{wini} =~ s/\t *//g;
       $cell->{wini} =~ s/[ \n]+/ /g;
       $htmlitem[$ln][$i] = $cell; # $htmlitem[$ln][0]: data for row (tr)
@@ -836,6 +877,7 @@ sub make_table{
         }else{
           my $copt = '';
           foreach my $c (qw/class colspan rowspan/){
+            ($c eq 'rowspan') and ($htmlitem[$rn][0]{footnote}) and next;
             (defined $htmlitem[$rn][$_]{copt}{$c}) and
               $copt .= sprintf(qq{ $c="%s"},
                          (ref $htmlitem[$rn][$_]{copt}{$c} eq 'ARRAY') 
@@ -874,7 +916,6 @@ sub make_table{
   }
   $outtxt .= "</table>\n";
   $outtxt=~s/\t+/ /g; # tab is separator of cells vertically unified
-print Dumper %macros;
   return("\n$outtxt\n");
 } # sub make_table
 
