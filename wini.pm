@@ -93,7 +93,9 @@ Users can specify the output directory rather than the file. If -o value ends wi
 
 =item * --whole              Add HTML5 headar and footer to output. The result output will be a complete HTML5 document.
 
-=item * --cssfile [out.css]  CSS is output to out.css, rather than written in html file. If '--cssfile' is set without a file name, "wini.css" is the output css file name.
+=item * --cssflamework [url] Specify the url of CSS flamework (especially "classless" flameworks are supposed). If the URL is omitted, it is set to "https://unpkg.com/mvp.css".
+
+=item * --cssfile [out.css]  CSS is output to an independent css file, rather than the html file. If '--cssfile' is set without a file name, "wini.css" is the output css file name.
 
 =item * --title [title]      Set text for <title>. Effective only when --whole option is set.
 
@@ -117,7 +119,7 @@ use Encode;
 $Data::Dumper::Useperl = 1 ;
 
 my $scriptname = basename($0);
-my $version    = "ver. 0 rel. 20200725";
+my $version    = "ver. 0 rel. 20200727";
 my @save;
 my %ref; # $ref{image}{imageID} = 1; keys of %$ref: qw/image table formula citation math ref/
 my $debug;
@@ -269,7 +271,6 @@ sub wini{
   $t0 =~ s/^'''\n(.*?)\n'''$/         &save_quote('pre',  $1)/esmg;
   $t0 =~ s/^```\n(.*?)\n```$/         &save_quote('code', $1)/esmg;
   $t0 =~ s/^"""([\w =]*)\n(.*?)\n"""$/&save_quote("q $1", $2)/esmg;
-
     
   # conv table to html
   $t0 =~ s/^\s*(\|.*?)[\n\r]+(?!\|)/make_table($1)/esmg;
@@ -319,7 +320,6 @@ sub wini{
     my $lastlistdepth=0;
     my $ptype; # type of each paragraph (list, header, normal paragraph, etc.)
     while(1){ # loop while subst needed
-#      if(my($x,$prefix,$id,$cont) = $t=~/^(!+)([.#])?([-\w]*)\s*(.*)$/m){ # !!!...
       my($x, $id0, $cont) = $t=~/^(!+)([-#.\w]*)\s*(.*)$/m; # !!!...
       if($x){ # if header
         ($id0=~/^[^.#]/) and $id0=".$id0";
