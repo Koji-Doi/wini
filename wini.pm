@@ -245,14 +245,14 @@ sub css{
 }
 
 {
-my $footnote_cnt=0;
+my $footnote_cnt = {main=>0};
 my @footnotes;
 
 sub wini{
 # wini($tagettext, {para=>'br', 'is_bs4'=>1, baseurl=>'http://example.com', nocr=>1});
   # para: paragraph mode (br:set <br>, p: set <p>, nb: no separation
   # nocr: whether CRs are conserved in result text. 0(default): conserved, 1: not conserved
-  # table: table-mode, where footnote macro is effective. Footnote texts are set to @{$opt->{footnote}}
+  # table: table-mode, where footnote macro is effective. $opt->{table} must be a table ID. Footnote texts are set to @{$opt->{footnote}}
   my($t0, $opt)           = @_;
   my $cr                  = (defined $opt->{nocr} and $opt->{nocr}==1)
                           ?"\t":"\n"; # option to inhibit CR insertion (in table)
@@ -275,29 +275,29 @@ sub wini{
   $t0 =~ s/^\s*(\|.*?)[\n\r]+(?!\|)/make_table($1)/esmg;
 
   # footnote
-  if(exists $opt->{table}){
+  if(exists $opt->{table}){ # in table
     $t0=~s&\{\{\^\|([^}|]*)(?:\|([^}]*))?}}&
-      $footnote_cnt++;
+      $footnote_cnt->{$opt->{table}}++;
       my($txt, $style) = ($1, $2);
       my %cref = ('*'=>'lowast' ,'+'=>'plus', 'd'=>'dagger', 'D'=>'Dagger', 's'=>'sect', 'p'=>'para');
       $style = $style || '*';
       my($char, $char2) = $style=~/([*+dDsp])(\1)?/; # asterisk, plus, dagger, double-dagger, section, paragraph
       $char or $char = (($style=~/\d/)?'0':substr($style,0,1));
-      my $prefix = ($char2)?("\&$cref{$char};" x $footnote_cnt) # *, **, ***, ...
-        :"\&$cref{$char};${footnote_cnt}";  # *1, *2, *3, ...
+      my $prefix = ($char2)?("\&$cref{$char};" x $footnote_cnt->{$opt->{table}}) # *, **, ***, ...
+        :"\&$cref{$char};".$footnote_cnt->{$opt->{table}};  # *1, *2, *3, ...
       push(@{$opt->{footnote}}, "<sup>$prefix</sup>$txt");
       "<sup>$prefix</sup>";
     &emg;
-  }else{
+  }else{ # for main text
     $t0=~s&\{\{\^\|([^}|]*)(?:\|([^}]*))?}}&
-      $footnote_cnt++;
+      $footnote_cnt->{main}++;
       my($txt, $style) = ($1, $2);
       my %cref = ('*'=>'lowast' ,'+'=>'plus', 'd'=>'dagger', 'D'=>'Dagger', 's'=>'sect', 'p'=>'para');
       $style = $style || '*';
       my($char, $char2) = $style=~/([*+dDsp])(\1)?/; # asterisk, plus, dagger, double-dagger, section, paragraph
       $char or $char = (($style=~/\d/)?'0':substr($style,0,1));
-      my $prefix = ($char2)?("\&$cref{$char};" x $footnote_cnt) # *, **, ***, ...
-        :"\&$cref{$char};${footnote_cnt}";  # *1, *2, *3, ...
+      my $prefix = ($char2)?("\&$cref{$char};" x $footnote_cnt->{main}) # *, **, ***, ...
+        :"\&$cref{$char};".$footnote_cnt->{main};  # *1, *2, *3, ...
       push(@footnotes, "<sup>$prefix</sup>$txt");
       "<sup>$prefix</sup>";
     &emg;
@@ -417,7 +417,7 @@ sub wini{
     close $fho;
   }
   if(defined $footnotes[0]){
-    $r .= '<footer>' . join("\n", @footnotes) . '</footer>';
+    $r .= qq{<hr>\n<footer>\n<ul style="list-style:none;">\n} . join("\n", (map {"<li>$_</li>"}  @footnotes)) . "\n</ul>\n</footer>\n";
   }
   if(defined $opt->{whole}){
     my $style = ($cssflamework)?qq{<link rel="stylesheet" type="text/css" href="$cssflamework">}:'';
@@ -589,7 +589,7 @@ sub make_table{
   my @winiitem;
   my @htmlitem;
   my $caption;
-  my $footnote_cnt=0;
+  #my $footnote_cnt=0;
   my $footnotetext;
   my @footnotes; # footnotes in cells
 
@@ -622,13 +622,13 @@ sub make_table{
     while($o=~/#([-\w]+)/g){
       $htmlitem[0][0]{copt}{id}[0] = $1;
     }
+    ($htmlitem[0][0]{copt}{id}[0]) or $htmlitem[0][0]{copt}{id}[0] = "winitable${table_no}";
     while($o=~/\&([lrcjsebtm]+)/g){
       my $h = {qw/l left r right c center j justify s start e end/}->{$1};
       (defined $h) and push(@{$htmlitem[0][0]{copt}{style}{'text-align'}}, $h);
       my $v = {qw/t top m middle b bottom/}->{$1};
       (defined $v) and push(@{$htmlitem[0][0]{copt}{style}{'vertical-align'}}, $v);
     }
-    #if($o=~/(?<!\w)([][_~@=|])+(\d+)?/){
     while($o=~/(?<!\w)([][_~@=|])+([,;:]?)(\d+)?/g){
       my($a, $aa, $b) = ($1, $2, $3);
       my $b1    = sprintf("%s %dpx", ($aa)?(($aa eq ',')?'dotted':($aa eq ';')?'dashed':'double'):'solid', $b);
@@ -640,27 +640,6 @@ sub make_table{
     ($caption)=wini($c, {para=>'nb', nocr=>1});
     $caption=~s/[\s\n\r]+$//;
   ''&emg;
-
-  # footnotes in cells
-
-=begin comment
-
-  $in=~s&\{\{\^\|([^}|]*)(?:\|([^}]*))?}}&
-    $footnote_cnt++;
-    my($txt, $style) = ($1, $2);
-    my %cref = ('*'=>'lowast' ,'+'=>'plus', 'd'=>'dagger', 'D'=>'Dagger', 's'=>'sect', 'p'=>'para');
-    $style = $style || '*';
-    my($char, $char2) = $style=~/([*+dDsp])(\1)?/; # asterisk, plus, dagger, double-dagger, section, paragraph
-    $char or $char = (($style=~/\d/)?'0':substr($style,0,1));
-    my $prefix = ($char2)?("\&$cref{$char};" x $footnote_cnt) # *, **, ***, ...
-                          :"\&$cref{$char};${footnote_cnt}";  # *1, *2, *3, ...
-    push(@footnotes, "<sup>$prefix</sup>$txt");
-    "<sup>$prefix</sup>";  
-  &emg;
-
-=end comment
-
-=cut
 
   my @lines = split(/\n/, $in);
   my $macro = '';
@@ -702,20 +681,6 @@ sub make_table{
   for($ln=$#winiitem; $ln>=1; $ln--){
     ($winiitem[$ln][1] =~ /^\|---(.*)$/) and $htmlitem[$ln][0]{footnote}=1;
     $rowlen[$ln]=0;
-
-=begin comment
-
-    if($winiitem[$ln][1]=~/\^\^/ and $ln>1){ # row merge
-      for(my $i=2; $i<=$#{$winiitem[$ln]}; $i+=2){
-        $winiitem[$ln-1][$i] .= "\n".$winiitem[$ln][$i]; # copy to upper winiitem
-        $htmlitem[$ln][0] = $winiitem[$ln][0] = '^^';
-      }
-      next;
-    }
-
-=end comment
-
-=cut
 
     my $colspan=0;
     my $val='';
@@ -821,7 +786,7 @@ sub make_table{
     for(my $i=1; $i<=$#{$htmlitem[$ln]}; $i++){ # set winified text to cells
       (defined $htmlitem[$ln][$i]) or next;
       my $cell = $htmlitem[$ln][$i];
-      ($cell->{wini}, my $opt) = wini($cell->{val}, {para=>'nb', nocr=>1, table=>1});
+      ($cell->{wini}, my $opt) = wini($cell->{val}, {para=>'nb', nocr=>1, table=>$htmlitem[0][0]{copt}{id}[0]});
       (exists $opt->{footnote}) and push(@footnotes, @{$opt->{footnote}});
       $cell->{wini} =~ s/\t *//g;
       $cell->{wini} =~ s/[ \n]+/ /g;
@@ -844,7 +809,6 @@ sub make_table{
   ($debug) and print(STDERR "winiitem\n", (Dumper @winiitem), "htmlitem\n", (Dumper @htmlitem));
 
   # make html
-  ($htmlitem[0][0]{copt}{id}[0]) or $htmlitem[0][0]{copt}{id}[0] = "winitable${table_no}";
   my $outtxt = sprintf(qq!<table id="%s" class="%s"!, $htmlitem[0][0]{copt}{id}[0], join(' ', @{$htmlitem[0][0]{copt}{class}}));
   (defined $htmlitem[0][0]{copt}{border}) and $outtxt .= ' border="1"';
   $outtxt .= q{ style="border-collapse: collapse; };
