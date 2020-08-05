@@ -163,7 +163,7 @@ __PACKAGE__->stand_alone() if !caller() || caller() eq 'PAR';
 
 # Following function is executed when this script is called as stand-alone script
 sub stand_alone(){
-  my($input, $output, $fhi, $title, $cssfile, $test, $fho, $whole, $cssflamework);
+  my($input, $output, $fhi, $title, $cssfile, $test, $fho, $whole, @cssflameworks);
   GetOptions(
     "h|help"         => sub {help()},
     "v|version"      => sub {print STDERR "wini.pm Version $version\n"; exit()},
@@ -174,9 +174,9 @@ sub stand_alone(){
     "t"              => \$test,
     "d"              => \$debug,
     "whole"          => \$whole,
-    "cssflamework:s" => \$cssflamework
+    "cssflamework:s" => \@cssflameworks
   );
-  (defined $cssflamework) and ($cssflamework eq '') and $cssflamework='https://unpkg.com/mvp.css'; # 'https://newcss.net/new.min.css';
+  (defined $cssflameworks[0]) and ($cssflameworks[0] eq '') and $cssflameworks[0]='https://unpkg.com/mvp.css'; # 'https://newcss.net/new.min.css';
   ($test) and ($input, $output)=("test.wini", "test.html");
   if ($input) {
     unless(open($fhi, '<:utf8', $input)){
@@ -212,7 +212,7 @@ sub stand_alone(){
   }
   my @input = <$fhi>;
   push(@input, "\n");
-  print {$fho} (wini(join('', @input), {whole=>$whole, cssfile=>$cssfile, title=>$title, cssflamework=>$cssflamework}))[0];
+  print {$fho} (wini(join('', @input), {whole=>$whole, cssfile=>$cssfile, title=>$title, cssflameworks=>\@cssflameworks}))[0];
 }
 
 sub help{
@@ -260,7 +260,7 @@ sub wini{
                           ?"\t":"\n"; # option to inhibit CR insertion (in table)
   my($baseurl, $is_bs4)   = ($opt->{baseurl}, $opt->{is_bs4});
   my $cssfile             = $opt->{cssfile};
-  my $cssflamework        = $opt->{cssflamework};
+  my $cssflameworks       = $opt->{cssflameworks};
   my $para                = 'p'; # p or br or none
   (defined $opt->{para}) and $para = $opt->{para};
   my $title               = 'WINI page';
@@ -420,7 +420,10 @@ sub wini{
     $r .= qq{<hr>\n<footer>\n<ul style="list-style:none;">\n} . join("\n", (map {"<li>$_</li>"}  @footnotes)) . "\n</ul>\n</footer>\n";
   }
   if(defined $opt->{whole}){
-    my $style = ($cssflamework)?qq{<link rel="stylesheet" type="text/css" href="$cssflamework">}:'';
+    my $style = '';
+    if(defined $cssflameworks->[0]){
+      map {$style .= qq{<link rel="stylesheet" type="text/css" href="$_">\n}} @$cssflameworks;
+    }
     $style   .= ($cssfile)?qq{<link rel="stylesheet" type="text/css" href="$cssfile">} : "<style>\n".css($css)."</style>\n";
     $r = <<"EOD";
 <!DOCTYPE html>
