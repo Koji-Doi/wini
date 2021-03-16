@@ -357,7 +357,8 @@ sub wini{
           $_ = "<span " . join(" ", @c) . ">$b</span>"; 
         !eg or
         $t=~ s!\{\{v\|([^{}]*?)}}!<span class="tategaki">$1</span>!g or
-        $t =~ s!\[(.*?)\]!make_a($1, $baseurl)!eg or
+        $t =~ s!\[([^]]*?)\]\(([^)]*?)\)!make_a_from_md($1, $2, $baseurl)!eg or
+        $t =~ s!\[([^]]*?)\]!make_a($1, $baseurl)!eg or
         $t =~ s/\{\{l}}/&#x7b;/g or   # {
         $t =~ s/\{\{bar}}/&#x7c;/g or # |
         $t =~ s/\{\{r}}/&#x7d;/g      # }
@@ -531,6 +532,11 @@ sub readblank{
 # [xxxx] -> <a href="www">...</a>
 {
 my $img_no=0;
+sub make_a_from_md{
+  my($t, $url, $baseurl) = @_;
+  return(qq!<a href="$url">$t</a>!);
+}
+
 sub make_a{
 # [! image.png text]
 # [!"image.png" text]
