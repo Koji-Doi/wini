@@ -119,7 +119,7 @@ use Encode;
 $Data::Dumper::Useperl = 1 ;
 
 my $scriptname = basename($0);
-my $version    = "ver. 0 rel. 20210316";
+my $version    = "ver. 0 rel. 20210318";
 my @save;
 my %ref; # $ref{image}{imageID} = 1; keys of %$ref: qw/image table formula citation math ref/
 my $debug;
@@ -166,7 +166,7 @@ sub stand_alone(){
   my($input, $output, $fhi, $title, $cssfile, $test, $fho, $whole, @cssflameworks);
   GetOptions(
     "h|help"         => sub {help()},
-    "v|version"      => sub {print STDERR "wini.pm Version $version\n"; exit()},
+    "v|version"      => sub {print STDERR "wini.pm $version\n"; exit()},
     "i=s"            => \$input,
     "o=s"            => \$output,
     "title=s"        => \$title,
@@ -323,7 +323,7 @@ sub wini{
   foreach my $t (split(/\n{2,}/, $t0)){ # for each paragraph
     my @myclass = @localclass;
     my($myclass, $myid) = ('', '');
-    my $lastlistdepth=0;
+    #my $lastlistdepth=0;
     my $ptype; # type of each paragraph (list, header, normal paragraph, etc.)
     while(1){ # loop while subst needed
       my($x, $id0, $cont) = $t=~/^(!+)([-#.\w]*)\s*(.*)$/m; # !!!...
@@ -336,7 +336,7 @@ sub wini{
           ($prefix eq '#') and $myid = qq{ id="$label"};
         }
         my $tag0 = length($x); ($tag0>5) and $tag0="5";
-        (defined $myclass[0]) and $myclass = qq{ class="} . join(" ", @myclass) . qq{"};
+        (defined $myclass[0]) and $myclass = qq{ class="} . join(" ", sort @myclass) . qq{"};
         $t=~s#^(!+)\s*(.*)$#<h${tag0}${myclass}${myid}>$cont</h${tag0}>#m;
         $ptype = 'header';
       } # endif header
@@ -354,7 +354,7 @@ sub wini{
           push(my(@id),    $a=~/#([^.#]+)/g);
           (defined $class[0]) and push(@c, q{class="}.join(" ", @class).q{"});
           (defined $id[0])    and push(@c, q{id="}   .join(" ", @id)   .q{"});
-          $_ = "<span " . join(" ", @c) . ">$b</span>"; 
+          $_ = "<span " . join(" ", sort @c) . ">$b</span>"; 
         !eg or
         $t=~ s!\{\{v\|([^{}]*?)}}!<span class="tategaki">$1</span>!g or
         $t =~ s!\[([^]]*?)\]\(([^)]*?)\)!make_a_from_md($1, $2, $baseurl)!eg or
@@ -365,57 +365,14 @@ sub wini{
 
       ) or last; # no subst need, then escape inner loop
     } # loop while subst needed
-    my $t2='';
-       
-    # for list items
-    my $listtagc;
-    my @is_dl; # $is_dl[1]: whether list type of depth 1 is 'dl'
-    my @listtagc;
-    foreach my $l (split("\n", $t)){
-      # line/page break
-      if(($l=~s/^---$/<br style="page-break-after: always;">/) or
-         ($l=~s/^--$/<br style="clear: both;">/)){
-        $t2 .= $l; next;
-      }
 
-      my($x, $listtype, $txt) = $l=~/^\s*([#*:;]*)([#*:;])\s*(.*)$/; # whether list item      
-      if($listtype ne ''){
-        $ptype = 'list';
-        my $listdepth = length($x)+length($listtype);
-        ($listtype eq ';') and $is_dl[$listdepth]='dl';
-        my($itemtag, $listtag) = ($listtype eq '*') ? qw/li ul/
-                               : ($listtype eq ':') ? (($is_dl[$listdepth] eq 'dl')?qw/dd dl/:(qq{li style="list-style:none"}, 'ul'))
-                               : ($listtype eq ';') ? qw/dt dl/ : qw/li ol/;
-        my $itemtagc = $itemtag; # closing tag for list item
-           $listtagc = $listtag; # closing tag for list
-        $itemtagc =~ s/ .*//;
-        $listtagc =~ s/ .*//;
-        $listtagc[$listdepth] = $listtagc;
-        # new list start?
-        if($listdepth>$lastlistdepth){
-          $t2 .= sprintf(qq!%*s<$listtag class="winilist">$cr!, $listdepth, ' ');
-        }
-        # new list end?
-        for(my $i = $lastlistdepth-$listdepth; $i>0; $i--){
-          $t2 .= sprintf("%*s</%s>$cr", $i+$listdepth, ' ', $listtagc[$i+$listdepth]);
-        }
-        $t2 .= sprintf("%*s<$itemtag>$txt</$itemtagc>$cr",$listdepth+1,' ');
-        $lastlistdepth = $listdepth;
-      }else{ # if not list item
-        $t2 .= "$l\n";
-      }
-    } # $l
-    if($lastlistdepth>0){
-      $t2 .= sprintf("%*s", $lastlistdepth-1, ' ') . ("</$listtagc>" x $lastlistdepth) . $cr;
-      $lastlistdepth=0;
-    }
+=begin c
 
-    $r .= ($ptype eq 'header' or $ptype eq 'list')                      ? "$t2\n"
-        : ($para eq 'br')                                               ? "$t2<br>$cr"
-        : ($para eq 'nb')                                               ? $t2
-        : $t2=~m{<(p|table|img|figure|blockquote|[uod]l)[^>]*>.*</\1>}s ? $t2
-                                                                        : "<p${myclass}>\n$t2</p>$cr$cr";
-  } # foreach $t
+=end c
+=cut
+    my($rr, $list) = list($t, $cr, $ptype, $para, $myclass);
+    $r .= $rr;
+  } # foreach $t # for each paragraph
 
   $r=~s/\x00i=(\d+)\x01/$save[$1]/ge;
   if($cssfile){
@@ -449,6 +406,64 @@ EOD
   return($r, $opt);
 } # sub wini
 }
+
+sub list{
+  my($t, $cr, $ptype, $para, $myclass) = @_;
+  my $r;
+  my $t2='';
+  my $lastlistdepth=0;
+  my $listtagc;
+  my @is_dl;  # $is_dl[1]: whether list type of depth 1 is 'dl'
+  my @listtagc;
+  my %listitems;
+  foreach my $l (split("\n", $t)) {
+    # line/page break
+    if (($l=~s/^---$/<br style="page-break-after: always;">/) or
+        ($l=~s/^--$/<br style="clear: both;">/)) {
+      $t2 .= $l; next;
+    }
+
+    my($x, $listtype, $txt) = $l=~/^\s*([#*:;]*)([#*:;])\s*(.*)$/; # whether list item      
+    if ($listtype ne '') {
+      $ptype = 'list';
+      my $listdepth = length($x)+length($listtype);
+      ($listtype eq ';') and $is_dl[$listdepth]='dl';
+      my($itemtag, $listtag) = ($listtype eq '*') ? qw/li ul/
+        : ($listtype eq ':') ? (($is_dl[$listdepth] eq 'dl')?qw/dd dl/:(qq{li style="list-style:none"}, 'ul'))
+        : ($listtype eq ';') ? qw/dt dl/ : qw/li ol/;
+      my $itemtagc = $itemtag;   # closing tag for list item
+      $listtagc = $listtag;      # closing tag for list
+      $itemtagc =~ s/ .*//;
+      $listtagc =~ s/ .*//;
+      $listtagc[$listdepth] = $listtagc;
+      # new list start?
+      if ($listdepth>$lastlistdepth) {
+        $t2 .= sprintf(qq!%*s<$listtag class="winilist">$cr!, $listdepth, ' ');
+      }
+      # new list end?
+      for (my $i = $lastlistdepth-$listdepth; $i>0; $i--) {
+        $t2 .= sprintf("%*s</%s>$cr", $i+$listdepth, ' ', $listtagc[$i+$listdepth]);
+      }
+      $t2 .= sprintf("%*s<$itemtag>$txt</$itemtagc>$cr",$listdepth+1,' ');
+      $lastlistdepth = $listdepth;
+      push(@{$listitems{join("\t", @listtagc)}}, $txt);
+    } else { # if not list item
+      $t2 .= "$l\n";
+    }
+  } # $l
+  if ($lastlistdepth>0) {
+    $t2 .= sprintf("%*s", $lastlistdepth-1, ' ') . ("</$listtagc>" x $lastlistdepth) . $cr;
+    $lastlistdepth=0;
+  }
+
+  $r .= ($ptype eq 'header' or $ptype eq 'list')                      ? "$t2\n"
+      : ($para eq 'br')                                               ? "$t2<br>$cr"
+      : ($para eq 'nb')                                               ? $t2
+      : $t2=~m{<(p|table|img|figure|blockquote|[uod]l)[^>]*>.*</\1>}s ? $t2
+      : "<p${myclass}>\n$t2</p>$cr$cr";
+  print STDERR "list: ", Dumper %listitems;
+  return($r, \%listitems);
+} # sub list
 
 sub symmacro{
   # {{/*_-|text}}
@@ -819,7 +834,7 @@ sub make_table{
   ($debug) and print(STDERR "winiitem\n", (Dumper @winiitem), "htmlitem\n", (Dumper @htmlitem));
 
   # make html
-  my $outtxt = sprintf(qq!\n<table id="%s" class="%s"!, $htmlitem[0][0]{copt}{id}[0], join(' ', @{$htmlitem[0][0]{copt}{class}}));
+  my $outtxt = sprintf(qq!\n<table id="%s" class="%s"!, $htmlitem[0][0]{copt}{id}[0], join(' ', sort @{$htmlitem[0][0]{copt}{class}}));
   (defined $htmlitem[0][0]{copt}{border}) and $outtxt .= ' border="1"';
   $outtxt .= q{ style="border-collapse: collapse; };
   foreach my $k (qw/text-align vertical-align color background-color float/){
@@ -854,10 +869,10 @@ sub make_table{
     (defined $border) and push(@styles, "border: solid ${border}px");
 
     #(defined $htmlitem[0][0]{copt}{border}) and $outtxt .= sprintf("border: solid %dpx; ", $htmlitem[0][0]{copt}{border});
-    (defined $styles[0]) and $ropt .= qq{style="} . join('; ', @styles) . '"';  
+    (defined $styles[0]) and $ropt .= qq{style="} . join('; ', sort @styles) . '"';  
 
     if(defined $htmlitem[$rn][0]{copt}{class}[0]){
-      $ropt .= q{ class="} . join(' ',  @{$htmlitem[$rn][0]{copt}{class}}) . q{"};
+      $ropt .= q{ class="} . join(' ',  sort @{$htmlitem[$rn][0]{copt}{class}}) . q{"};
     }
     ($ropt) and $ropt = " $ropt";
     $outtxt0 .= qq!<tr$ropt>! . join("", map { # for each cell ($_: col No.)
@@ -870,7 +885,7 @@ sub make_table{
           (defined $htmlitem[$rn][$_]{copt}{$c}) and
             $copt .= sprintf(qq{ $c="%s"},
                        (ref $htmlitem[$rn][$_]{copt}{$c} eq 'ARRAY') 
-                         ? join(' ', @{$htmlitem[$rn][$_]{copt}{$c}}) 
+                         ? join(' ', sort @{$htmlitem[$rn][$_]{copt}{$c}}) 
                          : $htmlitem[$rn][$_]{copt}{$c});
         }
         my %style;
@@ -884,7 +899,7 @@ sub make_table{
             map {$style{$c} = $_} (@{$htmlitem[$rn][$_]{copt}{style}{$c}});
           }
         }
-        my $copt0 = join('', map { "$_:$style{$_}; " } keys %style);
+        my $copt0 = join('', sort map { "$_:$style{$_}; " } keys %style);
         ($copt0 ne '') and $copt .= qq! style="$copt0"!;
         my $ctag = (
           (not $htmlitem[$rn][0]{footnote}) and (
