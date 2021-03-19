@@ -225,7 +225,6 @@ sub help{
   exit();
 }
 
-
 sub close_listtag{
   my($ref, $l) = @_;
   map{
@@ -252,9 +251,7 @@ sub css{
 }
 
 {
-my $footnote_cnt = {main=>0};
-my @footnotes;
-
+my($footnote_cnt, @footnotes);
 sub wini{
 # wini($tagettext, {para=>'br', 'is_bs4'=>1, baseurl=>'http://example.com', nocr=>1});
   # para: paragraph mode (br:set <br>, p: set <p>, nb: no separation
@@ -271,7 +268,7 @@ sub wini{
   (defined $opt->{para}) and $para = $opt->{para};
   my $title               = 'WINI page';
   (defined $opt->{title}) and $title = $opt->{title};
-  
+  (defined $footnote_cnt) or $footnote_cnt->{main}{'*'} = 0;
   # pre, code, citation, ...
   $t0 =~ s/\{\{(pre|code|q(?: [^|]+?)?)}}(.+?)\{\{end}}/&save_quote($1,$2)/esmg;  
   $t0 =~ s/^'''\n(.*?)\n'''$/         &save_quote('pre',  $1)/esmg;
@@ -284,29 +281,11 @@ sub wini{
   # footnote
   if(exists $opt->{table}){ # in table
     $t0=~s&\{\{\^\|([^}|]*)(?:\|([^}]*))?}}&
-      $footnote_cnt->{$opt->{table}}++;
-      my($txt, $style) = ($1, $2);
-      my %cref = ('*'=>'lowast' ,'+'=>'plus', 'd'=>'dagger', 'D'=>'Dagger', 's'=>'sect', 'p'=>'para');
-      $style = $style || '*';
-      my($char, $char2) = $style=~/([*+dDsp])(\1)?/; # asterisk, plus, dagger, double-dagger, section, paragraph
-      $char or $char = (($style=~/\d/)?'0':substr($style,0,1));
-      my $prefix = ($char2)?("\&$cref{$char};" x $footnote_cnt->{$opt->{table}}) # *, **, ***, ...
-        :"\&$cref{$char};".$footnote_cnt->{$opt->{table}};  # *1, *2, *3, ...
-      push(@{$opt->{footnote}}, "<sup>$prefix</sup>$txt");
-      "<sup>$prefix</sup>";
+      footnote($1, $2, $footnote_cnt->{$opt->{table}}, \@footnotes);
     &emg;
   }else{ # for main text
     $t0=~s&\{\{\^\|([^}|]*)(?:\|([^}]*))?}}&
-      $footnote_cnt->{main}++;
-      my($txt, $style) = ($1, $2);
-      my %cref = ('*'=>'lowast' ,'+'=>'plus', 'd'=>'dagger', 'D'=>'Dagger', 's'=>'sect', 'p'=>'para');
-      $style = $style || '*';
-      my($char, $char2) = $style=~/([*+dDsp])(\1)?/; # asterisk, plus, dagger, double-dagger, section, paragraph
-      $char or $char = (($style=~/\d/)?'0':substr($style,0,1));
-      my $prefix = ($char2)?("\&$cref{$char};" x $footnote_cnt->{main}) # *, **, ***, ...
-        :"\&$cref{$char};".$footnote_cnt->{main};  # *1, *2, *3, ...
-      push(@footnotes, "<sup>$prefix</sup>$txt");
-      "<sup>$prefix</sup>";
+      footnote($1, $2, $footnote_cnt->{main}, \@footnotes);
     &emg;
   }
 
@@ -366,10 +345,6 @@ sub wini{
       ) or last; # no subst need, then escape inner loop
     } # loop while subst needed
 
-=begin c
-
-=end c
-=cut
     my($rr, $list) = list($t, $cr, $ptype, $para, $myclass);
     $r .= $rr;
   } # foreach $t # for each paragraph
@@ -405,6 +380,19 @@ EOD
   }
   return($r, $opt);
 } # sub wini
+}
+
+sub footnote{
+  my($txt, $style, $footnote_cnt, $footnotes_ref) = @_;
+  my %cref = ('*'=>'lowast' ,'+'=>'plus', 'd'=>'dagger', 'D'=>'Dagger', 's'=>'sect', 'p'=>'para');
+  $style = $style || '*';
+  my($char, $char2) = $style=~/([*+dDsp])(\1)?/; # asterisk, plus, dagger, double-dagger, section, paragraph
+  $char or $char = (($style=~/\d/)?'0':substr($style,0,1));
+  $footnote_cnt->{$char}++;
+  my $prefix = ($char2)?("\&$cref{$char};" x $$footnote_cnt) # *, **, ***, ...
+                       :"\&$cref{$char};$footnote_cnt->{$char}";   # *1, *2, *3, ...
+  push(@{$footnotes_ref}, "<sup>$prefix</sup>$txt");
+  return("<sup>$prefix</sup>");
 }
 
 sub list{
@@ -461,7 +449,6 @@ sub list{
       : ($para eq 'nb')                                               ? $t2
       : $t2=~m{<(p|table|img|figure|blockquote|[uod]l)[^>]*>.*</\1>}s ? $t2
       : "<p${myclass}>\n$t2</p>$cr$cr";
-  print STDERR "list: ", Dumper %listitems;
   return($r, \%listitems);
 } # sub list
 
