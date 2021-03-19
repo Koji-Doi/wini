@@ -259,13 +259,10 @@ sub wini{
   # table: table-mode, where footnote macro is effective. $opt->{table} must be a table ID. Footnote texts are set to @{$opt->{footnote}}
   my($t0, $opt)           = @_;
   $t0=~s/\r(?=\n)//g; # cr/lf -> lf
+  my($baseurl, $is_bs4, $cssfile, $cssflameworks) = map {$opt->{$_}} qw/baseurl is_bs4 cssfile cssflameworks/;
   my $cr                  = (defined $opt->{nocr} and $opt->{nocr}==1)
                           ?"\t":"\n"; # option to inhibit CR insertion (in table)
-  my($baseurl, $is_bs4)   = ($opt->{baseurl}, $opt->{is_bs4});
-  my $cssfile             = $opt->{cssfile};
-  my $cssflameworks       = $opt->{cssflameworks};
-  my $para                = 'p'; # p or br or none
-  (defined $opt->{para}) and $para = $opt->{para};
+  my $para = (defined $opt->{para}) ? $opt->{para} : 'p'; # p or br or none;
   my $title               = 'WINI page';
   (defined $opt->{title}) and $title = $opt->{title};
   (defined $footnote_cnt) or $footnote_cnt->{main}{'*'} = 0;
@@ -355,14 +352,10 @@ sub wini{
     print {$fho} css($css);
     close $fho;
   }
-  if(defined $footnotes[0]){
-    $r .= qq{<hr>\n<footer>\n<ul style="list-style:none;">\n} . join("\n", (map {"<li>$_</li>"}  @footnotes)) . "\n</ul>\n</footer>\n";
-  }
+  (defined $footnotes[0]) and $r .= qq{<hr>\n<footer>\n<ul style="list-style:none;">\n} . join("\n", (map {"<li>$_</li>"}  @footnotes)) . "\n</ul>\n</footer>\n";
   if(defined $opt->{whole}){
     my $style = '';
-    if(defined $cssflameworks->[0]){
-      map {$style .= qq{<link rel="stylesheet" type="text/css" href="$_">\n}} @$cssflameworks;
-    }
+    (defined $cssflameworks->[0]) and map {$style .= qq{<link rel="stylesheet" type="text/css" href="$_">\n}} @$cssflameworks;
     $style   .= ($cssfile)?qq{<link rel="stylesheet" type="text/css" href="$cssfile">} : "<style>\n".css($css)."</style>\n";
     $r = <<"EOD";
 <!DOCTYPE html>
@@ -388,9 +381,15 @@ sub footnote{
   $style = $style || '*';
   my($char, $char2) = $style=~/([*+dDsp])(\1)?/; # asterisk, plus, dagger, double-dagger, section, paragraph
   $char or $char = (($style=~/\d/)?'0':substr($style,0,1));
-  $footnote_cnt->{$char}++;
-  my $prefix = ($char2)?("\&$cref{$char};" x $$footnote_cnt) # *, **, ***, ...
-                       :"\&$cref{$char};$footnote_cnt->{$char}";   # *1, *2, *3, ...
+  my $prefix;
+  if($char2){
+    my $charchar = $char.$char;
+    $footnote_cnt->{$charchar}++;
+    $prefix = "\&$cref{$char};" x $footnote_cnt->{$charchar}; # *, **, ***, ...
+  }else{
+    $footnote_cnt->{$char}++;
+    $prefix = "\&$cref{$char};$footnote_cnt->{$char}";    # *1, *2, *3, ...
+  }
   push(@{$footnotes_ref}, "<sup>$prefix</sup>$txt");
   return("<sup>$prefix</sup>");
 }
