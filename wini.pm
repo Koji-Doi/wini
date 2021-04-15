@@ -119,7 +119,7 @@ use Encode;
 $Data::Dumper::Useperl = 1 ;
 
 my $scriptname = basename($0);
-my $version    = "ver. 0 rel. 20210316";
+my $version    = "ver. 0 rel. 20210416";
 my @save;
 my %ref; # $ref{image}{imageID} = 1; keys of %$ref: qw/image table formula citation math ref/
 my $debug;
@@ -634,7 +634,7 @@ sub make_table{
     while($o=~/#([-\w]+)/g){
       $htmlitem[0][0]{copt}{id}[0] = $1;
     }
-    ($htmlitem[0][0]{copt}{id}[0]) or $htmlitem[0][0]{copt}{id}[0] = "winitable${table_no}";
+    ($htmlitem[0][0]{copt}{id}[0]) or $htmlitem[0][0]{copt}{id}[0] = sprintf("winitable%d", $table_no++);
     while($o=~/\&([lrcjsebtm]+)/g){
       my $h = {qw/l left r right c center j justify s start e end/}->{$1};
       (defined $h) and push(@{$htmlitem[0][0]{copt}{style}{'text-align'}}, $h);
