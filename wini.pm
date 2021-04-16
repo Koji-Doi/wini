@@ -117,6 +117,10 @@ use Getopt::Long;
 use Encode;
 *Data::Dumper::qquote = sub { return encode "utf8", shift } ;
 $Data::Dumper::Useperl = 1 ;
+our %macros;
+use lib '.';
+use form;
+init_macro();
 
 my $scriptname = basename($0);
 my $version    = "ver. 0 rel. 20210318";
@@ -337,8 +341,9 @@ sub wini{
         $t =~ s!\[([^]]*?)\]!make_a($1, $baseurl)!eg or
         $t =~ s/\{\{l}}/&#x7b;/g or   # {
         $t =~ s/\{\{bar}}/&#x7c;/g or # |
-        $t =~ s/\{\{r}}/&#x7d;/g      # }
+        $t =~ s/\{\{r}}/&#x7d;/g or   # }
 
+        $t =~ s/(\{\{([^|]*)\|(.*?)}})/call_macro($2,$3)/eg
       ) or last; # no subst need, then escape inner loop
     } # loop while subst needed
 
@@ -466,6 +471,12 @@ sub symmacro{
   $r = (scalar @styles > 0)?'<span style="' . join(' ', @styles) . qq{">$text</span>} : $text;
   ($strong) and $r = '<strong>'x$strong . $r . '</strong>'x$strong;
   return($r);
+}
+
+sub call_macro{
+  my($macroname, @f) = @_;
+  (defined $macros{$macroname}) and return($macros{$macroname}(@f));
+  return("{{*|No definition of macro $macroname}}");
 }
 
 sub readpars{
