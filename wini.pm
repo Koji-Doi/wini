@@ -97,6 +97,10 @@ Users can specify the output directory rather than the file. If -o value ends wi
 
 =item * --cssfile [out.css]  CSS is output to an independent css file, rather than the html file. If '--cssfile' is set without a file name, "wini.css" is the output css file name.
 
+=item * --extralib, -E LIB   Load specified library LIB
+
+=item * --libpath, -I PATH   Add specified directory PATH into library path
+
 =item * --title [title]      Set text for <title>. Effective only when --whole option is set.
 
 =item * --version            Show version.
@@ -115,11 +119,16 @@ use FindBin;
 use Pod::Usage;
 use Getopt::Long;
 use Encode;
+use Module::Load qw( load );
 *Data::Dumper::qquote = sub { return encode "utf8", shift } ;
 $Data::Dumper::Useperl = 1 ;
+my  @libs;
+my  @libpaths;
+our %macros;
+#use lib '/home/kdoi2/work/form/';
 
 my $scriptname = basename($0);
-my $version    = "ver. 0 rel. 20200727";
+my $version    = "ver. 0 rel. 20210416a";
 my @save;
 my %ref; # $ref{image}{imageID} = 1; keys of %$ref: qw/image table formula citation math ref/
 my $debug;
@@ -166,16 +175,27 @@ sub stand_alone(){
   my($input, $output, $fhi, $title, $cssfile, $test, $fho, $whole, @cssflameworks);
   GetOptions(
     "h|help"         => sub {help()},
-    "v|version"      => sub {print STDERR "wini.pm Version $version\n"; exit()},
+    "v|version"      => sub {print STDERR "wini.pm $version\n"; exit()},
     "i=s"            => \$input,
     "o=s"            => \$output,
     "title=s"        => \$title,
-    "cssfile:s"      => \$cssfile, 
-    "t"              => \$test,
-    "d"              => \$debug,
+    "cssfile:s"      => \$cssfile,
+    "E|extralib:s"   => \@libs,
+    "I|libpath:s"    => \@libpaths,
+    "T"              => \$test,
+    "D"              => \$debug,
     "whole"          => \$whole,
     "cssflamework:s" => \@cssflameworks
   );
+  foreach my $i (@libpaths){
+    print STDERR "Trying to add $i into library directory\n";
+    (-d $i) ? push(@INC, $i) : warn("$i for extra library not found.\n");
+  }
+  foreach my $lib (@libs){ # 'form', etc.
+    my $r = eval{load($lib)};
+    (defined $r) ? print(STDERR "Loaded library: $lib\n") : warn("failed to load library '$lib'\n");
+  }
+
   (defined $cssflameworks[0]) and ($cssflameworks[0] eq '') and $cssflameworks[0]='https://unpkg.com/mvp.css'; # 'https://newcss.net/new.min.css';
   ($test) and ($input, $output)=("test.wini", "test.html");
   if ($input) {
@@ -183,9 +203,10 @@ sub stand_alone(){
       print STDERR "Not accessible: $input\n";
       $input = "$input.wini";
       print STDERR "Will try to open: $input\n";
-      open($fhi, '<utf8:', $input) or die "Not accessible either: $input";
+      open($fhi, '<:utf8', $input) or die "Not accessible either: $input";
     }
   } else {
+    binmode STDIN, ':utf8';
     $fhi = *STDIN;
   }
   unless($output){
@@ -194,6 +215,7 @@ sub stand_alone(){
       print STDERR "Will try to create $output\n";
       open($fho, '>:utf8', $output) or die "Cannot open file: $output";
     } else {
+      binmode STDOUT, ':utf8';
       $fho = *STDOUT;
     }
   } else {
@@ -210,7 +232,10 @@ sub stand_alone(){
   if(defined $cssfile){
     ($cssfile eq '') and $cssfile="wini.css";
   }
-  my @input = <$fhi>;
+  $_=<$fhi>;
+  s/\x{FEFF}//; # remove BOM if exists
+  push(my @input, $_);
+  push(@input, <$fhi>);
   push(@input, "\n");
   print {$fho} (wini(join('', @input), {whole=>$whole, cssfile=>$cssfile, title=>$title, cssflameworks=>\@cssflameworks}))[0];
 }
@@ -219,7 +244,6 @@ sub help{
   print pod2usage(-verbose => 2, -input => $FindBin::Bin . "/" . $FindBin::Script);
   exit();
 }
-
 
 sub close_listtag{
   my($ref, $l) = @_;
@@ -247,25 +271,21 @@ sub css{
 }
 
 {
-my $footnote_cnt = {main=>0};
-my @footnotes;
-
+my($footnote_cnt, @footnotes);
 sub wini{
 # wini($tagettext, {para=>'br', 'is_bs4'=>1, baseurl=>'http://example.com', nocr=>1});
   # para: paragraph mode (br:set <br>, p: set <p>, nb: no separation
   # nocr: whether CRs are conserved in result text. 0(default): conserved, 1: not conserved
   # table: table-mode, where footnote macro is effective. $opt->{table} must be a table ID. Footnote texts are set to @{$opt->{footnote}}
   my($t0, $opt)           = @_;
+  $t0=~s/\r(?=\n)//g; # cr/lf -> lf
+  my($baseurl, $is_bs4, $cssfile, $cssflameworks) = map {$opt->{$_}} qw/baseurl is_bs4 cssfile cssflameworks/;
   my $cr                  = (defined $opt->{nocr} and $opt->{nocr}==1)
                           ?"\t":"\n"; # option to inhibit CR insertion (in table)
-  my($baseurl, $is_bs4)   = ($opt->{baseurl}, $opt->{is_bs4});
-  my $cssfile             = $opt->{cssfile};
-  my $cssflameworks       = $opt->{cssflameworks};
-  my $para                = 'p'; # p or br or none
-  (defined $opt->{para}) and $para = $opt->{para};
+  my $para = (defined $opt->{para}) ? $opt->{para} : 'p'; # p or br or none;
   my $title               = 'WINI page';
   (defined $opt->{title}) and $title = $opt->{title};
-  
+  (defined $footnote_cnt) or $footnote_cnt->{main}{'*'} = 0;
   # pre, code, citation, ...
   $t0 =~ s/\{\{(pre|code|q(?: [^|]+?)?)}}(.+?)\{\{end}}/&save_quote($1,$2)/esmg;  
   $t0 =~ s/^'''\n(.*?)\n'''$/         &save_quote('pre',  $1)/esmg;
@@ -278,29 +298,11 @@ sub wini{
   # footnote
   if(exists $opt->{table}){ # in table
     $t0=~s&\{\{\^\|([^}|]*)(?:\|([^}]*))?}}&
-      $footnote_cnt->{$opt->{table}}++;
-      my($txt, $style) = ($1, $2);
-      my %cref = ('*'=>'lowast' ,'+'=>'plus', 'd'=>'dagger', 'D'=>'Dagger', 's'=>'sect', 'p'=>'para');
-      $style = $style || '*';
-      my($char, $char2) = $style=~/([*+dDsp])(\1)?/; # asterisk, plus, dagger, double-dagger, section, paragraph
-      $char or $char = (($style=~/\d/)?'0':substr($style,0,1));
-      my $prefix = ($char2)?("\&$cref{$char};" x $footnote_cnt->{$opt->{table}}) # *, **, ***, ...
-        :"\&$cref{$char};".$footnote_cnt->{$opt->{table}};  # *1, *2, *3, ...
-      push(@{$opt->{footnote}}, "<sup>$prefix</sup>$txt");
-      "<sup>$prefix</sup>";
+      footnote($1, $2, $footnote_cnt->{$opt->{table}}, \@footnotes);
     &emg;
   }else{ # for main text
     $t0=~s&\{\{\^\|([^}|]*)(?:\|([^}]*))?}}&
-      $footnote_cnt->{main}++;
-      my($txt, $style) = ($1, $2);
-      my %cref = ('*'=>'lowast' ,'+'=>'plus', 'd'=>'dagger', 'D'=>'Dagger', 's'=>'sect', 'p'=>'para');
-      $style = $style || '*';
-      my($char, $char2) = $style=~/([*+dDsp])(\1)?/; # asterisk, plus, dagger, double-dagger, section, paragraph
-      $char or $char = (($style=~/\d/)?'0':substr($style,0,1));
-      my $prefix = ($char2)?("\&$cref{$char};" x $footnote_cnt->{main}) # *, **, ***, ...
-        :"\&$cref{$char};".$footnote_cnt->{main};  # *1, *2, *3, ...
-      push(@footnotes, "<sup>$prefix</sup>$txt");
-      "<sup>$prefix</sup>";
+      footnote($1, $2, $footnote_cnt->{main}, \@footnotes);
     &emg;
   }
 
@@ -317,7 +319,7 @@ sub wini{
   foreach my $t (split(/\n{2,}/, $t0)){ # for each paragraph
     my @myclass = @localclass;
     my($myclass, $myid) = ('', '');
-    my $lastlistdepth=0;
+    #my $lastlistdepth=0;
     my $ptype; # type of each paragraph (list, header, normal paragraph, etc.)
     while(1){ # loop while subst needed
       my($x, $id0, $cont) = $t=~/^(!+)([-#.\w]*)\s*(.*)$/m; # !!!...
@@ -326,15 +328,16 @@ sub wini{
         while($id0=~/([#.])([^#.]+)/g){
           my($prefix, $label) = ($1, $2);
           ($label) or next;
-          ($prefix eq '#') and push(@myclass, $label);
-          ($prefix eq '.') and $myid = qq{ id="$label"};
+          ($prefix eq '.') and push(@myclass, $label);
+          ($prefix eq '#') and $myid = qq{ id="$label"};
         }
         my $tag0 = length($x); ($tag0>5) and $tag0="5";
-        (defined $myclass[0]) and $myclass = qq{ class="} . join(" ", @myclass) . qq{"};
+        (defined $myclass[0]) and $myclass = qq{ class="} . join(" ", sort @myclass) . qq{"};
         $t=~s#^(!+)\s*(.*)$#<h${tag0}${myclass}${myid}>$cont</h${tag0}>#m;
         $ptype = 'header';
       } # endif header
       (
+        $t =~ s/(\{\{([^|]*)\|(.*?)}})/call_macro($2,$3)/eg or
         $t =~ s!\{\{([IBUS])\|([^{}]*?)}}!{my $x=lc $1; "<$x>$2</$x>"}!esg or
         $t =~ s!\{\{i\|([^{}]*?)}}!<span style="font-style:italic;">$1</span>!g or
         $t =~ s!\{\{b\|([^{}]*?)}}!<span style="font-weight:bold;">$1</span>!g or
@@ -348,67 +351,22 @@ sub wini{
           push(my(@id),    $a=~/#([^.#]+)/g);
           (defined $class[0]) and push(@c, q{class="}.join(" ", @class).q{"});
           (defined $id[0])    and push(@c, q{id="}   .join(" ", @id)   .q{"});
-          $_ = "<span " . join(" ", @c) . ">$b</span>"; 
+          $_ = "<span " . join(" ", sort @c) . ">$b</span>"; 
         !eg or
         $t=~ s!\{\{v\|([^{}]*?)}}!<span class="tategaki">$1</span>!g or
-        $t =~ s!\[(.*?)\]!make_a($1, $baseurl)!eg or
+        $t =~ s!\[([^]]*?)\]\(([^)]*?)\)!make_a_from_md($1, $2, $baseurl)!eg or
+        $t =~ s!\[([^]]*?)\]!make_a($1, $baseurl)!eg or
         $t =~ s/\{\{l}}/&#x7b;/g or   # {
         $t =~ s/\{\{bar}}/&#x7c;/g or # |
         $t =~ s/\{\{r}}/&#x7d;/g      # }
 
+#        $t =~ s/(\{\{([^|]*)\|(.*?)}})/call_macro($2,$3)/eg
       ) or last; # no subst need, then escape inner loop
     } # loop while subst needed
-    my $t2='';
-       
-    # for list items
-    my $listtagc;
-    my @is_dl; # $is_dl[1]: whether list type of depth 1 is 'dl'
-    my @listtagc;
-    foreach my $l (split("\n", $t)){
-      # line/page break
-      if(($l=~s/^---$/<br style="page-break-after: always;">/) or
-         ($l=~s/^--$/<br style="clear: both;">/)){
-        $t2 .= $l; next;
-      }
 
-      my($x, $listtype, $txt) = $l=~/^\s*([#*:;]*)([#*:;])\s*(.*)$/; # whether list item      
-      if($listtype ne ''){
-        $ptype = 'list';
-        my $listdepth = length($x)+length($listtype);
-        ($listtype eq ';') and $is_dl[$listdepth]='dl';
-        my($itemtag, $listtag) = ($listtype eq '*') ? qw/li ul/
-                               : ($listtype eq ':') ? (($is_dl[$listdepth] eq 'dl')?qw/dd dl/:(qq{li style="list-style:none"}, 'ul'))
-                               : ($listtype eq ';') ? qw/dt dl/ : qw/li ol/;
-        my $itemtagc = $itemtag; # closing tag for list item
-           $listtagc = $listtag; # closing tag for list
-        $itemtagc =~ s/ .*//;
-        $listtagc =~ s/ .*//;
-        $listtagc[$listdepth] = $listtagc;
-        # new list start?
-        if($listdepth>$lastlistdepth){
-          $t2 .= sprintf(qq!%*s<$listtag class="winilist">$cr!, $listdepth, ' ');
-        }
-        # new list end?
-        for(my $i = $lastlistdepth-$listdepth; $i>0; $i--){
-          $t2 .= sprintf("%*s</%s>$cr", $i+$listdepth, ' ', $listtagc[$i+$listdepth]);
-        }
-        $t2 .= sprintf("%*s<$itemtag>$txt</$itemtagc>$cr",$listdepth+1,' ');
-        $lastlistdepth = $listdepth;
-      }else{ # if not list item
-        $t2 .= "$l\n";
-      }
-    } # $l
-    if($lastlistdepth>0){
-      $t2 .= sprintf("%*s", $lastlistdepth-1, ' ') . ("</$listtagc>" x $lastlistdepth) . $cr;
-      $lastlistdepth=0;
-    }
-
-    $r .= ($ptype eq 'header' or $ptype eq 'list')                      ? "$t2\n"
-        : ($para eq 'br')                                               ? "$t2<br>$cr"
-        : ($para eq 'nb')                                               ? $t2
-        : $t2=~m{<(p|table|img|figure|blockquote|[uod]l)[^>]*>.*</\1>}s ? $t2
-                                                                        : "<p${myclass}>\n$t2</p>$cr$cr";
-  } # foreach $t
+    my($rr, $list) = list($t, $cr, $ptype, $para, $myclass);
+    $r .= $rr;
+  } # foreach $t # for each paragraph
 
   $r=~s/\x00i=(\d+)\x01/$save[$1]/ge;
   if($cssfile){
@@ -416,14 +374,10 @@ sub wini{
     print {$fho} css($css);
     close $fho;
   }
-  if(defined $footnotes[0]){
-    $r .= qq{<hr>\n<footer>\n<ul style="list-style:none;">\n} . join("\n", (map {"<li>$_</li>"}  @footnotes)) . "\n</ul>\n</footer>\n";
-  }
+  (defined $footnotes[0]) and $r .= qq{<hr>\n<footer>\n<ul style="list-style:none;">\n} . join("\n", (map {"<li>$_</li>"}  @footnotes)) . "\n</ul>\n</footer>\n";
   if(defined $opt->{whole}){
     my $style = '';
-    if(defined $cssflameworks->[0]){
-      map {$style .= qq{<link rel="stylesheet" type="text/css" href="$_">\n}} @$cssflameworks;
-    }
+    (defined $cssflameworks->[0]) and map {$style .= qq{<link rel="stylesheet" type="text/css" href="$_">\n}} @$cssflameworks;
     $style   .= ($cssfile)?qq{<link rel="stylesheet" type="text/css" href="$cssfile">} : "<style>\n".css($css)."</style>\n";
     $r = <<"EOD";
 <!DOCTYPE html>
@@ -443,6 +397,82 @@ EOD
 } # sub wini
 }
 
+sub footnote{
+  my($txt, $style, $footnote_cnt, $footnotes_ref) = @_;
+  my %cref = ('*'=>'lowast' ,'+'=>'plus', 'd'=>'dagger', 'D'=>'Dagger', 's'=>'sect', 'p'=>'para');
+  $style = $style || '*';
+  my($char, $char2) = $style=~/([*+dDsp])(\1)?/; # asterisk, plus, dagger, double-dagger, section, paragraph
+  $char or $char = (($style=~/\d/)?'0':substr($style,0,1));
+  my $prefix;
+  if($char2){
+    my $charchar = $char.$char;
+    $footnote_cnt->{$charchar}++;
+    $prefix = "\&$cref{$char};" x $footnote_cnt->{$charchar}; # *, **, ***, ...
+  }else{
+    $footnote_cnt->{$char}++;
+    $prefix = "\&$cref{$char};$footnote_cnt->{$char}";    # *1, *2, *3, ...
+  }
+  push(@{$footnotes_ref}, "<sup>$prefix</sup>$txt");
+  return("<sup>$prefix</sup>");
+}
+
+sub list{
+  my($t, $cr, $ptype, $para, $myclass) = @_;
+  my $r;
+  my $t2='';
+  my $lastlistdepth=0;
+  my $listtagc;
+  my @is_dl;  # $is_dl[1]: whether list type of depth 1 is 'dl'
+  my @listtagc;
+  my %listitems;
+  foreach my $l (split("\n", $t)) {
+    # line/page break
+    if (($l=~s/^---$/<br style="page-break-after: always;">/) or
+        ($l=~s/^--$/<br style="clear: both;">/)) {
+      $t2 .= $l; next;
+    }
+
+    my($x, $listtype, $txt) = $l=~/^\s*([#*:;]*)([#*:;])\s*(.*)$/; # whether list item      
+    if ($listtype ne '') {
+      $ptype = 'list';
+      my $listdepth = length($x)+length($listtype);
+      ($listtype eq ';') and $is_dl[$listdepth]='dl';
+      my($itemtag, $listtag) = ($listtype eq '*') ? qw/li ul/
+        : ($listtype eq ':') ? (($is_dl[$listdepth] eq 'dl')?qw/dd dl/:(qq{li style="list-style:none"}, 'ul'))
+        : ($listtype eq ';') ? qw/dt dl/ : qw/li ol/;
+      my $itemtagc = $itemtag;   # closing tag for list item
+      $listtagc = $listtag;      # closing tag for list
+      $itemtagc =~ s/ .*//;
+      $listtagc =~ s/ .*//;
+      $listtagc[$listdepth] = $listtagc;
+      # new list start?
+      if ($listdepth>$lastlistdepth) {
+        $t2 .= sprintf(qq!%*s<$listtag class="winilist">$cr!, $listdepth, ' ');
+      }
+      # new list end?
+      for (my $i = $lastlistdepth-$listdepth; $i>0; $i--) {
+        $t2 .= sprintf("%*s</%s>$cr", $i+$listdepth, ' ', $listtagc[$i+$listdepth]);
+      }
+      $t2 .= sprintf("%*s<$itemtag>$txt</$itemtagc>$cr",$listdepth+1,' ');
+      $lastlistdepth = $listdepth;
+      push(@{$listitems{join("\t", @listtagc)}}, $txt);
+    } else { # if not list item
+      $t2 .= "$l\n";
+    }
+  } # $l
+  if ($lastlistdepth>0) {
+    $t2 .= sprintf("%*s", $lastlistdepth-1, ' ') . ("</$listtagc>" x $lastlistdepth) . $cr;
+    $lastlistdepth=0;
+  }
+
+  $r .= ($ptype eq 'header' or $ptype eq 'list')                      ? "$t2\n"
+      : ($para eq 'br')                                               ? "$t2<br>$cr"
+      : ($para eq 'nb')                                               ? $t2
+      : $t2=~m{<(p|table|img|figure|blockquote|[uod]l)[^>]*>.*</\1>}s ? $t2
+      : "<p${myclass}>\n$t2</p>$cr$cr";
+  return($r, \%listitems);
+} # sub list
+
 sub symmacro{
   # {{/*_-|text}}
   my($tag0, $text)=@_;
@@ -460,6 +490,13 @@ sub symmacro{
   return($r);
 }
 
+sub call_macro{
+  my($macroname, @f) = @_;
+  (defined $macros{$macroname}) and return($macros{$macroname}(@f));
+  warn("Macro named '$macroname' not found");
+  return(qq!<b class="warning">Macro named '$macroname' not found</b>!);
+}
+
 sub readpars{
   my($p, @list)=@_;
   my %pars; my @pars;
@@ -471,10 +508,7 @@ sub readpars{
     }
   }
   foreach my $k (@list){
-    if(not exists $pars{$k}){
-      my $x = shift(@pars);
-      $pars{$k}=$x;
-    }
+    (exists $pars{$k}) or $pars{$k} = shift(@pars);
   }
   return(\%pars);
 }
@@ -528,6 +562,11 @@ sub readblank{
 # [xxxx] -> <a href="www">...</a>
 {
 my $img_no=0;
+sub make_a_from_md{
+  my($t, $url, $baseurl) = @_;
+  return(qq!<a href="$url">$t</a>!);
+}
+
 sub make_a{
 # [! image.png text]
 # [!"image.png" text]
@@ -625,7 +664,7 @@ sub make_table{
     while($o=~/#([-\w]+)/g){
       $htmlitem[0][0]{copt}{id}[0] = $1;
     }
-    ($htmlitem[0][0]{copt}{id}[0]) or $htmlitem[0][0]{copt}{id}[0] = "winitable${table_no}";
+    ($htmlitem[0][0]{copt}{id}[0]) or $htmlitem[0][0]{copt}{id}[0] = sprintf("winitable%d", $table_no++);
     while($o=~/\&([lrcjsebtm]+)/g){
       my $h = {qw/l left r right c center j justify s start e end/}->{$1};
       (defined $h) and push(@{$htmlitem[0][0]{copt}{style}{'text-align'}}, $h);
@@ -642,7 +681,7 @@ sub make_table{
     }
     ($caption)=wini($c, {para=>'nb', nocr=>1});
     $caption=~s/[\s\n\r]+$//;
-  ''&emg;
+  ''&emg; # end of caption & table setting
 
   my @lines = split(/\n/, $in);
   my $macro = '';
@@ -679,7 +718,7 @@ sub make_table{
       }
     }
   } # foreach @lines
-  
+
   my @rowlen;
   for($ln=$#winiitem; $ln>=1; $ln--){
     ($winiitem[$ln][1] =~ /^\|---(.*)$/) and $htmlitem[$ln][0]{footnote}=1;
@@ -737,7 +776,6 @@ sub make_table{
         }elsif($colspan>0){
           $colspan=0;
         } # colspan
-
         if($col=~/\^/){ # rowspan
           $winiitem[$ln-1][$cn+1] .= "\n" . $winiitem[$ln][$cn+1]; # merge data block to upper row 
           (defined $htmlitem[$ln][$col_n]{copt}{rowspan}) or $htmlitem[$ln][$col_n]{copt}{rowspan} = 1;
@@ -765,12 +803,17 @@ sub make_table{
           }
         } # while border
 
-        while($col=~/(&{1,2})([lrcjsetmb])/g){ # text-align
+        while($col=~/(&{1,3})([lrcjsetmb])/g){ # text-align
           my($a,$b)=($1,$2);
           my $h = {qw/l left r right c center j justify s start e end/}->{$b};
-          (defined $h) and push(@{$htmlitem[$ln][($a eq '&&')?0:$col_n]{copt}{style}{'text-align'}}, $h);
           my $v = {qw/t top m middle b bottom/}->{$b};
-          (defined $v) and push(@{$htmlitem[$ln][($a eq '&&')?0:$col_n]{copt}{style}{'vertical-align'}}, $v);
+          if($a eq '&&&'){
+            (defined $h) and push(@{$htmlitem[0][$col_n]{copt}{style}{'text-align'}}, $h);
+            (defined $v) and push(@{$htmlitem[0][$col_n]{copt}{style}{'vertical-align'}}, $v);
+          }else{
+            (defined $h) and push(@{$htmlitem[$ln][($a eq '&&')?0:$col_n]{copt}{style}{'text-align'}}, $h);
+            (defined $v) and push(@{$htmlitem[$ln][($a eq '&&')?0:$col_n]{copt}{style}{'vertical-align'}}, $v);
+          }
         } # text align
         while($col=~/(\${1,2})(\d+)/g){ # height/width
           my($a,$b)=($1,$2);
@@ -798,12 +841,6 @@ sub make_table{
     }
   } # for $ln
 
-  for(my $i=1; $i<=$#{$htmlitem[1]}; $i++){ # set colclass to cells
-    map {
-      (defined $htmlitem[0][$i]{copt}{class}) and push(@{$htmlitem[$_][$i]{copt}{class}}, @{$htmlitem[0][$i]{copt}{class}}) 
-    }1..$#htmlitem;
-  }
-
   (defined $htmlitem[0][0]{copt}{style}{height}[0]) 
         or $htmlitem[0][0]{copt}{style}{height}[0] = sprintf("%drem", (scalar @lines)*2);
   (defined $htmlitem[0][0]{copt}{style}{width}[0]) 
@@ -812,7 +849,7 @@ sub make_table{
   ($debug) and print(STDERR "winiitem\n", (Dumper @winiitem), "htmlitem\n", (Dumper @htmlitem));
 
   # make html
-  my $outtxt = sprintf(qq!<table id="%s" class="%s"!, $htmlitem[0][0]{copt}{id}[0], join(' ', @{$htmlitem[0][0]{copt}{class}}));
+  my $outtxt = sprintf(qq!\n<table id="%s" class="%s"!, $htmlitem[0][0]{copt}{id}[0], join(' ', sort @{$htmlitem[0][0]{copt}{class}}));
   (defined $htmlitem[0][0]{copt}{border}) and $outtxt .= ' border="1"';
   $outtxt .= q{ style="border-collapse: collapse; };
   foreach my $k (qw/text-align vertical-align color background-color float/){
@@ -847,44 +884,48 @@ sub make_table{
     (defined $border) and push(@styles, "border: solid ${border}px");
 
     #(defined $htmlitem[0][0]{copt}{border}) and $outtxt .= sprintf("border: solid %dpx; ", $htmlitem[0][0]{copt}{border});
-    (defined $styles[0]) and $ropt .= qq{style="} . join('; ', @styles) . '"';  
+    (defined $styles[0]) and $ropt .= qq{style="} . join('; ', sort @styles) . '"';  
 
     if(defined $htmlitem[$rn][0]{copt}{class}[0]){
-      $ropt .= q{ class="} . join(' ',  @{$htmlitem[$rn][0]{copt}{class}}) . q{"};
+      $ropt .= q{ class="} . join(' ',  sort @{$htmlitem[$rn][0]{copt}{class}}) . q{"};
     }
     ($ropt) and $ropt = " $ropt";
-    $outtxt0 .= qq!<tr$ropt>!;
-    $outtxt0 .= join("", 
-      map { # for each cell ($_: col No.)
-        if((defined $htmlitem[$rn][$_]{copt}{rowspan} and $htmlitem[$rn][$_]{copt}{rowspan}<=1) or (defined $htmlitem[$rn][$_]{copt}{colspan} and $htmlitem[$rn][$_]{copt}{colspan}<=1)){
-          '';
-        }else{
-          my $copt = '';
-          foreach my $c (qw/class colspan rowspan/){
-            ($c eq 'rowspan') and ($htmlitem[$rn][0]{footnote}) and next;
-            (defined $htmlitem[$rn][$_]{copt}{$c}) and
-              $copt .= sprintf(qq{ $c="%s"},
-                         (ref $htmlitem[$rn][$_]{copt}{$c} eq 'ARRAY') 
-                           ? join(' ', @{$htmlitem[$rn][$_]{copt}{$c}}) 
-                           : $htmlitem[$rn][$_]{copt}{$c});
-          }
-          if(defined $htmlitem[$rn][$_]{copt}{style}){
-            $copt .= q! style="!;
-            foreach my $c (keys %{$htmlitem[$rn][$_]{copt}{style}}){
-              $copt .= sprintf("$c:%s; ", join(' ', @{$htmlitem[$rn][$_]{copt}{style}{$c}}));
-            }
-            $copt .= q!"!;
-          }
-          my $ctag = (
-            (not $htmlitem[$rn][0]{footnote}) and (
-            ($htmlitem[$rn][$_]{ctag} eq 'th') or 
-            ($htmlitem[0][$_]{ctag}   eq 'th') or
-            ($htmlitem[$rn][0]{ctag}  eq 'th'))
-          )?'th':'td';
-          sprintf("<$ctag$copt>%s</$ctag>", $htmlitem[$rn][$_]{wini});
+    $outtxt0 .= qq!<tr$ropt>! . join("", map { # for each cell ($_: col No.)
+      if((defined $htmlitem[$rn][$_]{copt}{rowspan} and $htmlitem[$rn][$_]{copt}{rowspan}<=1) or (defined $htmlitem[$rn][$_]{copt}{colspan} and $htmlitem[$rn][$_]{copt}{colspan}<=1)){
+        '';
+      }else{
+        my $copt = '';
+        foreach my $c (qw/class colspan rowspan/){
+          ($c eq 'rowspan') and ($htmlitem[$rn][0]{footnote}) and next;
+          (defined $htmlitem[$rn][$_]{copt}{$c}) and
+            $copt .= sprintf(qq{ $c="%s"},
+                       (ref $htmlitem[$rn][$_]{copt}{$c} eq 'ARRAY') 
+                         ? join(' ', sort @{$htmlitem[$rn][$_]{copt}{$c}}) 
+                         : $htmlitem[$rn][$_]{copt}{$c});
         }
-      } (1 .. $#{$htmlitem[1]})
-    );
+        my %style;
+        if(defined $htmlitem[0][$_]{copt}{style}){ # &&& -> &
+          foreach my $k (keys %{$htmlitem[0][$_]{copt}{style}}){
+            map {$style{$k} = $_} (@{$htmlitem[0][$_]{copt}{style}{$k}});
+          }
+        }
+        if(defined $htmlitem[$rn][$_]{copt}{style}){
+          foreach my $c (keys %{$htmlitem[$rn][$_]{copt}{style}}){
+            map {$style{$c} = $_} (@{$htmlitem[$rn][$_]{copt}{style}{$c}});
+          }
+        }
+        my $copt0 = join('', sort map { "$_:$style{$_}; " } keys %style);
+        ($copt0 ne '') and $copt .= qq! style="$copt0"!;
+        my $ctag = (
+          (not $htmlitem[$rn][0]{footnote}) and (
+          ($htmlitem[$rn][$_]{ctag} eq 'th') or 
+          ($htmlitem[0][$_]{ctag}   eq 'th') or
+          ($htmlitem[$rn][0]{ctag}  eq 'th'))
+        )?'th':'td';
+        sprintf("<$ctag$copt>%s</$ctag>", $htmlitem[$rn][$_]{wini});
+      }
+    } (1 .. $#{$htmlitem[1]}) # map
+    ); # join
     $outtxt0 .= "</tr>\n";
     ($htmlitem[$rn][0]{footnote}) ? ($footnotetext .= $outtxt0) : ($outtxt .= $outtxt0);
   } # foreach $rn
@@ -893,14 +934,12 @@ sub make_table{
     $outtxt .= (defined $htmlitem[0][0]{copt}{fborder})?qq{<tfoot style="border: solid $htmlitem[0][0]{copt}{fborder}px;">\n}:"<tfoot>\n";
     my $colspan = scalar @{$htmlitem[-1]} -1;
     ($footnotetext) and $outtxt .= $footnotetext;
-    if(scalar @footnotes > 0){
-      $outtxt .= sprintf(qq{<tr><td colspan="$colspan">%s</td></tr>\n}, join('&ensp;', @footnotes));
-    }
+    (scalar @footnotes > 0) and $outtxt .= sprintf(qq{<tr><td colspan="$colspan">%s</td></tr>\n}, join('&ensp;', @footnotes));
     $outtxt .= "</tfoot>\n";
   }
   $outtxt .= "</table>\n";
   $outtxt=~s/\t+/ /g; # tab is separator of cells vertically unified
-  return("\n$outtxt\n");
+  return($outtxt);
 } # sub make_table
 
 } # table env
