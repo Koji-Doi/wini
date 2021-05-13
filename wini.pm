@@ -97,6 +97,10 @@ Users can specify the output directory rather than the file. If -o value ends wi
 
 =item * --cssfile [out.css]  CSS is output to an independent css file, rather than the html file. If '--cssfile' is set without a file name, "wini.css" is the output css file name.
 
+=item * --extralib, -E LIB   Load specified library LIB
+
+=item * --libpath, -I PATH   Add specified directory PATH into library path
+
 =item * --title [title]      Set text for <title>. Effective only when --whole option is set.
 
 =item * --version            Show version.
@@ -115,12 +119,13 @@ use FindBin;
 use Pod::Usage;
 use Getopt::Long;
 use Encode;
+use Module::Load qw( load );
 *Data::Dumper::qquote = sub { return encode "utf8", shift } ;
 $Data::Dumper::Useperl = 1 ;
+my  @libs;
+my  @libpaths;
 our %macros;
-use lib '.';
-use form;
-init_macro();
+#use lib '/home/kdoi2/work/form/';
 
 my $scriptname = basename($0);
 my $version    = "ver. 0 rel. 20210416a";
@@ -174,12 +179,23 @@ sub stand_alone(){
     "i=s"            => \$input,
     "o=s"            => \$output,
     "title=s"        => \$title,
-    "cssfile:s"      => \$cssfile, 
-    "t"              => \$test,
-    "d"              => \$debug,
+    "cssfile:s"      => \$cssfile,
+    "E|extralib:s"   => \@libs,
+    "I|libpath:s"    => \@libpaths,
+    "T"              => \$test,
+    "D"              => \$debug,
     "whole"          => \$whole,
     "cssflamework:s" => \@cssflameworks
   );
+  foreach my $i (@libpaths){
+    print STDERR "Trying to add $i into library directory\n";
+    (-d $i) ? push(@INC, $i) : warn("$i for extra library not found.\n");
+  }
+  foreach my $lib (@libs){ # 'form', etc.
+    my $r = eval{load($lib)};
+    (defined $r) ? print(STDERR "Loaded library: $lib\n") : warn("failed to load library '$lib'\n");
+  }
+
   (defined $cssflameworks[0]) and ($cssflameworks[0] eq '') and $cssflameworks[0]='https://unpkg.com/mvp.css'; # 'https://newcss.net/new.min.css';
   ($test) and ($input, $output)=("test.wini", "test.html");
   if ($input) {
@@ -321,30 +337,35 @@ sub wini{
         $ptype = 'header';
       } # endif header
       (
-        $t =~ s!\{\{([IBUS])\|([^{}]*?)}}!{my $x=lc $1; "<$x>$2</$x>"}!esg or
-        $t =~ s!\{\{i\|([^{}]*?)}}!<span style="font-style:italic;">$1</span>!g or
-        $t =~ s!\{\{b\|([^{}]*?)}}!<span style="font-weight:bold;">$1</span>!g or
-        $t =~ s!\{\{u\|([^{}]*?)}}!<span style="border-bottom: solid 1px;">$1</span>!g or
-        $t =~ s!\{\{s\|([^{}]*?)}}!<span style="text-decoration: line-through;">$1</span>!g or
-        $t =~ s!\{\{ruby\|([^{}]*?)}}!ruby($1)!eg or
-        $t =~ s!\{\{([-_/*]+[-_/* ]*)\|([^{}]*?)}}!symmacro($1,$2)!eg or
-        $t =~ s!\{\{([.#][^{}|]+)\|([^{}]*?)}}!
-          my($a,$b,  @c)=($1,$2);
-          push(my(@class), $a=~/\.([^.#]+)/g);
-          push(my(@id),    $a=~/#([^.#]+)/g);
-          (defined $class[0]) and push(@c, q{class="}.join(" ", @class).q{"});
-          (defined $id[0])    and push(@c, q{id="}   .join(" ", @id)   .q{"});
-          $_ = "<span " . join(" ", sort @c) . ">$b</span>"; 
-        !eg or
-        $t=~ s!\{\{v\|([^{}]*?)}}!<span class="tategaki">$1</span>!g or
-        $t =~ s!\[([^]]*?)\]\(([^)]*?)\)!make_a_from_md($1, $2, $baseurl)!eg or
-        $t =~ s!\[([^]]*?)\]!make_a($1, $baseurl)!eg or
-        $t =~ s/\{\{l}}/&#x7b;/g or   # {
-        $t =~ s/\{\{bar}}/&#x7c;/g or # |
-        $t =~ s/\{\{r}}/&#x7d;/g or   # }
+        $t =~ s/(\{\{([^|]*)\|(.*?)}})/call_macro($2,$3)/eg # or
 
-        $t =~ s/(\{\{([^|]*)\|(.*?)}})/call_macro($2,$3)/eg
+#        $t =~ s!\{\{([IBUS])\|([^{}]*?)}}!{my $x=lc $1; "<$x>$2</$x>"}!esg or
+#        $t =~ s!\{\{i\|([^{}]*?)}}!<span style="font-style:italic;">$1</span>!g or
+#        $t =~ s!\{\{b\|([^{}]*?)}}!<span style="font-weight:bold;">$1</span>!g or
+#        $t =~ s!\{\{u\|([^{}]*?)}}!<span style="border-bottom: solid 1px;">$1</span>!g or
+#        $t =~ s!\{\{s\|([^{}]*?)}}!<span style="text-decoration: line-through;">$1</span>!g or
+#        $t =~ s!\{\{ruby\|([^{}]*?)}}!ruby($1)!eg or
+#        $t =~ s!\{\{([-_/*]+[-_/* ]*)\|([^{}]*?)}}!symmacro($1,$2)!eg or
+
+        # $t =~ s!\{\{v\|([^{}]*?)}}!<span class="tategaki">$1</span>!g or
+        # $t =~ s!\[([^]]*?)\]\(([^)]*?)\)!make_a_from_md($1, $2, $baseurl)!eg or
+        # $t =~ s!\[([^]]*?)\]!make_a($1, $baseurl)!eg or
+        # $t =~ s/\{\{l}}/&#x7b;/g or   # {
+        # $t =~ s/\{\{bar}}/&#x7c;/g or # |
+        # $t =~ s/\{\{r}}/&#x7d;/g      # }
+
+        # $t =~ s!\{\{([.#][^{}|]+)\|([^{}]*?)}}!
+        #   my($a,$b,  @c)=($1,$2);
+        #   push(my(@class), $a=~/\.([^.#]+)/g);
+        #   push(my(@id),    $a=~/#([^.#]+)/g);
+        #   (defined $class[0]) and push(@c, q{class="}.join(" ", @class).q{"});
+        #   (defined $id[0])    and push(@c, q{id="}   .join(" ", @id)   .q{"});
+        #   $_ = "<span " . join(" ", sort @c) . ">$b</span>"; 
+        # !eg or
+
+#        $t =~ s/(\{\{([^|]*)\|(.*?)}})/call_macro($2,$3)/eg
       ) or last; # no subst need, then escape inner loop
+print STDERR "retry??\n";
     } # loop while subst needed
 
     my($rr, $list) = list($t, $cr, $ptype, $para, $myclass);
@@ -475,8 +496,29 @@ sub symmacro{
 
 sub call_macro{
   my($macroname, @f) = @_;
+  my(@class, @id);
+  $macroname=~s/\.([^.#]+)/push(@id,    $1); ''/ge;
+  $macroname=~s/\#([^.#]+)/push(@class, $1); ''/ge;
+  my $class_id = join('', map{ qq! class="$_"! } @class);
+  $class_id   .= ($id[0]) ? qq! id="$id[0]"! : '';
+  $macroname=~s/^\s*$//;
+  if($macroname eq ''){
+    return(($class_id) ? qq!<span${class_id}>$f[0]</span>! : $f[0]);
+  }
+
   (defined $macros{$macroname}) and return($macros{$macroname}(@f));
-  return("{{*|No definition of macro $macroname}}");
+  ($macroname=~/^[IBUS]$/) and return(sprintf("<%s${class_id}>%s</%s>", lc($macroname), $f[0]));
+  ($macroname eq 'i')      and return(qq!<span${class_id} style="font-style:italic;">$f[0]</span>!);
+  ($macroname eq 'b')      and return(qq!<span${class_id} style="font-weight:bold;">$f[0]</span>!);
+  ($macroname eq 'u')      and return(qq!<span${class_id} style="border-bottom: solid 1px;">$f[0]</span>!);
+  ($macroname eq 's')      and return(qq!<span${class_id} style="text-decoration: line-through;">$f[0]</span>!);
+  ($macroname eq 'ruby')   and return(ruby(@f));
+  ($macroname=~m!([-_/*]+[-_/* ]*)!) and return(symmacro($1, $f[0]));
+
+  warn("Macro named '$macroname' not found");
+  my $r = sprintf(qq#{{%s}}<!-- Macro named '$macroname' not found! -->#, join('|', $macroname, @f));
+  print STDERR "$r.\n";
+  return($r);
 }
 
 sub readpars{
@@ -598,8 +640,8 @@ sub make_a{
 }
 
 sub ruby{
-  my($x) = @_; # text1|ruby1|text2|ruby2 ...
-  my @txt = split(/\|/, $x);
+  #my($x) = @_; # text1|ruby1|text2|ruby2 ...
+  my @txt = @_; #split(/\|/, $x);
   my $t = join("", map {my $a=$_*2; "$txt[$a]<rp>(</rp><rt>$txt[$a+1]</rt><rp>)</rp>"} (0..$#txt/2));
   return("<ruby>$t</ruby>");
 }
