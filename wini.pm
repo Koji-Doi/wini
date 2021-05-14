@@ -337,8 +337,7 @@ sub wini{
         $ptype = 'header';
       } # endif header
       (
-        $t =~ s/(\{\{([^|]*)\|(.*?)}})/call_macro($2,$3)/eg # or
-
+        $t =~ s!(\{\{([^|]*?)(?:\|(.*?))?}})!call_macro($1, $2, $baseurl, split(/\|/,$3||''))!eg or
 #        $t =~ s!\{\{([IBUS])\|([^{}]*?)}}!{my $x=lc $1; "<$x>$2</$x>"}!esg or
 #        $t =~ s!\{\{i\|([^{}]*?)}}!<span style="font-style:italic;">$1</span>!g or
 #        $t =~ s!\{\{b\|([^{}]*?)}}!<span style="font-weight:bold;">$1</span>!g or
@@ -348,8 +347,8 @@ sub wini{
 #        $t =~ s!\{\{([-_/*]+[-_/* ]*)\|([^{}]*?)}}!symmacro($1,$2)!eg or
 
         # $t =~ s!\{\{v\|([^{}]*?)}}!<span class="tategaki">$1</span>!g or
-        # $t =~ s!\[([^]]*?)\]\(([^)]*?)\)!make_a_from_md($1, $2, $baseurl)!eg or
-        # $t =~ s!\[([^]]*?)\]!make_a($1, $baseurl)!eg or
+         $t =~ s!\[([^]]*?)\]\(([^)]*?)\)!make_a_from_md($1, $2, $baseurl)!eg or
+         $t =~ s!\[([^]]*?)\]!make_a($1, $baseurl)!eg #or
         # $t =~ s/\{\{l}}/&#x7b;/g or   # {
         # $t =~ s/\{\{bar}}/&#x7c;/g or # |
         # $t =~ s/\{\{r}}/&#x7d;/g      # }
@@ -365,7 +364,6 @@ sub wini{
 
 #        $t =~ s/(\{\{([^|]*)\|(.*?)}})/call_macro($2,$3)/eg
       ) or last; # no subst need, then escape inner loop
-print STDERR "retry??\n";
     } # loop while subst needed
 
     my($rr, $list) = list($t, $cr, $ptype, $para, $myclass);
@@ -495,7 +493,7 @@ sub symmacro{
 }
 
 sub call_macro{
-  my($macroname, @f) = @_;
+  my($fulltext, $macroname, $baseurl, @f) = @_;
   my(@class, @id);
   $macroname=~s/\.([^.#]+)/push(@id,    $1); ''/ge;
   $macroname=~s/\#([^.#]+)/push(@class, $1); ''/ge;
@@ -507,17 +505,23 @@ sub call_macro{
   }
 
   (defined $macros{$macroname}) and return($macros{$macroname}(@f));
-  ($macroname=~/^[IBUS]$/) and return(sprintf("<%s${class_id}>%s</%s>", lc($macroname), $f[0]));
+  ($macroname=~/^[IBUS]$/) and $_=lc($macroname), return("<$_${class_id}>$f[0]</$_>");
   ($macroname eq 'i')      and return(qq!<span${class_id} style="font-style:italic;">$f[0]</span>!);
   ($macroname eq 'b')      and return(qq!<span${class_id} style="font-weight:bold;">$f[0]</span>!);
   ($macroname eq 'u')      and return(qq!<span${class_id} style="border-bottom: solid 1px;">$f[0]</span>!);
   ($macroname eq 's')      and return(qq!<span${class_id} style="text-decoration: line-through;">$f[0]</span>!);
   ($macroname eq 'ruby')   and return(ruby(@f));
+  ($macroname eq 'v')      and return(qq!<span class="tategaki">$f[0]</span>!);
+
+  ($macroname eq 'l')      and return('&#x7b;'); # {
+  ($macroname eq 'bar')    and return('&#x7c;'); # |
+  ($macroname eq 'r')      and return('&#x7d;'); # }
+
   ($macroname=~m!([-_/*]+[-_/* ]*)!) and return(symmacro($1, $f[0]));
 
+
   warn("Macro named '$macroname' not found");
-  my $r = sprintf(qq#{{%s}}<!-- Macro named '$macroname' not found! -->#, join('|', $macroname, @f));
-  print STDERR "$r.\n";
+  my $r = sprintf(qq#\\{\\{%s}}<!-- Macro named '$macroname' not found! -->#, join('|', $macroname, @f));
   return($r);
 }
 
