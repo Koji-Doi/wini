@@ -128,7 +128,7 @@ our %macros;
 #use lib '/home/kdoi2/work/form/';
 
 my $scriptname = basename($0);
-my $version    = "ver. 0 rel. 20210416a";
+my $version    = "ver. 0 rel. 20210517";
 my @save;
 my %ref; # $ref{image}{imageID} = 1; keys of %$ref: qw/image table formula citation math ref/
 my $debug;
@@ -279,6 +279,7 @@ sub wini{
   # table: table-mode, where footnote macro is effective. $opt->{table} must be a table ID. Footnote texts are set to @{$opt->{footnote}}
   my($t0, $opt)           = @_;
   $t0=~s/\r(?=\n)//g; # cr/lf -> lf
+  $t0=~s/(?!\n)$/\n/s; 
   my($baseurl, $is_bs4, $cssfile, $cssflameworks) = map {$opt->{$_}} qw/baseurl is_bs4 cssfile cssflameworks/;
   my $cr                  = (defined $opt->{nocr} and $opt->{nocr}==1)
                           ?"\t":"\n"; # option to inhibit CR insertion (in table)
@@ -293,6 +294,7 @@ sub wini{
   $t0 =~ s/^"""([\w =]*)\n(.*?)\n"""$/&save_quote("q $1", $2)/esmg;
     
   # conv table to html
+#  $t0 =~ s/^\s*(\|.*?)([\n\r]*$|[\n\r]+(?!\|))/make_table($1)/esmg;
   $t0 =~ s/^\s*(\|.*?)[\n\r]+(?!\|)/make_table($1)/esmg;
 
   # footnote
@@ -965,7 +967,7 @@ sub make_table{
     (scalar @footnotes > 0) and $outtxt .= sprintf(qq{<tr><td colspan="$colspan">%s</td></tr>\n}, join('&ensp;', @footnotes));
     $outtxt .= "</tfoot>\n";
   }
-  $outtxt .= "</table>\n";
+  $outtxt .= "</table>\n\n";
   $outtxt=~s/\t+/ /g; # tab is separator of cells vertically unified
   return($outtxt);
 } # sub make_table
