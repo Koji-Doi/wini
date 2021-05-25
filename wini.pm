@@ -287,6 +287,7 @@ sub wini{
   my $title               = 'WINI page';
   (defined $opt->{title}) and $title = $opt->{title};
   (defined $footnote_cnt) or $footnote_cnt->{main}{'*'} = 0;
+
   # pre, code, citation, ...
   $t0 =~ s/\{\{(pre|code|q(?: [^|]+?)?)}}(.+?)\{\{end}}/&save_quote($1,$2)/esmg;  
   $t0 =~ s/^'''\n(.*?)\n'''$/         &save_quote('pre',  $1)/esmg;
@@ -339,32 +340,10 @@ sub wini{
         $ptype = 'header';
       } # endif header
       (
-        $t =~ s!(\{\{([^|]*?)(?:\|(.*?))?}})!call_macro($1, $2, $baseurl, split(/\|/,$3||''))!eg or
+        $t =~ s!(\{\{([^|]*?)(?:\|([^{}]*?))?}})!call_macro($1, $2, $baseurl, split(/\|/,$3||''))!esg or
 #        $t =~ s!\{\{([IBUS])\|([^{}]*?)}}!{my $x=lc $1; "<$x>$2</$x>"}!esg or
-#        $t =~ s!\{\{i\|([^{}]*?)}}!<span style="font-style:italic;">$1</span>!g or
-#        $t =~ s!\{\{b\|([^{}]*?)}}!<span style="font-weight:bold;">$1</span>!g or
-#        $t =~ s!\{\{u\|([^{}]*?)}}!<span style="border-bottom: solid 1px;">$1</span>!g or
-#        $t =~ s!\{\{s\|([^{}]*?)}}!<span style="text-decoration: line-through;">$1</span>!g or
-#        $t =~ s!\{\{ruby\|([^{}]*?)}}!ruby($1)!eg or
-#        $t =~ s!\{\{([-_/*]+[-_/* ]*)\|([^{}]*?)}}!symmacro($1,$2)!eg or
-
-        # $t =~ s!\{\{v\|([^{}]*?)}}!<span class="tategaki">$1</span>!g or
          $t =~ s!\[([^]]*?)\]\(([^)]*?)\)!make_a_from_md($1, $2, $baseurl)!eg or
          $t =~ s!\[([^]]*?)\]!make_a($1, $baseurl)!eg #or
-        # $t =~ s/\{\{l}}/&#x7b;/g or   # {
-        # $t =~ s/\{\{bar}}/&#x7c;/g or # |
-        # $t =~ s/\{\{r}}/&#x7d;/g      # }
-
-        # $t =~ s!\{\{([.#][^{}|]+)\|([^{}]*?)}}!
-        #   my($a,$b,  @c)=($1,$2);
-        #   push(my(@class), $a=~/\.([^.#]+)/g);
-        #   push(my(@id),    $a=~/#([^.#]+)/g);
-        #   (defined $class[0]) and push(@c, q{class="}.join(" ", @class).q{"});
-        #   (defined $id[0])    and push(@c, q{id="}   .join(" ", @id)   .q{"});
-        #   $_ = "<span " . join(" ", sort @c) . ">$b</span>"; 
-        # !eg or
-
-#        $t =~ s/(\{\{([^|]*)\|(.*?)}})/call_macro($2,$3)/eg
       ) or last; # no subst need, then escape inner loop
     } # loop while subst needed
 
@@ -501,7 +480,8 @@ sub call_macro{
   $macroname=~s/\#([^.#]+)/push(@class, $1); ''/ge;
   my $class_id = join('', map{ qq! class="$_"! } @class);
   $class_id   .= ($id[0]) ? qq! id="$id[0]"! : '';
-  $macroname=~s/^\s*$//;
+  $macroname=~s/^[\n\s]*//;
+  $macroname=~s/[\n\s]*$//;
   if($macroname eq ''){
     return(($class_id) ? qq!<span${class_id}>$f[0]</span>! : $f[0]);
   }
