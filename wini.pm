@@ -128,7 +128,7 @@ our %macros;
 #use lib '/home/kdoi2/work/form/';
 
 my $scriptname = basename($0);
-my $version    = "ver. 0 rel. 20210517";
+my $version    = "ver. 0 rel. 20210525";
 my @save;
 my %ref; # $ref{image}{imageID} = 1; keys of %$ref: qw/image table formula citation math ref/
 my $debug;
