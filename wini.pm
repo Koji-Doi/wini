@@ -133,7 +133,7 @@ our %ID; # list of ID assigned to tags in the target html
 our %EXT;
 
 my $scriptname = basename($0);
-my $version    = "ver. 0 rel. 20210525";
+my $version    = "ver. 0 rel. 20210809";
 my @save;
 my %ref; # $ref{image}{imageID} = 1; keys of %$ref: qw/image table formula citation math ref/
 my $debug;
