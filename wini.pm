@@ -85,27 +85,47 @@ Today many people try to build and maintain blogs, wikipedia-like sites, etc. Th
 
 =over 4
 
-=item * -i INPUT             Set input file name to INPUT. If the file named 'INPUT' does not exists, wini.pm looks for 'INPUT.wini'. If -i is not set, wini.pm takes data from standard input.
+=item B<-i> I<INPUT>
 
-=item * -o OUTPUT            Set output file name. If both -o and -i are omitted, wini.pm outputs HTML-translated text to standard output.
+Set input file name to INPUT. If the file named 'INPUT' does not exists, wini.pm looks for 'INPUT.wini'. If -i is not set, wini.pm takes data from standard input.
+
+=item B<-o> I<OUTPUT>
+
+Set output file name. If both -o and -i are omitted, wini.pm outputs HTML-translated text to standard output.
 If -o is omitted and the input file name is 'input.wini', the output file will be 'input.wini.html'.
 Users can specify the output directory rather than the file. If -o value ends with 'output/', output file will be output/input.wini.html. if 'output/' does not exist, wini.pm will create it.
 
-=item * --whole              Add HTML5 headar and footer to output. The result output will be a complete HTML5 document.
+=item B<--whole>
 
-=item * --cssflamework [url] Specify the url of CSS flamework (especially "classless" flameworks are supposed). If the URL is omitted, it is set to "https://unpkg.com/mvp.css".
+Add HTML5 headar and footer to output. The result output will be a complete HTML5 document.
 
-=item * --cssfile [out.css]  CSS is output to an independent css file, rather than the html file. If '--cssfile' is set without a file name, "wini.css" is the output css file name.
+=item B<--cssflamework> I<[url]>
 
-=item * --extralib, -E LIB   Load specified library LIB
+Specify the url of CSS flamework (especially "classless" flameworks are supposed). If the URL is omitted, it is set to "https://unpkg.com/mvp.css".
 
-=item * --libpath, -I PATH   Add specified directory PATH into library path
+=item B<--cssfile> I<[out.css]>
 
-=item * --title [title]      Set text for <title>. Effective only when --whole option is set.
+CSS is output to an independent css file, rather than the html file. If '--cssfile' is set without a file name, "wini.css" is the output css file name.
 
-=item * --version            Show version.
+=item B<--extralib> I<LIB>, B<-E> I<LIB>
 
-=item * --help               Show this help.
+Load specified library LIB
+
+=item B<--libpath> I<PATH>, B<-I> I<PATH>
+
+Add specified directory PATH into library path
+
+=item B<--title> I<[title]>
+
+Set text for <title>. Effective only when --whole option is set.
+
+=item B<--version>
+
+Show version.
+
+=item B<--help>
+
+Show this help.
 
 =back
 
@@ -119,13 +139,15 @@ use FindBin;
 use Pod::Usage;
 use Getopt::Long;
 use Encode;
-use Module::Load qw( load );
+use Cwd;
+#use Module::Load qw( load );
+#load('YAML::Tiny');
+
 *Data::Dumper::qquote = sub { return encode "utf8", shift } ;
 $Data::Dumper::Useperl = 1 ;
 my  @libs;
 my  @libpaths;
 our %macros;
-#use lib '/home/kdoi2/work/form/';
 
 our %VARS;
 our $ENVNAME="_";
@@ -133,7 +155,7 @@ our %ID; # list of ID assigned to tags in the target html
 our %EXT;
 
 my $scriptname = basename($0);
-my $version    = "ver. 0 rel. 20210809";
+my $version    = "ver. 0 rel. 20210924";
 my @save;
 my %ref; # $ref{image}{imageID} = 1; keys of %$ref: qw/image table formula citation math ref/
 my $debug;
@@ -142,7 +164,7 @@ my $debug;
 our ($red, $green, $blue, $magenta, $purple) 
   = map {sprintf('rgb(%s); /* %s */', @$_)} 
     (['219,94,0', 'red'], ['0,158,115', 'green'], ['0,114,178', 'blue'], ['218,0,250', 'magenta'], ['204,121,167', 'purple']);
-my $css = {
+my $CSS = {
   'ol, ul, dl' => {'padding-left'     => '1em'},
   'table, figure, img' 
 	       => {'margin'           => '1em',
@@ -179,7 +201,7 @@ my $css = {
 __PACKAGE__->stand_alone() if !caller() || caller() eq 'PAR';
 
 # Following function is executed when this script is called as stand-alone script
-sub stand_alone(){
+sub stand_alone{
   my($input, $output, $fhi, $title, $cssfile, $test, $fho, $whole, @cssflameworks);
   GetOptions(
     "h|help"         => sub {help()},
@@ -238,15 +260,13 @@ sub stand_alone(){
     print STDERR "Will try to create file: $output\n";
     open($fho, '>:utf8', $output) or die "Cannot create file: $output";
   }
-  if(defined $cssfile){
-    ($cssfile eq '') and $cssfile="wini.css";
-  }
+  (defined $cssfile) and ($cssfile eq '') and $cssfile="wini.css";
   $_=<$fhi>;
   s/\x{FEFF}//; # remove BOM if exists
   push(my @input, $_);
   push(@input, <$fhi>);
   push(@input, "\n");
-  print {$fho} (wini(join('', @input), {whole=>$whole, cssfile=>$cssfile, title=>$title, cssflameworks=>\@cssflameworks}))[0];
+  print {$fho} (wini_sects(join('', @input), {dir=>getcwd, whole=>$whole, cssfile=>$cssfile, title=>$title, cssflameworks=>\@cssflameworks}))[0];
 } # sub stand_alone
 
 sub help{
@@ -274,26 +294,123 @@ sub css{
 
 {
 my($footnote_cnt, %footnotes);
+sub wini_sects{
+  my($x, $opt) = @_;
+  (defined $opt) or $opt={};
+  #my($level, $tagtype, $secttytle, $k) = ('', '', '', '');
+  my(%sectdata, $secttitle, @html, $htmlout);
+  my @sectdata_depth = ({sect_id=>'_'});
+  my ($sect_cnt, $sect_id)       = (0, '_');
+  my ($depth, $lastdepth)        = (0, 0);
+  foreach my $t (split(/(^\?.*?\n)/m, $x)){ # for each section
+    $t=~s/^\n*//;
+    $t=~s/[\s\n]+$//;
+    if($t=~/^(\?+[<=>]*)([a-z]*)(?:#(\S*))?(?:\s+(.*))?/){ # begin sect
+      my($level, $tagtype, $id, $k) = ($1, $2, $3, $4);
+      $lastdepth = $depth;
+      $sect_cnt++;
+      $secttitle = $k  || "sect ${sect_cnt}";
+      $sect_id   = $id || "sect${sect_cnt}";
+      $sect_id=~s/[^\w]//g;
+      (exists $sectdata{$sect_id}) and print STDERR "duplicated section id ${sect_id}\n";
+
+      # clarify section depth
+      if($level=~/^\?+$/){
+        $depth = length($level);
+      }elsif($level=~/^\?=/){ # new section at the same level
+      }elsif($level=~/^\?</){
+        $depth--;
+      }elsif($level=~/^\?>/){
+        $depth++;
+      }
+      $sectdata_depth[$depth]{sect_id} = $sect_id;
+
+      # add close tag for the former section here if necessary
+      # and set open tag for the current section here
+      my $opentag = qq{<section class="wini" id="${sect_id}">\n} .
+        (($secttitle) ? qq{<h1 class="sectiontitle">$secttitle</h1>\n} : '');
+      $html[$sect_cnt]{tagtype} = 'section';
+      if($lastdepth==$depth){
+        $html[$sect_cnt-1]{close} = sprintf(qq{</section> <!-- end of "%s" -->\n}, $html[$sect_cnt-1]{sect_id});
+        $html[$sect_cnt]{open}    = $opentag;
+      }elsif($lastdepth>$depth){ # new section of upper level
+        if($sect_cnt>0){ # close tag for former sect
+          (defined $html[$sect_cnt-1]{close}) or $html[$sect_cnt-1]{close}='';
+          my $j=0;
+          for(my $i=$lastdepth; $i>=$depth; $i--){
+            $j++;
+            $html[$sect_cnt-1]{close} .= sprintf(
+              qq{</section> <!-- end of "%s" -->\n}, $html[$sect_cnt-$j]{sect_id}
+            );
+          }
+        }
+        $html[$sect_cnt]{open} = $opentag . (qq{<section>} x ($depth-1)) . "<!-- ${sect_id} -->\n";
+      }else{ # new section is under the former section
+        $html[$sect_cnt]{open} = $opentag;
+      }
+    }else{ # read sect content
+      # read old sect vals
+      for(my $d=0; $d<$depth; $d++){
+        foreach my $k (keys %{$sectdata_depth[$d]{val}}){
+          $sectdata{$sect_id}{val}{$k} = $sectdata_depth[$d]{val}{$k};
+        }
+      }
+      # vars in sect/main
+      my $v;
+      $t=~s/===(.*)===/$v = &yaml($1, $opt); ''/es;
+      foreach my $k (keys %$v){
+        $sectdata_depth[$depth]{val}{$k} = $v->{$k};
+        $sectdata{$sect_id}{val}{$k}     = $v->{$k};
+      }
+      
+      # WINI interpretation
+      my $opt1 = { %$opt };
+      $opt1->{_v} = $sectdata{$sect_id}{val};
+      my($h, $o) = WINI::wini($t, $opt1);
+      $html[$sect_cnt]{sect_id} = $sect_id;
+      $html[$sect_cnt]{txt}     = $h;
+      $html[$sect_cnt]{opt}     = $o;
+      $html[$sect_cnt]{depth}   = $depth;
+    } # read sect content
+  } # foreach sect
+  ($depth!=0) and $html[-1]{close} = ("\n" . ('</section>' x $depth));
+  map{$htmlout .= "\n" . join("\n", $_->{open}, $_->{txt}, $_->{close})} @html;
+  $htmlout .= "\n";
+
+  # template?
+  if(defined $sectdata_depth[0]{val}{template}){ # template mode
+    my $basefile = $sectdata_depth[0]{val}{template};
+    print STDERR ">>> templatemode: '$basefile'\n";
+    (-f $basefile) or $basefile = $opt->{dir}."/$basefile";
+    (-f $basefile) or $basefile =    "_template/$basefile";
+    (-f $basefile) or die qq{File "$sectdata_depth[0]{template}": not found};
+    open(my $fhi, '<:utf8', $basefile);
+    my $opt1 = { %$opt };
+    foreach my $k (grep {$_ ne 'template'} keys %{$sectdata_depth[0]{val}}){
+      $opt1->{_v} = $sectdata_depth[0]{val}{$k};
+    }
+    $htmlout = wini_sects(join('', <$fhi>), $opt1);
+  }
+
+  (defined $opt->{whole}) and $htmlout = whole_html($htmlout, $opt->{title}, $opt);
+  return($htmlout);
+}
+
 sub wini{
 # wini($tagettext, {para=>'br', 'is_bs4'=>1, baseurl=>'http://example.com', nocr=>1});
   # para: paragraph mode (br:set <br>, p: set <p>, nb: no separation
   # nocr: whether CRs are conserved in result text. 0(default): conserved, 1: not conserved
   # table: table-mode, where footnote macro is effective. $opt->{table} must be a table ID. Footnote texts are set to @{$opt->{footnote}}
-  my($t0, $opt)           = @_;
+  my($t0, $opt) = @_;
   $t0=~s/\r(?=\n)//g; # cr/lf -> lf
   $t0=~s/(?!\n)$/\n/s; 
-  my($baseurl, $is_bs4, $cssfile, $cssflameworks) = map {$opt->{$_}} qw/baseurl is_bs4 cssfile cssflameworks/;
-  my $cr                  = (defined $opt->{nocr} and $opt->{nocr}==1)
-                          ?"\t":"\n"; # option to inhibit CR insertion (in table)
-  my $para = (defined $opt->{para}) ? $opt->{para} : 'p'; # p or br or none;
-  my $title               = 'WINI page';
-  (defined $opt->{title}) and $title = $opt->{title};
+  my($baseurl, $is_bs4, $cssfile) = map {$opt->{$_}} qw/baseurl is_bs4 cssfile/;
+  my $cr    = (defined $opt->{nocr} and $opt->{nocr}==1)
+              ?"\t":"\n"; # option to inhibit CR insertion (in table)
+  my $para  = (defined $opt->{para}) ? $opt->{para} : 'p'; # p or br or none;
+  my $title = $opt->{title} || 'WINI page';
   (defined $footnote_cnt) or $footnote_cnt->{'_'}{'*'} = 0;
 
-  # Variables
-  #  $t0 =~ s/===\n(.*?)\n===$/ yaml($1)/esmg;
-
-  
   # pre, code, citation, ...
   $t0 =~ s/\{\{(pre|code|q(?: [^|]+?)?)}}(.+?)\{\{end}}/&save_quote($1,$2)/esmg;  
   $t0 =~ s/^'''\n(.*?)\n'''$/         &save_quote('pre',  $1)/esmg;
@@ -301,16 +418,11 @@ sub wini{
   $t0 =~ s/^"""([\w =]*)\n(.*?)\n"""$/&save_quote("q $1", $2)/esmg;
     
   # conv table to html
-#  $t0 =~ s/^\s*(\|.*?)([\n\r]*$|[\n\r]+(?!\|))/make_table($1)/esmg;
   $t0 =~ s/^\s*(\|.*?)[\n\r]+(?!\|)/make_table($1)/esmg;
-#  $t0 =~ s/^\s*(\|.*?)[\n\r]+(?!\|)/make_table($1, \%footnotes)/esmg;
 
   # footnote
   if(exists $opt->{table}){ # in table
-    #    $t0=~s&\{\{\^\|([^}|]*)(?:\|([^}]*))?}}&
-      #$footnote_cnt->{$opt->{table}} = (defined $footnote_cnt->{$opt->{table}}) ? $footnote_cnt->{$opt->{table}}+1 : 1;
-      footnote($t0, '*', $footnote_cnt->{$opt->{table}}, $footnotes{$opt->{table}});
-#    &emg;
+    footnote($t0, '*', $footnote_cnt->{$opt->{table}}, $footnotes{$opt->{table}});
   }else{ # for main text
     $t0=~s&\{\{\^\|([^}|]*)(?:\|([^}]*))?}}&
       footnote($1, $2, $footnote_cnt->{'_'}, $footnotes{'_'});
@@ -318,9 +430,9 @@ sub wini{
   }
 
   # sub, sup
-  $t0 =~ s!__\{(.*?)}!<sub>$1</sub>!g;  
+  $t0 =~ s!__\{(.*?)}!<sub>$1</sub>!g;
   $t0 =~ s!\^\^\{(.*?)}!<sup>$1</sup>!g;
-  $t0 =~ s!__([^{])!<sub>$1</sub>!g;  
+  $t0 =~ s!__([^{])!<sub>$1</sub>!g;
   $t0 =~ s!\^\^([^{])!<sup>$1</sup>!g;
 
   my $r;
@@ -331,32 +443,10 @@ sub wini{
   foreach my $t (split(/\n{2,}/, $t0)){ # for each paragraph
     my @myclass = @localclass;
     my($myclass, $myid) = ('', '');
-    #my $lastlistdepth=0;
     my $ptype; # type of each paragraph (list, header, normal paragraph, etc.)
 
-    # section break (? ?!)
-    my($x, $id0, $cont) = $t=~/^(\?[?!]*)([-#.\w]*)\s*(.*)$/m;
-    if($x){
-      foreach my $m (sort keys %EXT){
-	(defined $EXT{$m}{trigger}{section}) and &{$EXT{$m}{trigger}{section}};
-      }
-      if($id0){
-	(defined $section and $section ne '') and 
-	my $class = (defined $VARS{sectionclass})?qq!class=" $VARS{sectionclass}"!:'';
-	$section  = qq!<section id="${id0}"${class}>!;
-	$t='';
-	$ENVNAME = $id0;
-      }else{ # reset section if only '?' is given.
-	undef $section;
-	$ENVNAME='_';
-      }
-    }
-    
-    # Variables
-    $t =~ s/===\n(.*?)\n===$/ yaml($1)/esmg;
-
     while(1){ # loop while subst needed      
-      ($x, $id0, $cont) = $t=~/^(!+)([-#.\w]*)\s*(.*)$/m; # !!!...
+      my($x, $id0, $cont) = $t=~/^(!+)([-#.\w]*)\s*(.*)$/m; # !!!...
       if($x){ # if header
         ($id0=~/^[^.#]/) and $id0=".$id0";
         while($id0=~/([#.])([^#.]+)/g){
@@ -371,10 +461,10 @@ sub wini{
         $ptype = 'header';
       } # endif header
       (
-        $t =~ s!(\{\{([^|]*?)(?:\|([^{}]*?))?}})!call_macro($1, $2, $baseurl, split(/\|/,$3||''))!esg or
-#        $t =~ s!\{\{([IBUS])\|([^{}]*?)}}!{my $x=lc $1; "<$x>$2</$x>"}!esg or
-         $t =~ s!\[([^]]*?)\]\(([^)]*?)\)!make_a_from_md($1, $2, $baseurl)!eg or
-         $t =~ s!\[([^]]*?)\]!make_a($1, $baseurl)!eg #or
+        $t =~ s!\[\[(\w+)(?:\|(.*))?\]\]!$opt->{_v}{$1}!ge or
+        $t =~ s!(\{\{([^|]*?)(?:\|([^{}]*?))?}})!call_macro($1, $2, $opt, $baseurl, split(/\|/,$3||''))!esg or
+        $t =~ s!\[([^]]*?)\]\(([^)]*?)\)!make_a_from_md($1, $2, $baseurl)!eg or
+        $t =~ s!\[([^]]*?)\]!make_a($1, $baseurl)!eg #or
       ) or last; # no subst need, then escape inner loop
     } # loop while subst needed
 
@@ -386,16 +476,25 @@ sub wini{
   $r=~s/\x00i=(\d+)\x01/$save[$1]/ge;
   if($cssfile){
     open(my $fho, '>', $cssfile) or die "Cannot modify $cssfile";
-    print {$fho} css($css);
+    print {$fho} css($CSS);
     close $fho;
   }
   (defined $footnotes{'_'}[0]) and $r .= qq{<hr>\n<footer>\n<ul style="list-style:none;">\n} . join("\n", (map {"<li>$_</li>"}  @{$footnotes{'_'}})) . "\n</ul>\n</footer>\n";
   (defined $section) and $r.="</section>\n";
-  if(defined $opt->{whole}){
-    my $style = '';
-    (defined $cssflameworks->[0]) and map {$style .= qq{<link rel="stylesheet" type="text/css" href="$_">\n}} @$cssflameworks;
-    $style   .= ($cssfile)?qq{<link rel="stylesheet" type="text/css" href="$cssfile">} : "<style>\n".css($css)."</style>\n";
-    $r = <<"EOD";
+  #(defined $opt->{whole}) and $r = whole_html($r, $title, $opt);
+  ($opt->{table}) or $r=~s/[\s\n\r]*$//;
+  return($r, $opt);
+} # sub wini
+
+sub whole_html{
+  my($x, $title, $opt) = @_;
+  $x=~s/[\s\n\r]*$//s;
+  #  my($cssfile, $cssflameworks) = map {$opt->{$_}} qw/cssfile cssflameworks/;
+  my $cssfile = $opt->{cssfile};
+  my $style   = '';
+  (defined $opt->{cssflameworks}[0]) and map {$style .= qq{<link rel="stylesheet" type="text/css" href="$_">\n}} @{$opt->{cssflameworks}};
+  $style   .= ($cssfile)?qq{<link rel="stylesheet" type="text/css" href="$cssfile">} : "<style>\n".css($CSS)."</style>\n";
+  return <<"EOD";
 <!DOCTYPE html>
 <html lang="ja">
 <head>
@@ -404,29 +503,12 @@ $style
 <title>$title</title>
 </head>
 <body>
-$r
+$x
 </body>
 </html>
 EOD
-  }
-  return($r, $opt);
-} # sub wini
+}
 } # wini env
-
-sub yaml{
-  my($t) = @_;
-  foreach my $line(split(/\n/, $t)){
-    my($k,$v) = $line=~/(\S+?):\s*(\S+)/;
-    $VARS{$ENVNAME}{$k}=$v;
-  }
-  return('');
-}
-
-sub var{
-  my($x, $env) = @_;
-  $env = $env || $ENVNAME;
-  return((defined $VARS{$env}{$x})?$VARS{$env}{$x}:(defined $VARS{'_'}{$x})?$VARS{'_'}{$x}:'');
-}
   
 sub footnote{
   my($txt, $style, $footnote_cnt, $footnotes_ref) = @_;
@@ -533,7 +615,7 @@ sub symmacro{
 }
 
 sub call_macro{
-  my($fulltext, $macroname, $baseurl, @f) = @_;
+  my($fulltext, $macroname, $opt, $baseurl, @f) = @_;
   my(@class, @id);
   $macroname=~s/\.([^.#]+)/push(@id,    $1); ''/ge;
   $macroname=~s/\#([^.#]+)/push(@class, $1); ''/ge;
@@ -546,7 +628,9 @@ sub call_macro{
   }
 
   (defined $macros{$macroname}) and return($macros{$macroname}(@f));
-  ($macroname eq 'va')     and return(var($f[0]));
+  ($macroname eq 'calc')   and return(ev(\@f, $opt->{_v}));
+#  ($macroname eq 'va')     and return(var($f[0], $opt->{_v}));
+  ($macroname eq 'va')     and return($opt->{_v}{$f[0]});
   ($macroname eq 'envname')and return($ENVNAME);
   ($macroname=~/^[IBUS]$/) and $_=lc($macroname), return("<$_${class_id}>$f[0]</$_>");
   ($macroname eq 'i')      and return(qq!<span${class_id} style="font-style:italic;">$f[0]</span>!);
@@ -561,7 +645,6 @@ sub call_macro{
   ($macroname eq 'r')      and return('&#x7d;'); # }
 
   ($macroname=~m!([-_/*]+[-_/* ]*)!) and return(symmacro($1, $f[0]));
-
 
   warn("Macro named '$macroname' not found");
   my $r = sprintf(qq#\\{\\{%s}}<!-- Macro named '$macroname' not found! -->#, join('|', $macroname, @f));
@@ -620,14 +703,6 @@ EOD
     return("$ltag\n\x00i=$i\x01\n$rtag");
   }
 }
-}
-
-# [[label|type|ja_name|en_name|ja_desc|en_desc|maxlen|minlen|maxval|minval|regexp|ncol|nrow]]
-sub readblank{
-  my($indata)=@_; # '[[a|b|c]]'
-  ($indata)=$indata=~/(?:\[\[)?([^]]*)(?:\]\])?/;
-  my $x = readpars($indata, qw/label type ja_name en_name ja_desc en_desc maxlen minlen maxval minval regexp ncol nrow/);
-  return($x);
 }
 
 # [xxxx] -> <a href="www">...</a>
@@ -983,7 +1058,6 @@ sub make_table{
         my $copt = '';
         my %style;
         if(my $bb=$htmlitem[0][0]{copt}{bborder}){
-#          $copt .= "border: solid ${bb}px; ";
           $style{border} .= "solid ${bb}px";
         }
         foreach my $c (qw/class colspan rowspan/){
@@ -1005,8 +1079,6 @@ sub make_table{
           }
         }
         $copt .= ' style="' . join('', sort map { "$_:$style{$_}; " } grep {$style{$_}} sort keys %style) . '"'; #option for each cell
-        #$copt0 .= "border: solid $htmlitem[0][0]{copt}{bborder}px; ";
-        #($copt ne '') and $copt = qq! style="$copt"!;
         my $ctag = (
           (not $htmlitem[$rn][0]{footnote}) and (
           ($htmlitem[$rn][$_]{ctag} eq 'th') or 
@@ -1025,7 +1097,6 @@ sub make_table{
     #  : ($outtxt .= $outtxt0);
   } # foreach $rn
   $outtxt .= "</tbody>\n";
-1;
   if((defined $footnotes[0]) or (defined $footnotes->{$table_no} and scalar @{$footnotes->{$table_no}} > 0) or $footnotetext){
     $outtxt .= (defined $htmlitem[0][0]{copt}{fborder})?qq{<tfoot style="border: solid $htmlitem[0][0]{copt}{fborder}px;">\n}:"<tfoot>\n";
     #my $colspan = scalar @{$htmlitem[-1]} -1;
@@ -1041,5 +1112,141 @@ sub make_table{
 } # sub make_table
 
 } # table env
+
+{
+my %vars;
+my $avail_yamltiny;
+
+sub yaml{
+  my($x, $opt) = @_;
+  my $val = $opt->{_v};
+  my($package,$filename,$line) = caller();
+  if($opt and $avail_yamltiny){
+    my $yaml = YAML::Tiny->new;
+    $val     = ($yaml->read_string($x))[0][0];
+  }else{
+    foreach my $line (split(/\s*\n\s*/, $x)){
+      if(my($k,$v) = $line=~/^\s*([^: ]+):\s*(.*)\s*$/){
+        ($v eq '') and next;
+        if($v=~/^\[(.*)\]$/){ # array
+          $val->{$k} = [map {s/^(["'])(.*)\1$/$2/; $_} split(/\s*,\s*/, $1)];
+        }elsif(my($v2) = $v=~/^\{(.*)\}$/){ # hash
+          foreach my $token (split(/\s*,\s*/, $v2)){
+            my($kk,$vv) = $token=~/(\S+)\s*:\s*(.*)/;
+            $vv=~s/^(["'])(.*)\1$/$2/;
+            $val->{$k}{$kk} = ev($vv, $val);
+          }
+        }else{ # simple variable
+          if($v=~s/^(["'])(.*)\1$/$2/){
+            $val->{$k} = $2;
+          }else{
+            $val->{$k} = ev($v, $val) ;
+          }
+        }
+      }
+    } # for each $line
+  }
+  return($val);
+} # sub yaml
+
+sub ev{ # <, >, %in%, and so on
+  my($x, $v) = @_;
+  # $x: string or array reference. string: 'a,b|='
+  # $v: reference of variables given from wini()
+  my($package,$filename,$line) = caller();
+  
+  my(@token) = (ref $x eq '') ? (undef, split(/((?<!\\)[,|])/, $x))
+             : (undef, map{ (split(/((?<!\\)[,|])/, $_)) } @$x);
+  my @stack;
+  for(my $i=1; $i<=$#token; $i++){
+    my $t  = $token[$i];
+    if($t eq ','){
+#      push(@stack, $token[$i-1]);
+    }elsif($t eq '|'){
+#      push(@stack, $token[$i-1]);
+    }elsif($t eq '&u'){
+      push(@stack, uc      $token[$i-2]);
+    }elsif($t eq '&ul'){
+      push(@stack, ucfirst $token[$i-2]);
+    }elsif($t eq '&l'){
+      push(@stack, lc      $token[$i-2]);
+    }elsif($t eq '&ll'){
+      push(@stack, lcfirst $token[$i-2]);
+    }elsif($t=~/([<>]+)(.+)/){
+      my($op,$val) = ($1,$2);
+      if($op eq '>'){
+      }
+    }elsif(my($op) = $t=~/^\&([nlt](min|max|sort|rev)?i?|mean|total|sum|rev|cat\W*)$/){
+      ($op eq 'n')     and (@stack = (scalar @stack)), next;
+      ($op eq 'nsort') and (@stack = sort {$a<=>$b} @stack), next;
+      ($op eq 'tsort') and (@stack = sort {$a cmp $b} @stack), next;
+      ($op eq 'rev')   and (@stack = reverse @stack), next;
+      my $op1; (($op1)=$op=~/cat\\?(.*)/) and (@stack = join($op1, @stack)), next;
+      my %s;
+      map {$s{$_}=$stack[1]} qw/tmin tmax nmin nmax lmax lmin/;
+      for(my $i=0; $i<=$#stack; $i++){
+        ($stack[$i]>$s{nmax})         and ($s{nmax}, $s{nmaxi}) = ($stack[$i], $i);
+        ($stack[$i]<$s{nmin})         and ($s{nmin}, $s{nmini}) = ($stack[$i], $i);
+        ($stack[$i] gt $s{tmax})      and ($s{tmax}, $s{tmaxi}) = ($stack[$i], $i);
+        ($stack[$i] lt $s{tmin})      and ($s{tmin}, $s{tmini}) = ($stack[$i], $i);
+        (length($stack[$i])>$s{lmax}) and ($s{lmax}, $s{lmaxi}) = ($stack[$i], $i);
+        (length($stack[$i])<$s{lmin}) and ($s{lmin}, $s{lmini}) = ($stack[$i], $i);
+        $s{sum}=$s{total}+=$stack[$i];
+      }
+      $s{mean} = $s{total}/(scalar @stack);
+      push(@stack, $s{$op});
+    }elsif(($op) = $t=~m{^(\+|-|/|\*|%|\&(?=eq|ne|lt|gt|le|ge)|==|!=|<|<=|>|>=)$}){
+      my($y) = pop(@stack);
+      my($x) = pop(@stack);
+      my $r=(
+        ($op eq '+' )?($x +  $y)
+             :($op eq '-'  )?($x -  $y)
+             :($op eq '*'  )?($x *  $y)
+             :($op eq '/'  )?(($y==0)?undef:($x / $y))
+             :($op eq '%'  )?(($y==0)?undef:($x % $y))
+             :($op eq '&eq')?($x eq $y)
+             :($op eq '&ne')?($x ne $y)
+             :($op eq '&lt')?($x lt $y)
+             :($op eq '&gt')?($x gt $y)
+             :($op eq '&le')?($x le $y)
+             :($op eq '&ge')?($x ge $y)
+             :($op eq '==' )?($x == $y)
+             :($op eq '!=' )?($x != $y)
+             :($op eq '<'  )?($x <  $y)
+             :($op eq '<=' )?($x <= $y)
+             :($op eq '>'  )?($x >  $y)
+             :($op eq '>=' )?($x >= $y):undef
+      );
+      push(@stack, $r);
+    }elsif($t=~/(["'])(.*)\1/){ # constants (string)
+      push(@stack, $2 . '');
+    }elsif($t=~/^\d+$/){ # constants (numeral)
+      push(@stack, $t);
+    }else{ # variables or formula
+      if($t=~/^\w+$/){
+        $DB::single=$DB::single=1;
+        push(@stack, $v->{$t});
+      }else{
+  # SHould call var() rather than array().
+        push(@stack, array($t));
+      }
+    }
+  }
+  return($stack[-1]);
+} # end of ev
+
+sub array{
+  my($x, $val) = @_;
+  if($x=~/^os$/i){
+    return($^O);
+  }elsif($x=~/^([ac])?(date|time)$/){
+    my($t1, $t2, $lt)=($1, $2, localtime);
+    ($t1) or return($lt->datetime);
+  }else{
+    return($val->{$x});
+  }
+  return(undef);
+}
+} # val env
 
 1;
