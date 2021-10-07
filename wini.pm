@@ -299,7 +299,7 @@ sub wini_sects{
   (defined $opt) or $opt={};
   #my($level, $tagtype, $secttytle, $k) = ('', '', '', '');
   my(%sectdata, $secttitle, @html, $htmlout);
-  my @sectdata_depth = ({sect_id=>'_'});
+  my @sectdata_depth = ([{sect_id=>'_'}]);
   my ($sect_cnt, $sect_id)       = (0, '_');
   my ($depth, $lastdepth)        = (0, 0);
   foreach my $t (split(/(^\?.*?\n)/m, $x)){ # for each section
@@ -307,13 +307,7 @@ sub wini_sects{
     $t=~s/[\s\n]+$//;
     if($t=~/^(\?+[<=>]*)([a-z]*)(?:#(\S*))?(?:\s+(.*))?/){ # begin sect
       my($level, $tagtype, $id, $k) = ($1, $2, $3, $4);
-      $lastdepth = $depth;
-      $sect_cnt++;
-      $secttitle = $k  || "sect ${sect_cnt}";
-      $sect_id   = $id || "sect${sect_cnt}";
-      $sect_id=~s/[^\w]//g;
-      (exists $sectdata{$sect_id}) and print STDERR "duplicated section id ${sect_id}\n";
-
+      
       # clarify section depth
       if($level=~/^\?+$/){
         $depth = length($level);
@@ -323,26 +317,45 @@ sub wini_sects{
       }elsif($level=~/^\?>/){
         $depth++;
       }
-      $sectdata_depth[$depth]{sect_id} = $sect_id;
+      $lastdepth = $depth;
+      $depth==0 and next;
+      
+      my $tag = {qw/a article s aside h header f footer n nav d details/}->{$tagtype};
+      $sect_cnt++;
+      $secttitle = $k  || undef;
+      $sect_id   = $id || "sect${sect_cnt}";
+      $sect_id=~s/[^\w]//g;
+      (exists $sectdata{$sect_id}) and print STDERR "duplicated section id ${sect_id}\n";
+      push(@{$sectdata_depth[$depth]}, {sect_id => $sect_id, tag => $tag});
 
       # add close tag for the former section here if necessary
       # and set open tag for the current section here
-      my $opentag = qq{<section class="wini" id="${sect_id}">\n} .
+      my $opentag = qq{<$tag class="wini" id="${sect_id}">\n} .
         (($secttitle) ? qq{<h1 class="sectiontitle">$secttitle</h1>\n} : '');
-      $html[$sect_cnt]{tagtype} = 'section';
+      $html[$sect_cnt]{tag} = $tag;
       if($lastdepth==$depth){
-        $html[$sect_cnt-1]{close} = sprintf(qq{</section> <!-- end of "%s" -->\n}, $html[$sect_cnt-1]{sect_id});
-        $html[$sect_cnt]{open}    = $opentag;
+        $html[$sect_cnt-1]{close} ||=
+          sprintf(
+          qq{</%s> <!-- end of "%s" d=ld=$depth -->\n}, $html[$sect_cnt-1]{tag}, $html[$sect_cnt-1]{sect_id}
+        );
+        $html[$sect_cnt]{open}    ||= $opentag;
       }elsif($lastdepth>$depth){ # new section of upper level
         if($sect_cnt>0){ # close tag for former sect
           (defined $html[$sect_cnt-1]{close}) or $html[$sect_cnt-1]{close}='';
           my $j=0;
-          for(my $i=$lastdepth; $i>=$depth; $i--){
+          for(my $i=$lastdepth; $i>$depth; $i--){
             $j++;
             $html[$sect_cnt-1]{close} .= sprintf(
-              qq{</section> <!-- end of "%s" -->\n}, $html[$sect_cnt-$j]{sect_id}
-            );
+              qq{</%s> <!-- end of "%s" d=$i (%d) -->\n},
+              $sectdata_depth[$i][-1]{tag}, $sectdata_depth[$i][-1]{sect_id}, $sect_cnt
+           );
+            ($j>1) and $DB::single=$DB::single=1;
+            1;
           }
+          ($depth>0) and $html[$sect_cnt-1]{close} .= sprintf(
+            qq{</%s> <!-- end of "%s" *d=$depth (%d) -->\n},
+            $sectdata_depth[$depth][-2]{tag}, $sectdata_depth[$depth][-2]{sect_id}, $sect_cnt
+          );
         }
         $html[$sect_cnt]{open} = $opentag . (qq{<section>} x ($depth-1)) . "<!-- ${sect_id} -->\n";
       }else{ # new section is under the former section
@@ -351,16 +364,16 @@ sub wini_sects{
     }else{ # read sect content
       # read old sect vals
       for(my $d=0; $d<$depth; $d++){
-        foreach my $k (keys %{$sectdata_depth[$d]{val}}){
-          $sectdata{$sect_id}{val}{$k} = $sectdata_depth[$d]{val}{$k};
+        foreach my $k (keys %{$sectdata_depth[$d][-1]{val}}){
+          $sectdata{$sect_id}{val}{$k} = $sectdata_depth[$d][-1]{val}{$k};
         }
       }
       # vars in sect/main
       my $v;
       $t=~s/===(.*)===/$v = &yaml($1, $opt); ''/es;
       foreach my $k (keys %$v){
-        $sectdata_depth[$depth]{val}{$k} = $v->{$k};
-        $sectdata{$sect_id}{val}{$k}     = $v->{$k};
+        $sectdata_depth[$depth][-1]{val}{$k} = $v->{$k};
+        $sectdata{$sect_id}{val}{$k}         = $v->{$k};
       }
       
       # WINI interpretation
@@ -378,16 +391,16 @@ sub wini_sects{
   $htmlout .= "\n";
 
   # template?
-  if(defined $sectdata_depth[0]{val}{template}){ # template mode
-    my $basefile = $sectdata_depth[0]{val}{template};
+  if(defined $sectdata_depth[0][-1]{val}{template}){ # template mode
+    my $basefile = $sectdata_depth[0][-1]{val}{template};
     print STDERR ">>> templatemode: '$basefile'\n";
     (-f $basefile) or $basefile = $opt->{dir}."/$basefile";
     (-f $basefile) or $basefile =    "_template/$basefile";
-    (-f $basefile) or die qq{File "$sectdata_depth[0]{template}": not found};
+    (-f $basefile) or die qq{File "$sectdata_depth[0][-1]{template}": not found};
     open(my $fhi, '<:utf8', $basefile);
     my $opt1 = { %$opt };
-    foreach my $k (grep {$_ ne 'template'} keys %{$sectdata_depth[0]{val}}){
-      $opt1->{_v} = $sectdata_depth[0]{val}{$k};
+    foreach my $k (grep {$_ ne 'template'} keys %{$sectdata_depth[0][-1]{val}}){
+      $opt1->{_v} = $sectdata_depth[0][-1]{val}{$k};
     }
     $htmlout = wini_sects(join('', <$fhi>), $opt1);
   }
