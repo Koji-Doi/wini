@@ -305,10 +305,11 @@ sub wini_sects{
   foreach my $t (split(/(^\?.*?\n)/m, $x)){ # for each section
     $t=~s/^\n*//;
     $t=~s/[\s\n]+$//;
-    if($t=~/^(\?+[<=>]*)([a-z]*)(?:#(\S*))?(?:\s+(.*))?/){ # begin sect
+    if($t=~/^(\?+[-<=>]*)([a-z]*)(?:#(\S*))?(?:\s+(.*))?/){ # begin sect
       my($level, $tagtype, $id, $k) = ($1, $2, $3, $4);
       
       # clarify section depth
+      $lastdepth = $depth;
       if($level=~/^\?+$/){
         $depth = length($level);
       }elsif($level=~/^\?=/){ # new section at the same level
@@ -316,8 +317,9 @@ sub wini_sects{
         $depth--;
       }elsif($level=~/^\?>/){
         $depth++;
+      }elsif($level=~/^\?-/){ # end of the last section
+        $depth=0;
       }
-      $lastdepth = $depth;
       $depth==0 and next;
       
       my $tag = {qw/a article s aside h header f footer n nav d details/}->{$tagtype};
@@ -334,13 +336,18 @@ sub wini_sects{
         (($secttitle) ? qq{<h1 class="sectiontitle">$secttitle</h1>\n} : '');
       $html[$sect_cnt]{tag} = $tag;
       if($lastdepth==$depth){
-        $html[$sect_cnt-1]{close} ||=
+        if($lastdepth>0){
+          if($html[$sect_cnt-1]{sect_id} eq '_'){
+            $DB::single=$DB::single=1;
+          }
+          $html[$sect_cnt-1]{close} ||=
           sprintf(
-          qq{</%s> <!-- end of "%s" d=ld=$depth -->\n}, $html[$sect_cnt-1]{tag}, $html[$sect_cnt-1]{sect_id}
-        );
+            qq{</%s> <!-- end of "%s" d=ld=$depth lastdepth=$lastdepth -->\n}, $html[$sect_cnt-1]{tag}, $html[$sect_cnt-1]{sect_id}
+          );
+        }
         $html[$sect_cnt]{open}    ||= $opentag;
       }elsif($lastdepth>$depth){ # new section of upper level
-        if($sect_cnt>0){ # close tag for former sect
+        if($sect_cnt>0 and $lastdepth>0){ # close tag for former sect
           (defined $html[$sect_cnt-1]{close}) or $html[$sect_cnt-1]{close}='';
           my $j=0;
           for(my $i=$lastdepth; $i>$depth; $i--){
