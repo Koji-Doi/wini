@@ -155,7 +155,7 @@ our %ID; # list of ID assigned to tags in the target html
 our %EXT;
 
 my $scriptname = basename($0);
-my $version    = "ver. 0 rel. 20210924";
+my $version    = "ver. 1.0alpha rel. 20211019";
 my @save;
 my %ref; # $ref{image}{imageID} = 1; keys of %$ref: qw/image table formula citation math ref/
 my $debug;
@@ -405,16 +405,17 @@ sub wini_sects{
   # template?
   if(defined $sectdata_depth[0][-1]{val}{template}){ # template mode
     my $basefile = $sectdata_depth[0][-1]{val}{template};
-    print STDERR ">>> templatemode: '$basefile'\n";
     (-f $basefile) or $basefile = $opt->{dir}."/$basefile";
     (-f $basefile) or $basefile =    "_template/$basefile";
     (-f $basefile) or die qq{File "$sectdata_depth[0][-1]{template}": not found};
+    print STDERR "We use $basefile as template.\n";
     open(my $fhi, '<:utf8', $basefile);
     my $opt1 = { %$opt };
     foreach my $k (grep {$_ ne 'template'} keys %{$sectdata_depth[0][-1]{val}}){
       $opt1->{_v} = $sectdata_depth[0][-1]{val}{$k};
     }
     $htmlout = wini_sects(join('', <$fhi>), $opt1);
+    return($htmlout);
   }
 
   (defined $opt->{whole}) and $htmlout = whole_html($htmlout, $opt->{title}, $opt);
@@ -1252,10 +1253,6 @@ sub ev{ # <, >, %in%, and so on
       );
       push(@stack, $r);
     }elsif($t=~/(["'])(.*?)\1/){ # constants (string)
-      if($t=~/bbb/){
-        $DB::single=$DB::single=1;
-      }
-      print STDERR "string: $t($2).\n";
       push(@stack, $2 . '');
     }elsif($t=~/^\d+$/){ # constants (numeral)
       push(@stack, $t);
@@ -1263,7 +1260,6 @@ sub ev{ # <, >, %in%, and so on
       if($t=~/^\w+$/){
         push(@stack, $v->{$t});
       }else{
-  # SHould call var() rather than array().
         push(@stack, array($t));
       }
     }
