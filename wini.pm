@@ -155,7 +155,7 @@ our %ID; # list of ID assigned to tags in the target html
 our %EXT;
 
 my $scriptname = basename($0);
-my $version    = "ver. 0 rel. 20210924";
+my $version    = "ver. 1.0alpha rel. 20211019";
 my @save;
 my %ref; # $ref{image}{imageID} = 1; keys of %$ref: qw/image table formula citation math ref/
 my $debug;
@@ -320,9 +320,17 @@ sub wini_sects{
       }elsif($level=~/^\?-/){ # end of the last section
         $depth=0;
       }
-      $depth==0 and next;
+      if($depth==0){
+        my $j=0;
+        for(my $i=$lastdepth; $i>=1; $i--){
+          $html[$sect_cnt-$j]{close} = "</$sectdata_depth[$i][-1]{tag}>";
+          $j++;
+        }
+        next;
+      }
       
-      my $tag = {qw/a article s aside h header f footer n nav d details/}->{$tagtype};
+      my $tag = {qw/section section a article s aside h header f footer n nav d details/}->{$tagtype};
+      $tag = $tag || 'section';
       $sect_cnt++;
       $secttitle = $k  || undef;
       $sect_id   = $id || "sect${sect_cnt}";
@@ -337,9 +345,6 @@ sub wini_sects{
       $html[$sect_cnt]{tag} = $tag;
       if($lastdepth==$depth){
         if($lastdepth>0){
-          if($html[$sect_cnt-1]{sect_id} eq '_'){
-            $DB::single=$DB::single=1;
-          }
           $html[$sect_cnt-1]{close} ||=
           sprintf(
             qq{</%s> <!-- end of "%s" d=ld=$depth lastdepth=$lastdepth -->\n}, $html[$sect_cnt-1]{tag}, $html[$sect_cnt-1]{sect_id}
@@ -400,10 +405,10 @@ sub wini_sects{
   # template?
   if(defined $sectdata_depth[0][-1]{val}{template}){ # template mode
     my $basefile = $sectdata_depth[0][-1]{val}{template};
-    print STDERR ">>> templatemode: '$basefile'\n";
     (-f $basefile) or $basefile = $opt->{dir}."/$basefile";
     (-f $basefile) or $basefile =    "_template/$basefile";
     (-f $basefile) or die qq{File "$sectdata_depth[0][-1]{template}": not found};
+    print STDERR "We use $basefile as template.\n";
     open(my $fhi, '<:utf8', $basefile);
     my $opt1 = { %$opt };
     foreach my $k (grep {$_ ne 'template'} keys %{$sectdata_depth[0][-1]{val}}){
@@ -671,7 +676,6 @@ sub call_macro{
   ($macroname eq '>')      and return('&#x3e;'); # >
   ($macroname eq '[')      and return('&#x5b;'); # [
   ($macroname eq ']')      and return('&#x5d;'); # ]
-
   ($macroname=~m!([-_/*]+[-_/* ]*)!) and return(symmacro($1, $f[0]));
 
   warn("Macro named '$macroname' not found");
@@ -1165,11 +1169,11 @@ sub yaml{
             $val->{$k}{$kk} = ev($vv, $val);
           }
         }else{ # simple variable
-          if($v=~s/^(["'])(.*)\1$/$2/){
-            $val->{$k} = $2;
-          }else{
+          #if($v=~s/^(["'])(.*)\1$/$2/){
+          #  $val->{$k} = $2;
+          #}else{
             $val->{$k} = ev($v, $val) ;
-          }
+          #}
         }
       }
     } # for each $line
@@ -1179,13 +1183,17 @@ sub yaml{
 
 sub ev{ # <, >, %in%, and so on
   my($x, $v) = @_;
+  my($package, $file, $line) = caller; 
+
   # $x: string or array reference. string: 'a,b|='
   # $v: reference of variables given from wini()
   my($package,$filename,$line) = caller();
   
   my(@token) = (ref $x eq '') ? (undef, split(/((?<!\\)[,|])/, $x))
              : (undef, map{ (split(/((?<!\\)[,|])/, $_)) } @$x);
+  
   my @stack;
+  print "$line>>>", join(" | ",@token), "<<<<\n";
   for(my $i=1; $i<=$#token; $i++){
     my $t  = $token[$i];
     if($t eq ','){
@@ -1193,13 +1201,17 @@ sub ev{ # <, >, %in%, and so on
     }elsif($t eq '|'){
 #      push(@stack, $token[$i-1]);
     }elsif($t eq '&u'){
-      push(@stack, uc      $token[$i-2]);
-    }elsif($t eq '&ul'){
-      push(@stack, ucfirst $token[$i-2]);
+      push(@stack, uc      $stack[-1]); # $token[$i-2]);
+    }elsif($t eq '&uf'){
+      push(@stack, ucfirst $stack[-1]); # $token[$i-2]);
     }elsif($t eq '&l'){
-      push(@stack, lc      $token[$i-2]);
-    }elsif($t eq '&ll'){
-      push(@stack, lcfirst $token[$i-2]);
+      push(@stack, lc      $stack[-1]); # $token[$i-2]);
+    }elsif($t eq '&lf'){
+      push(@stack, lcfirst $stack[-1]); # $token[$i-2]);
+    }elsif($t=~/\&cat([^|]*)$/){
+      my $sep=$1;
+      $sep=~tr{csb}{, |};
+      @stack = (join($sep, @stack));
     }elsif($t=~/([<>]+)(.+)/){
       my($op,$val) = ($1,$2);
       if($op eq '>'){
@@ -1246,16 +1258,14 @@ sub ev{ # <, >, %in%, and so on
              :($op eq '>=' )?($x >= $y):undef
       );
       push(@stack, $r);
-    }elsif($t=~/(["'])(.*)\1/){ # constants (string)
+    }elsif($t=~/(["'])(.*?)\1/){ # constants (string)
       push(@stack, $2 . '');
     }elsif($t=~/^\d+$/){ # constants (numeral)
       push(@stack, $t);
     }else{ # variables or formula
       if($t=~/^\w+$/){
-        $DB::single=$DB::single=1;
         push(@stack, $v->{$t});
       }else{
-  # SHould call var() rather than array().
         push(@stack, array($t));
       }
     }
