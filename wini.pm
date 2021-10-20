@@ -437,6 +437,8 @@ sub wini{
   my $title = $opt->{title} || 'WINI page';
   (defined $footnote_cnt) or $footnote_cnt->{'_'}{'*'} = 0;
 
+  # verbatim
+  $t0 =~ s/\%%%\n(.*?)\n%%%$/         &save_quote('',     $1)/esmg;
   # pre, code, citation, ...
   $t0 =~ s/\{\{(pre|code|q(?: [^|]+?)?)}}(.+?)\{\{end}}/&save_quote($1,$2)/esmg;  
   $t0 =~ s/^'''\n(.*?)\n'''$/         &save_quote('pre',  $1)/esmg;
@@ -610,7 +612,7 @@ sub list{
     $r = ($ptype eq 'header' or $ptype eq 'list')                      ? "$t2\n"
        : ($para eq 'br')                                               ? "$t2<br>$cr"
        : ($para eq 'nb')                                               ? $t2
-       : $t2=~m{<(p|table|img|figure|blockquote|[uod]l)[^>]*>.*</\1>}s ? $t2
+       : $t2=~m{<(html|body|head|p|table|img|figure|blockquote|[uod]l)[^>]*>.*</\1>}s ? $t2
        : "<p${myclass}>\n$t2</p>$cr$cr";
   }
   return($r || '', \%listitems);
@@ -669,7 +671,10 @@ sub call_macro{
   ($macroname eq 'l')      and return('&#x7b;'); # {
   ($macroname eq 'bar')    and return('&#x7c;'); # |
   ($macroname eq 'r')      and return('&#x7d;'); # }
-
+  ($macroname eq '<')      and return('&#x3c;'); # <
+  ($macroname eq '>')      and return('&#x3e;'); # >
+  ($macroname eq '[')      and return('&#x5b;'); # [
+  ($macroname eq ']')      and return('&#x5d;'); # ]
   ($macroname=~m!([-_/*]+[-_/* ]*)!) and return(symmacro($1, $f[0]));
 
   warn("Macro named '$macroname' not found");
