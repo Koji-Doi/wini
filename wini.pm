@@ -409,7 +409,8 @@ sub wini_sects{
     foreach my $k (grep {$_ ne 'template'} keys %{$sectdata_depth[0][-1]{val}}){
       $opt1->{_v} = $sectdata_depth[0][-1]{val}{$k};
     }
-    $htmlout = wini_sects(join('', <$fhi>), $opt1);
+    my $txt_from_tmpl = join('', <$fhi>);
+    $htmlout = wini_sects($txt_from_tmpl, $opt1);
   }
 
   (defined $opt->{whole}) and $htmlout = whole_html($htmlout, $opt->{title}, $opt);
@@ -431,6 +432,8 @@ sub wini{
   my $title = $opt->{title} || 'WINI page';
   (defined $footnote_cnt) or $footnote_cnt->{'_'}{'*'} = 0;
 
+  # verbatim
+  $t0 =~ s/\%%%\n(.*?)\n%%%$/         &save_quote('',     $1)/esmg;
   # pre, code, citation, ...
   $t0 =~ s/\{\{(pre|code|q(?: [^|]+?)?)}}(.+?)\{\{end}}/&save_quote($1,$2)/esmg;  
   $t0 =~ s/^'''\n(.*?)\n'''$/         &save_quote('pre',  $1)/esmg;
@@ -458,7 +461,7 @@ sub wini{
   my $r;
   my @localclass = ('wini');
   ($is_bs4) and push(@localclass, "col-sm-12");
-  my $section;
+  #my $section;
   #my $myclass = ' class="'.join(' ',@localclass).'"';
   foreach my $t (split(/\n{2,}/, $t0)){ # for each paragraph
     my @myclass = @localclass;
@@ -489,7 +492,7 @@ sub wini{
     } # loop while subst needed
 
     my($rr, $list) = list($t, $cr, $ptype, $para, $myclass);
-    (defined $section and $section ne '') and $rr="$section\n$r" and $section='';
+    #(defined $section and $section ne '') and $rr="$section\n$r" and $section='';
     $r .= $rr;
   } # foreach $t # for each paragraph
 
@@ -500,7 +503,7 @@ sub wini{
     close $fho;
   }
   (defined $footnotes{'_'}[0]) and $r .= qq{<hr>\n<footer>\n<ul style="list-style:none;">\n} . join("\n", (map {"<li>$_</li>"}  @{$footnotes{'_'}})) . "\n</ul>\n</footer>\n";
-  (defined $section) and $r.="</section>\n";
+  #(defined $section) and $r.="</section>\n";
   #(defined $opt->{whole}) and $r = whole_html($r, $title, $opt);
   ($opt->{table}) or $r=~s/[\s\n\r]*$//;
   return($r, $opt);
@@ -601,10 +604,11 @@ sub list{
   }
 
   if($t2=~/\S/){
-    $r = ($ptype eq 'header' or $ptype eq 'list')                      ? "$t2\n"
-       : ($para eq 'br')                                               ? "$t2<br>$cr"
-       : ($para eq 'nb')                                               ? $t2
-       : $t2=~m{<(p|table|img|figure|blockquote|[uod]l)[^>]*>.*</\1>}s ? $t2
+    $r = ($ptype eq 'header' or $ptype eq 'list')                                      ? "$t2\n"
+       : ($para eq 'br')                                                               ? "$t2<br>$cr"
+       : ($para eq 'nb')                                                               ? $t2
+       : $t2=~m{<(html|body|head|p|table|img|figure|blockquote|[uod]l)[^>]*>.*</\1>}is ? $t2
+       : $t2=~m{<!doctype}is                                                           ? $t2
        : "<p${myclass}>\n$t2</p>$cr$cr";
   }
   return($r || '', \%listitems);
@@ -663,6 +667,10 @@ sub call_macro{
   ($macroname eq 'l')      and return('&#x7b;'); # {
   ($macroname eq 'bar')    and return('&#x7c;'); # |
   ($macroname eq 'r')      and return('&#x7d;'); # }
+  ($macroname eq '<')      and return('&#x3c;'); # <
+  ($macroname eq '>')      and return('&#x3e;'); # >
+  ($macroname eq '[')      and return('&#x5b;'); # [
+  ($macroname eq ']')      and return('&#x5d;'); # ]
 
   ($macroname=~m!([-_/*]+[-_/* ]*)!) and return(symmacro($1, $f[0]));
 
@@ -719,7 +727,7 @@ sub save_quote{ # pre, code, cite ...
 EOD
   }else{ # pre, code
     my($ltag, $rtag) = ($cmd eq 'code')?('<pre><code>','</code></pre>')
-                                       :('<pre>',      '</pre>');
+                      :($cmd eq 'pre') ?('<pre>',      '</pre>') : ('', '');
     return("$ltag\n\x00i=$i\x01\n$rtag");
   }
 }
