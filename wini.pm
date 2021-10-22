@@ -155,7 +155,7 @@ our %ID; # list of ID assigned to tags in the target html
 our %EXT;
 
 my $scriptname = basename($0);
-my $version    = "ver. 1.0alpha rel. 20211019";
+my $version    = "ver. 1.0alpha rel. 20211023";
 my @save;
 my %ref; # $ref{image}{imageID} = 1; keys of %$ref: qw/image table formula citation math ref/
 my $debug;
@@ -415,11 +415,25 @@ sub wini_sects{
       $opt1->{_v} = $sectdata_depth[0][-1]{val}{$k};
     }
     my $txt_from_tmpl = join('', <$fhi>);
-    $htmlout = wini_sects($txt_from_tmpl, $opt1);
+    if($basefile=~/\.wini/){ # $htmlout is translated
+      $htmlout = wini_sects($txt_from_tmpl, $opt1);
+    }else{ # Do macro substitution only ($htmlout is unchanged until macro substitution)
+      my $opt1 = {'_v'=>undef};
+      foreach my $key (keys %{$sectdata{'_'}{val}}){
+        $opt1->{'_v'}{$key} = $sectdata{'_'}{val}{$key};
+        $htmlout =~ s!(\{\{([^|]*?)(?:\|([^{}]*?))?}})!call_macro($1, $2, $opt1, undef, split(/\|/,$3||''))!esg;
+#        $htmlout =~ s!\{\{${key}}}!$opt1->{'_v'}{$key}!esg;
+      }
+      # from wini main text
+      foreach my $html (@html){
+        my($id, $txt) = ($html->{sect_id}, $html->{txt});
+        $htmlout =~ s!\{\{v\|${id}}}!$txt!ge;
+      }
+    }
   }
 
   (defined $opt->{whole}) and $htmlout = whole_html($htmlout, $opt->{title}, $opt);
-  return($htmlout);
+  return($htmlout, \@html);
 }
 
 sub wini{
@@ -492,7 +506,7 @@ sub wini{
         $t =~ s!\[\[(\w+)(?:\|(.*))?\]\]!$opt->{_v}{$1}!ge or
         $t =~ s!(\{\{([^|]*?)(?:\|([^{}]*?))?}})!call_macro($1, $2, $opt, $baseurl, split(/\|/,$3||''))!esg or
         $t =~ s!\[([^]]*?)\]\(([^)]*?)\)!make_a_from_md($1, $2, $baseurl)!eg or
-        $t =~ s!\[([^]]*?)\]!make_a($1, $baseurl)!eg #or
+        $t =~ s!\[([^]]*?)\]!make_a($1, $baseurl)!esg #or
       ) or last; # no subst need, then escape inner loop
     } # loop while subst needed
 
@@ -699,14 +713,6 @@ sub readpars{
   return(\%pars);
 }
 
-sub escape{
-  ($_)=@_;
-  ($_) or return('');
-  s/</&lt;/g;
-  s/>/&gt;/g;
-  return($_);
-}
-
 {
 my $i=-1;
 sub save_quote{ # pre, code, cite ...
@@ -755,11 +761,13 @@ sub make_a{
 # [#goat text]  # link within page
 
   my($t, $baseurl)=@_;
-  my($prefix, $url0, $text)          = $t=~m{([!?#]*)"(\S+)"\s+(.*)};
-  ($url0) or ($prefix, $url0, $text) = $t=~m{([!?#]*)([^\s"]+)(?:\s+(.*))?};
+  my($prefix, $url0, $text)          = $t=~m{([!?#]*)"(\S+)"\s+(.*)}s;
+  ($url0) or ($prefix, $url0, $text) = $t=~m{([!?#]*)([^\s"]+)(?:\s+(.*))?}s;
   my($url, $opts) = split(/\|/, $url0, 2);
   ($prefix eq '#') and $url=$prefix.$url;
-  $text = escape($text) || $url;
+  #$text = escape($text) || $url;
+  ($text) = wini($text, {nocr=>1, para=>'nb'});
+  $text = $text || $url;
 
   # options
   my $style            = ($opts=~/</)?"float: left;":($opts=~/>/)?"float: right;":undef;
@@ -777,9 +785,9 @@ sub make_a{
     my $class = join(' ', @classes); ($class) and $class = qq{ class="$class"};
     $ref{image}{$id} = $img_no;
     if($prefix eq '!!'){
-      return(qq!<figure$style> <img src="$url" alt="$id" id="$id"$class$imgopt><figcaption>$text</figcaption></figure>!);
+      return(qq!<figure$style><img src="$url" alt="$id" id="$id"$class$imgopt><figcaption>$text</figcaption></figure>!);
     }elsif($prefix eq '??'){
-      return(qq!<figure$style> <a href="$url" target="$target"><img src="$url" alt="$id" id="$id"$class$imgopt></a><figcaption>$text</figcaption></figure>!);
+      return(qq!<figure$style><a href="$url" target="$target"><img src="$url" alt="$id" id="$id"$class$imgopt></a><figcaption>$text</figcaption></figure>!);
     }elsif($prefix eq '?'){
       return(qq!<a href="$url" target="$target"><img src="$url" alt="$text" id="$id"$class$style$imgopt></a>!);      
     }else{ # "!"
@@ -809,7 +817,6 @@ sub make_table{
   my @winiitem;
   my @htmlitem;
   my $caption;
-  #my $footnote_cnt=0;
   my $footnotetext;
   my @footnotes; # footnotes in cells
 
@@ -1183,24 +1190,17 @@ sub yaml{
 
 sub ev{ # <, >, %in%, and so on
   my($x, $v) = @_;
-  my($package, $file, $line) = caller; 
 
   # $x: string or array reference. string: 'a,b|='
   # $v: reference of variables given from wini()
-  my($package,$filename,$line) = caller();
   
-  my(@token) = (ref $x eq '') ? (undef, split(/((?<!\\)[,|])/, $x))
-             : (undef, map{ (split(/((?<!\\)[,|])/, $_)) } @$x);
+  my(@token) = (ref $x eq '') ? (undef, split(/((?<!\\)[|])/, $x))
+             : (undef, map{ (split(/((?<!\\)[|])/, $_)) } @$x);
   
   my @stack;
-  print "$line>>>", join(" | ",@token), "<<<<\n";
   for(my $i=1; $i<=$#token; $i++){
     my $t  = $token[$i];
-    if($t eq ','){
-#      push(@stack, $token[$i-1]);
-    }elsif($t eq '|'){
-#      push(@stack, $token[$i-1]);
-    }elsif($t eq '&u'){
+    if($t eq '&u'){
       push(@stack, uc      $stack[-1]); # $token[$i-2]);
     }elsif($t eq '&uf'){
       push(@stack, ucfirst $stack[-1]); # $token[$i-2]);
@@ -1212,7 +1212,7 @@ sub ev{ # <, >, %in%, and so on
       my $sep=$1;
       $sep=~tr{csb}{, |};
       @stack = (join($sep, @stack));
-    }elsif($t=~/([<>]+)(.+)/){
+    }elsif($t=~/(^[<>]+)(.+)/){
       my($op,$val) = ($1,$2);
       if($op eq '>'){
       }
@@ -1259,6 +1259,7 @@ sub ev{ # <, >, %in%, and so on
       );
       push(@stack, $r);
     }elsif($t=~/(["'])(.*?)\1/){ # constants (string)
+      $t=escape_metachar($t);
       push(@stack, $2 . '');
     }elsif($t=~/^\d+$/){ # constants (numeral)
       push(@stack, $t);
@@ -1272,6 +1273,13 @@ sub ev{ # <, >, %in%, and so on
   }
   return($stack[-1]);
 } # end of ev
+
+sub escape_metachar{
+  my($x, $format) = @_;
+  $format = $format || '&#0x%X;';
+  $x=~s!\\([][|,'{}])!sprintf($format, ord($1))!ge;
+  return($x);
+}
 
 sub array{
   my($x, $val) = @_;
