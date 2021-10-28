@@ -143,11 +143,13 @@ use Cwd;
 #use Module::Load qw( load );
 #load('YAML::Tiny');
 
+no warnings;
 *Data::Dumper::qquote = sub { return encode "utf8", shift } ;
 $Data::Dumper::Useperl = 1 ;
+use warnings;
 my  @libs;
 my  @libpaths;
-our %macros;
+our %MACROS;
 
 our %VARS;
 our $ENVNAME="_";
@@ -169,8 +171,6 @@ my $CSS = {
   'table, figure, img' 
 	       => {'margin'           => '1em',
 	           'border-collapse'  => 'collapse'},
-#  'tbody'      => {'border'           => 'solid 3px'},
-#  'tbody td, tbody th' => {'border'   => 'solid 1px'},
   'tfoot, figcaption'
                => {'font-size'        => 'smaller'},
   '.b-r'       => {'background-color' => $WINI::red},
@@ -298,7 +298,8 @@ sub wini_sects{
   my($x, $opt) = @_;
   (defined $opt) or $opt={};
   #my($level, $tagtype, $secttytle, $k) = ('', '', '', '');
-  my(%sectdata, $secttitle, @html, $htmlout);
+  my(%sectdata, $secttitle, @html);
+  my $htmlout = '';
   my @sectdata_depth = ([{sect_id=>'_'}]);
   my ($sect_cnt, $sect_id)       = (0, '_');
   my ($depth, $lastdepth)        = (0, 0);
@@ -335,7 +336,7 @@ sub wini_sects{
       $secttitle = $k  || undef;
       $sect_id   = $id || "sect${sect_cnt}";
       $sect_id=~s/[^\w]//g;
-      (exists $sectdata{$sect_id}) and print STDERR "duplicated section id ${sect_id}\n";
+      (exists $sectdata{$sect_id}) and warn("duplicated section id ${sect_id}\n");
       push(@{$sectdata_depth[$depth]}, {sect_id => $sect_id, tag => $tag});
 
       # add close tag for the former section here if necessary
@@ -350,7 +351,7 @@ sub wini_sects{
             qq{</%s> <!-- end of "%s" d=ld=$depth lastdepth=$lastdepth -->\n}, $html[$sect_cnt-1]{tag}, $html[$sect_cnt-1]{sect_id}
           );
         }
-        $html[$sect_cnt]{open}    ||= $opentag;
+        $html[$sect_cnt]{open} ||= $opentag;
       }elsif($lastdepth>$depth){ # new section of upper level
         if($sect_cnt>0 and $lastdepth>0){ # close tag for former sect
           (defined $html[$sect_cnt-1]{close}) or $html[$sect_cnt-1]{close}='';
@@ -361,8 +362,6 @@ sub wini_sects{
               qq{</%s> <!-- end of "%s" d=$i (%d) -->\n},
               $sectdata_depth[$i][-1]{tag}, $sectdata_depth[$i][-1]{sect_id}, $sect_cnt
            );
-            ($j>1) and $DB::single=$DB::single=1;
-            1;
           }
           ($depth>0) and $html[$sect_cnt-1]{close} .= sprintf(
             qq{</%s> <!-- end of "%s" *d=$depth (%d) -->\n},
@@ -399,7 +398,7 @@ sub wini_sects{
     } # read sect content
   } # foreach sect
   ($depth!=0) and $html[-1]{close} = ("\n" . ('</section>' x $depth));
-  map{$htmlout .= "\n" . join("\n", $_->{open}, $_->{txt}, $_->{close})} @html;
+  map{$htmlout .= "\n" . join("\n", $_->{open}||'', $_->{txt}||'', $_->{close}||'')} @html;
   $htmlout .= "\n";
 
   # template?
@@ -442,8 +441,9 @@ sub wini{
   # nocr: whether CRs are conserved in result text. 0(default): conserved, 1: not conserved
   # table: table-mode, where footnote macro is effective. $opt->{table} must be a table ID. Footnote texts are set to @{$opt->{footnote}}
   my($t0, $opt) = @_;
-  $t0=~s/\r(?=\n)//g; # cr/lf -> lf
-  $t0=~s/(?!\n)$/\n/s; 
+  ($t0) and $t0=~s/\r(?=\n)//g; # cr/lf -> lf
+  ($t0) and $t0=~s/(?!\n)$/\n/s;
+  ($t0) or return('');
   my($baseurl, $is_bs4, $cssfile) = map {$opt->{$_}} qw/baseurl is_bs4 cssfile/;
   my $cr    = (defined $opt->{nocr} and $opt->{nocr}==1)
               ?"\t":"\n"; # option to inhibit CR insertion (in table)
@@ -477,7 +477,7 @@ sub wini{
   $t0 =~ s!__([^{])!<sub>$1</sub>!g;
   $t0 =~ s!\^\^([^{])!<sup>$1</sup>!g;
 
-  my $r;
+  my $r = '';
   my @localclass = ('wini');
   ($is_bs4) and push(@localclass, "col-sm-12");
   #my $section;
@@ -575,6 +575,7 @@ sub footnote{
 
 sub list{
   my($t, $cr, $ptype, $para, $myclass) = @_;
+  $ptype = $ptype || '';
   my $r;
   my $t2='';
   my $lastlistdepth=0;
@@ -589,13 +590,14 @@ sub list{
       $t2 .= $l; next;
     }
 
-    my($x, $listtype, $txt) = $l=~/^\s*([#*:;]*)([#*:;])\s*(.*)$/; # whether list item      
+    my($x, $listtype, $txt) = $l=~/^\s*([#*:;]*)([#*:;])\s*(.*)$/; # whether list item
+    $listtype = $listtype || '';
     if ($listtype ne '') {
       $ptype = 'list';
       my $listdepth = length($x)+length($listtype);
       ($listtype eq ';') and $is_dl[$listdepth]='dl';
       my($itemtag, $listtag) = ($listtype eq '*') ? qw/li ul/
-        : ($listtype eq ':') ? (($is_dl[$listdepth] eq 'dl')?qw/dd dl/:(qq{li style="list-style:none"}, 'ul'))
+        : ($listtype eq ':') ? ((($is_dl[$listdepth]||'') eq 'dl')?qw/dd dl/:(qq{li style="list-style:none"}, 'ul'))
         : ($listtype eq ';') ? qw/dt dl/ : qw/li ol/;
       my $itemtagc = $itemtag;   # closing tag for list item
       $listtagc = $listtag;      # closing tag for list
@@ -610,9 +612,11 @@ sub list{
       for (my $i = $lastlistdepth-$listdepth; $i>0; $i--) {
         $t2 .= sprintf("%*s</%s>$cr", $i+$listdepth, ' ', $listtagc[$i+$listdepth]);
       }
-      $t2 .= sprintf("%*s<$itemtag>$txt</$itemtagc>$cr",$listdepth+1,' ');
+      my $txt1 = $txt;
+      $txt1=~s/%/%%/g;
+      $t2 .= sprintf("%*s<$itemtag>$txt1</$itemtagc>$cr",$listdepth+1,' ');
       $lastlistdepth = $listdepth;
-      push(@{$listitems{join("\t", @listtagc)}}, $txt);
+      push(@{$listitems{join("\t", grep {$_||''} @listtagc)}}, $txt);
     } else { # if not list item
       $t2 .= "$l\n";
     }
@@ -662,7 +666,8 @@ sub call_macro{
   my(@class, @id);
   $macroname=~s/\.([^.#]+)/push(@id,    $1); ''/ge;
   $macroname=~s/\#([^.#]+)/push(@class, $1); ''/ge;
-  my $class_id = join('', map{ qq! class="$_"! } @class);
+  my $class_id = join(' ', @class);
+  ($class_id) and $class_id = qq{ class="${class_id}"};
   $class_id   .= ($id[0]) ? qq! id="$id[0]"! : '';
   $macroname=~s/^[\n\s]*//;
   $macroname=~s/[\n\s]*$//;
@@ -670,27 +675,27 @@ sub call_macro{
     return(($class_id) ? qq!<span${class_id}>$f[0]</span>! : $f[0]);
   }
 
-  (defined $macros{$macroname}) and return($macros{$macroname}(@f));
-  ($macroname eq 'calc')   and return(ev(\@f, $opt->{_v}));
+  (defined $MACROS{$macroname}) and return($MACROS{$macroname}(@f));
+  ($macroname=~/^calc$/i)    and return(ev(\@f, $opt->{_v}));
 #  ($macroname eq 'va')     and return(var($f[0], $opt->{_v}));
-  ($macroname eq 'va')     and return($opt->{_v}{$f[0]});
-  ($macroname eq 'envname')and return($ENVNAME);
-  ($macroname=~/^[IBUS]$/) and $_=lc($macroname), return("<$_${class_id}>$f[0]</$_>");
-  ($macroname eq 'i')      and return(qq!<span${class_id} style="font-style:italic;">$f[0]</span>!);
-  ($macroname eq 'b')      and return(qq!<span${class_id} style="font-weight:bold;">$f[0]</span>!);
-  ($macroname eq 'u')      and return(qq!<span${class_id} style="border-bottom: solid 1px;">$f[0]</span>!);
-  ($macroname eq 's')      and return(qq!<span${class_id} style="text-decoration: line-through;">$f[0]</span>!);
-  ($macroname eq 'ruby')   and return(ruby(@f));
-  ($macroname eq 'v')      and return(qq!<span class="tategaki">$f[0]</span>!);
+  ($macroname=~/^va$/i)      and return($opt->{_v}{$f[0]});
+  ($macroname=~/^envname$/i) and return($ENVNAME);
+  ($macroname=~/^[IBUS]$/)   and $_=lc($macroname), return("<$_${class_id}>$f[0]</$_>");
+  ($macroname eq 'i')        and return(qq!<span${class_id} style="font-style:italic;">$f[0]</span>!);
+  ($macroname eq 'b')        and return(qq!<span${class_id} style="font-weight:bold;">$f[0]</span>!);
+  ($macroname eq 'u')        and return(qq!<span${class_id} style="border-bottom: solid 1px;">$f[0]</span>!);
+  ($macroname eq 's')        and return(qq!<span${class_id} style="text-decoration: line-through;">$f[0]</span>!);
+  ($macroname=~/^ruby$/i)    and return(ruby(@f));
+  ($macroname=~/^v$/i)       and return(qq!<span class="tategaki">$f[0]</span>!);
 
-  ($macroname eq 'l')      and return('&#x7b;'); # {
-  ($macroname eq 'bar')    and return('&#x7c;'); # |
-  ($macroname eq 'r')      and return('&#x7d;'); # }
-  ($macroname eq '<')      and return('&#x3c;'); # <
-  ($macroname eq '>')      and return('&#x3e;'); # >
-  ($macroname eq '[')      and return('&#x5b;'); # [
-  ($macroname eq ']')      and return('&#x5d;'); # ]
   ($macroname=~m!([-_/*]+[-_/* ]*)!) and return(symmacro($1, $f[0]));
+  ($macroname=~/^l$/i)       and return('&#x7b;'); # {
+  ($macroname=~/^bar$/i )    and return('&#x7c;'); # |
+  ($macroname=~/^r$/i)       and return('&#x7d;'); # }
+  ($macroname eq '<')        and return('&#x3c;'); # <
+  ($macroname eq '>')        and return('&#x3e;'); # >
+  ($macroname eq '[')        and return('&#x5b;'); # [
+  ($macroname eq ']')        and return('&#x5d;'); # ]
 
   warn("Macro named '$macroname' not found");
   my $r = sprintf(qq#\\{\\{%s}}<!-- Macro named '$macroname' not found! -->#, join('|', $macroname, @f));
@@ -763,14 +768,14 @@ sub make_a{
   my($t, $baseurl)=@_;
   my($prefix, $url0, $text)          = $t=~m{([!?#]*)"(\S+)"\s+(.*)}s;
   ($url0) or ($prefix, $url0, $text) = $t=~m{([!?#]*)([^\s"]+)(?:\s+(.*))?}s;
-  my($url, $opts) = split(/\|/, $url0, 2);
+  my($url, $opts) = (split(/\|/, $url0, 2), '', '');
   ($prefix eq '#') and $url=$prefix.$url;
   #$text = escape($text) || $url;
   ($text) = wini($text, {nocr=>1, para=>'nb'});
   $text = $text || $url;
 
   # options
-  my $style            = ($opts=~/</)?"float: left;":($opts=~/>/)?"float: right;":undef;
+  my $style            = ($opts=~/</) ? "float: left;" : ($opts=~/>/) ? "float: right;" : '';
   ($style) and $style  = qq{ style="$style"};
   my @ids              = $opts=~/#([-\w]+)/g;
   my @classes          = $opts=~/\.([-\w]+)/g;  $opts=~s/[.#][-\w]+//g;
@@ -870,7 +875,7 @@ sub make_table{
 
   my @lines = split(/\n/, $in);
   my $macro = '';
-  my %macros;
+  my %tablemacros;
   my %fn_cnt;
   foreach my $line (@lines){
     $line=~s/[\n\r]*//g;
@@ -901,7 +906,7 @@ sub make_table{
 
     # inner-table macro entry
     if($macro ne ''){
-      $macros{$macro} = ($rowmerge==1)?("$macros{$macro}\n$cols[2]") : $cols[2];
+      $tablemacros{$macro} = ($rowmerge==1)?("$tablemacros{$macro}\n$cols[2]") : $cols[2];
       next;
     }
 
@@ -927,7 +932,7 @@ sub make_table{
     for(my $cn=1; $cn<=$#{$winiitem[$ln]}; $cn+=2){
       if($winiitem[$ln][$cn]=~/<([a-zA-Z\d]+)/){
         my $macro=$1;
-        (defined $macros{$macro}) and $winiitem[$ln][$cn+1] = $macros{$macro};
+        (defined $tablemacros{$macro}) and $winiitem[$ln][$cn+1] = $tablemacros{$macro};
       }
     }
 
@@ -1042,7 +1047,7 @@ sub make_table{
   (defined $htmlitem[0][0]{copt}{style}{height}[0])
         or $htmlitem[0][0]{copt}{style}{height}[0] = sprintf("%drem", (scalar @lines)*2);
   (defined $htmlitem[0][0]{copt}{style}{width}[0])
-        or $htmlitem[0][0]{copt}{style}{width}[0] = sprintf("%drem", ((sort @rowlen)[-1])*2);
+        or $htmlitem[0][0]{copt}{style}{width}[0] = sprintf("%drem", ((sort map{$_ or 0} @rowlen)[-1])*2);
 
   ($debug) and print(STDERR "winiitem\n", (Dumper @winiitem), "htmlitem\n", (Dumper @htmlitem));
 
@@ -1120,12 +1125,12 @@ sub make_table{
         $copt .= ' style="' . join('', sort map { "$_:$style{$_}; " } grep {$style{$_}} sort keys %style) . '"'; #option for each cell
         my $ctag = (
           (not $htmlitem[$rn][0]{footnote}) and (
-          ($htmlitem[$rn][$_]{ctag} eq 'th') or 
-          ($htmlitem[0][$_]{ctag}   eq 'th') or
-          ($htmlitem[$rn][0]{ctag}  eq 'th'))
+          ($htmlitem[$rn][$_]{ctag} and $htmlitem[$rn][$_]{ctag} eq 'th') or 
+          ($htmlitem[0][$_]{ctag}   and $htmlitem[0][$_]{ctag}   eq 'th') or
+          ($htmlitem[$rn][0]{ctag}  and $htmlitem[$rn][0]{ctag}  eq 'th'))
         )?'th':'td';
         $copt and $copt=" $copt";
-        sprintf("<$ctag$copt>%s</$ctag>", $htmlitem[$rn][$_]{wini});
+        sprintf("<$ctag$copt>%s</$ctag>", ($htmlitem[$rn][$_]{wini} || ''));
       }
     } (1 .. $#{$htmlitem[1]}) # map
     ); # join
@@ -1176,11 +1181,7 @@ sub yaml{
             $val->{$k}{$kk} = ev($vv, $val);
           }
         }else{ # simple variable
-          #if($v=~s/^(["'])(.*)\1$/$2/){
-          #  $val->{$k} = $2;
-          #}else{
-            $val->{$k} = ev($v, $val) ;
-          #}
+          $val->{$k} = ev($v, $val) ;
         }
       }
     } # for each $line
