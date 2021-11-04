@@ -816,7 +816,7 @@ sub make_a{
   # options
   my $style            = ($opts=~/</) ? "float: left;" : ($opts=~/>/) ? "float: right;" : '';
   ($style) and $style  = qq{ style="$style"};
-  my @ids              = $opts=~/#([-\w]+)/g;
+  my $id               = $opts=~/#([-\w]+)/;
   my @classes          = $opts=~/\.([-\w]+)/g;  $opts=~s/[.#][-\w]+//g;
   my($width,$height)   = ($opts=~/(\d+)x(\d+)/)?($1,$2):(0,0);
   my $imgopt           = ($width>0)?qq{ width="$width"}:'';
@@ -825,9 +825,9 @@ sub make_a{
 
   if($prefix=~/[!?]/){ # img, figure
     $img_no++;
-    my $id = $ids[-1]; ($id) or $id = "image${img_no}";
+    ($id) or $id = "image${img_no}";
     my $class = join(' ', @classes); ($class) and $class = qq{ class="$class"};
-    $ref{image}{$id} = $img_no;
+    push(@{$ID{image}}, $ref{image}{$id} = $img_no);
     if($prefix eq '!!'){
       return(qq!<figure$style><img src="$url" alt="$id" id="$id"$class$imgopt><figcaption>$text</figcaption></figure>!);
     }elsif($prefix eq '??'){
@@ -894,6 +894,7 @@ sub make_table{
       $htmlitem[0][0]{copt}{id}[0] = $1;
     }
     ($htmlitem[0][0]{copt}{id}[0]) or $htmlitem[0][0]{copt}{id}[0] = sprintf("winitable%d", $table_no++);
+    push(@{$ID{table}}, $htmlitem[0][0]{copt}{id}[0]);
     while($o=~/\&([lrcjsebtm]+)/g){
       my $h = {qw/l left r right c center j justify s start e end/}->{$1};
       (defined $h) and push(@{$htmlitem[0][0]{copt}{style}{'text-align'}}, $h);
