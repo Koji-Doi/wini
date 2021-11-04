@@ -466,11 +466,9 @@ sub wini{
   # footnote
   if(exists $opt->{table}){ # in table
     my $table_id = $opt->{table};
-    unless($table_id){
-      print STDERR "Specify table ID explicitly.\n";
-      $table_id = 'table '.($#auto_table_id+1);
+    if($table_id and $footnote_cnt->{$table_id} and $footnotes{$table_id}){
+      footnote($t0, '*', $footnote_cnt->{$table_id}, $footnotes{$table_id});
     }
-    footnote($t0, '*', $footnote_cnt->{$table_id}, $footnotes{$table_id});
   }else{ # for main text
     $t0=~s&\{\{\^\|([^}|]*)(?:\|([^}]*))?}}&
       footnote($1, $2, $footnote_cnt->{'_'}, $footnotes{'_'});
@@ -599,11 +597,12 @@ sub list{
       $t2 .= $l; next;
     }
 
-    my($x, $listtype, $txt) = $l=~/^\s*([#*:;]*)([#*:;])\s*(.*)$/; # whether list item
-    $listtype = $listtype || '';
-    $x        = $x        || '';
+    my($hmarks, $x, $listtype, $txt) = $l=~/^\s*(([#*:;]*)([#*:;]))\s*(.*)$/; # whether list item
+    $listtype  = $listtype || '';
+    $x         = $x        || '';
+    my $hmark2 = ($hmarks) ? substr($hmarks, 1) : '';
     if ($x=~/[:;]/ and $listtype=~/[*#]/){ # *# within :;
-      push(@innerlist, "$listtype $txt");
+      push(@innerlist, "$hmark2 $txt");
     }elsif ($listtype ne '') {
       $ptype = 'list';
       my $listdepth = length($x)+length($listtype);
@@ -626,9 +625,9 @@ sub list{
       }
       my $txt_innerlist = '';
       if(defined $innerlist[0]){
-        print STDERR ">>>>$txt>>>>\n";
         $txt_innerlist = (WINI::wini(join("\n", @innerlist), {para=>'nb'}))[0] .
           "</${itemtagc}>\n<${itemtagc}>";
+        undef @innerlist;
       }
       $txt = $txt_innerlist.$txt;
       $txt =~s/%/%%/g;
@@ -641,8 +640,10 @@ sub list{
   } # foreach $l
   if(defined $innerlist[0]){
     $DB::single=$DB::single=1;
-    $t2 .= sprintf("%*s<$itemtag> <!-- rrrr -->", $lastlistdepth, ' ') . (WINI::wini(join("\n", @innerlist), {para=>'nb'}))[0] .
-      "</${itemtagc}>\n<!-- ssss -->";
+    my $wini2 = (WINI::wini(join("\n", @innerlist), {para=>'nb'}))[0];
+print STDERR "### $wini2\n", Dumper @innerlist;
+    $t2 .= sprintf("%*s<$itemtag>\n<!-- rrrr -->\n", $lastlistdepth, ' ') . $wini2 .
+      "\n<!-- ssss -->\n</${itemtagc}>\n";
   }
 
   if ($lastlistdepth>0) {
