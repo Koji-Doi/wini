@@ -1,122 +1,87 @@
-<!DOCTYPE html>
-<html lang="ja">
-<head>
-<meta charset="UTF-8">
-<style>
-.b-b               {
-                    background-color: rgb(0,114,178); /* blue */;
-                   }
-.b-b100            {
-                    background-color: #000;
-                   }
-.b-b25             {
-                    background-color: #CCC;
-                   }
-.b-b50             {
-                    background-color: #888;
-                   }
-.b-b75             {
-                    background-color: #444;
-                   }
-.b-g               {
-                    background-color: rgb(0,158,115); /* green */;
-                   }
-.b-m               {
-                    background-color: rgb(218,0,250); /* magenta */;
-                   }
-.b-p               {
-                    background-color: rgb(204,121,167); /* purple */;
-                   }
-.b-r               {
-                    background-color: rgb(219,94,0); /* red */;
-                   }
-.b-w               {
-                    background-color: white;
-                   }
-.f-b               {
-                    border-color: black;
-                    color: rgb(0,114,178); /* blue */;
-                   }
-.f-b100            {
-                    color: #000;
-                    border-color: black;
-                   }
-.f-b25             {
-                    color: #CCC;
-                    border-color: black;
-                   }
-.f-b50             {
-                    color: #888;
-                    border-color: black;
-                   }
-.f-b75             {
-                    border-color: black;
-                    color: #444;
-                   }
-.f-g               {
-                    color: rgb(0,158,115); /* green */;
-                    border-color: black;
-                   }
-.f-m               {
-                    border-color: black;
-                    color: rgb(218,0,250); /* magenta */;
-                   }
-.f-p               {
-                    border-color: black;
-                    color: rgb(204,121,167); /* purple */;
-                   }
-.f-r               {
-                    border-color: black;
-                    color: rgb(219,94,0); /* red */;
-                   }
-.f-w               {
-                    border-color: black;
-                    color: white;
-                   }
-.tategaki          {
-                    text-orientation: mixed;
-                    writing-mode: vertical-rl;
-                    -ms-writing-mode: tb-rl;
-                    -webkit-text-orientation: mixed;
-                   }
-.tatetate          {
-                    writing-mode: vertical-rl;
-                    -ms-writing-mode: tb-rl;
-                    text-orientation: upright;
-                    -webkit-text-orientation: upright;
-                   }
-.yokoyoko          {
-                    text-orientation: sideways;
-                    -ms-writing-mode: tb-rl;
-                    writing-mode: vertical-rl;
-                    -webkit-text-orientation: sideways;
-                   }
-ol, ul, dl         {
-                    padding-left: 1em;
-                   }
-table, figure, img {
-                    margin: 1em;
-                    border-collapse: collapse;
-                   }
-tfoot, figcaption  {
-                    font-size: smaller;
-                   }
-</style>
-
-<title>wini page</title>
-</head>
-<body>
 
 
- <dl class="winilist">
-  <dt>a</dt>
-  <dt>b</dt>
-  <dd>c</dd>
-  <dd> <ul class="winilist">
-  <li>c</li>
-  <li>d</li>
- </ul></dd>
-<dd>e</dd>
- </dl>
-</body>
-</html>
+<h1 class="wini">Large heading</h1>
+
+<h2 class="wini">Middle heading</h2>
+
+<h3 class="wini">Small heading</h3>
+
+ <ul class="winilist">
+  <li>list item 1</li>
+  <ul class="winilist">
+   <li>nested list item 1-1</li>
+   <li>nested list item 1-2</li>
+  </ul>
+  <li>list item 2</li>
+  <li>list item 3</li>
+ </ul>
+
+ <ol class="winilist">
+  <li>numbered list item 1</li>
+  <li>numbered list item 2</li>
+ </ol>
+
+<p>
+Paragraphs should be separated by null line, like wiki or markdown. Line breaks in plain text are ignored. 
+Thus this is not a first sentence of the second paragraph, but the second sentence of the first paragraph.
+</p>
+
+<p>
+This is the second paragraph.
+WINI also supports text decoration, such as <span style="font-style:italic;">italic</span>, <span style="font-weight:bold;">bold</span>, <span style="border-bottom: solid 1px;">underline</span>, <span style="text-decoration: line-through;">strike</span>. They are distingushed from logical emphasis, such as <b> B-tagged</b>, <strong>strong-tagged</strong> texts.
+</p>
+
+<p>
+Tables can be represented easily as follows. 
+Users can easily set colspan, rowspan and ruled line width.
+</p>
+
+<table id="winitable1" class="winitable" border="1" style="border-collapse: collapse;  text-align: center; border: solid 1px; ">
+<caption> <span style="font-style:italic;">Game Record</span></caption>
+<tbody>
+<tr style="border-bottom:solid 2px;; border-top:solid 3px;"><th  rowspan="2" style="">Game </th><th  colspan="3" style="">Players </th></tr>
+<tr style="border-bottom:solid 3px;"><th  style="">A </th><th  style="">B </th><th  style="">C </th></tr>
+<tr><th  style="">1 </th><td  style="">1 </td><td  style="">5 </td><td  style="">3 </td></tr>
+<tr><th  style="">2 </th><td  style="">4 </td><td  style="">5 </td><td  style="">10 </td></tr>
+<tr style="border-bottom:solid 3px;; border-top:solid 3px;"><th  style="">Total </th><td  style="">5 </td><td  style="">10 </td><td  style="">13 </td></tr>
+</tbody>
+</table>
+<p>
+Ruled lines can be erased individually.
+</p>
+
+<table id="" class="winitable" style="border-collapse: collapse; ">
+<tbody>
+<tr style="border-bottom:solid 2px;; border-top:solid 3px;"><th  rowspan="2" style="">Game</th><th  colspan="3" style="">Players</th></tr>
+<tr style="border-bottom:solid 3px;"><th  style="border-right:solid 0px; ">A</th><th  style="border-left:solid 0px; border-right:solid 0px; ">B</th><th  style="border-left:solid 0px; ">C</th></tr>
+<tr><th  style="">1</th><td  style="border-right:solid 0px; ">1</td><td  class="em" style="border-left:solid 0px; border-right:solid 0px; ">5</td><td  style="border-left:solid 0px; ">3</td></tr>
+<tr><th  style="">2</th><td  style="border-right:solid 0px; ">4</td><td  style="border-left:solid 0px; border-right:solid 0px; ">5</td><td  class="em" style="border-left:solid 0px; ">10</td></tr>
+<tr style="border-bottom:solid 3px;; border-top:solid 3px;"><th  style="">Total</th><td  style="border-right:solid 0px; ">5</td><td  style="border-left:solid 0px; border-right:solid 0px; ">10</td><td  class="em" style="border-left:solid 0px; ">13</td></tr>
+</tbody>
+</table>
+<p>
+To make table without vertical ruled lines, border widths should be set 0 not only for table but all cells.
+</p>
+
+<table id="" class="winitable" style="border-collapse: collapse; ">
+<tbody>
+<tr style="border-bottom:solid 2px;; border-top:solid 3px;"><th  rowspan="2" style="border-left:solid 0px; border-right:solid 0px; ">Game</th><th  colspan="3" style="border-left:solid 0px; border-right:solid 0px; ">Players</th></tr>
+<tr style="border-bottom:solid 3px;"><th  style="border-left:solid 0px; border-right:solid 0px; ">A</th><th  style="border-left:solid 0px; border-right:solid 0px; ">B</th><th  style="border-left:solid 0px; border-right:solid 0px; ">C</th></tr>
+<tr><th  style="border-left:solid 0px; border-right:solid 0px; ">1</th><td  style="border-left:solid 0px; border-right:solid 0px; ">1</td><td  class="em" style="border-left:solid 0px; border-right:solid 0px; ">5</td><td  style="border-left:solid 0px; border-right:solid 0px; ">3</td></tr>
+<tr><th  style="border-left:solid 0px; border-right:solid 0px; ">2</th><td  style="border-left:solid 0px; border-right:solid 0px; ">4</td><td  style="border-left:solid 0px; border-right:solid 0px; ">5</td><td  class="em" style="border-left:solid 0px; border-right:solid 0px; ">10</td></tr>
+<tr style="border-bottom:solid 3px;; border-top:solid 3px;"><th  style="border-left:solid 0px; border-right:solid 0px; ">Total</th><td  style="border-left:solid 0px; border-right:solid 0px; ">5</td><td  style="border-left:solid 0px; border-right:solid 0px; ">10</td><td  class="em" style="border-left:solid 0px; border-right:solid 0px; ">13</td></tr>
+</tbody>
+</table>
+<p>
+By class definition and CSS setting, appearance of tables can be flexibly modified.
+</p>
+
+<table id="" class="winitable" style="border-collapse: collapse; ">
+<tbody>
+<tr><td  class="b-r" style="">AAAAAAA</td><td  class="b-g" style="">BBB</td><td  class="b-b f-w" style="">CCC</td></tr>
+<tr><td  class="a-r" style="">abcd</td><td  class="f-m" style="">DDD</td><td  class="f-p" style="">EEE</td></tr>
+<tr><td  class="a-l" style="">abcd</td><td  class="f-b50" style="">FFF</td><td  class="b-b f-r" style="">GGG</td></tr>
+<tr  class="a-c"><td  style="">a</td><td  style="">b</td><td  style="">c</td></tr>
+</tbody>
+</table>
+

@@ -294,6 +294,7 @@ sub css{
 
 {
 my($footnote_cnt, %footnotes);
+my(@auto_table_id);
 sub wini_sects{
   my($x, $opt) = @_;
   (defined $opt) or $opt={};
@@ -464,7 +465,12 @@ sub wini{
 
   # footnote
   if(exists $opt->{table}){ # in table
-    footnote($t0, '*', $footnote_cnt->{$opt->{table}}, $footnotes{$opt->{table}});
+    my $table_id = $opt->{table};
+    unless($table_id){
+      print STDERR "Specify table ID explicitly.\n";
+      $table_id = 'table '.($#auto_table_id+1);
+    }
+    footnote($t0, '*', $footnote_cnt->{$table_id}, $footnotes{$table_id});
   }else{ # for main text
     $t0=~s&\{\{\^\|([^}|]*)(?:\|([^}]*))?}}&
       footnote($1, $2, $footnote_cnt->{'_'}, $footnotes{'_'});
