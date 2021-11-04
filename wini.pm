@@ -576,6 +576,7 @@ sub footnote{
 sub list{
   my($t, $cr, $ptype, $para, $myclass) = @_;
   $ptype = $ptype || '';
+  $cr = $cr || "\n";
   my $r;
   my $t2='';
   my $lastlistdepth=0;
