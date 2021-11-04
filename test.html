@@ -1,3 +1,5 @@
+
+
 <h1 class="wini">Large heading</h1>
 
 <h2 class="wini">Middle heading</h2>
@@ -19,17 +21,17 @@
   <li>numbered list item 2</li>
  </ol>
 
-<p class="wini">
+<p>
 Paragraphs should be separated by null line, like wiki or markdown. Line breaks in plain text are ignored. 
 Thus this is not a first sentence of the second paragraph, but the second sentence of the first paragraph.
 </p>
 
-<p class="wini">
+<p>
 This is the second paragraph.
 WINI also supports text decoration, such as <span style="font-style:italic;">italic</span>, <span style="font-weight:bold;">bold</span>, <span style="border-bottom: solid 1px;">underline</span>, <span style="text-decoration: line-through;">strike</span>. They are distingushed from logical emphasis, such as <b> B-tagged</b>, <strong>strong-tagged</strong> texts.
 </p>
 
-<p class="wini">
+<p>
 Tables can be represented easily as follows. 
 Users can easily set colspan, rowspan and ruled line width.
 </p>
@@ -37,48 +39,49 @@ Users can easily set colspan, rowspan and ruled line width.
 <table id="winitable1" class="winitable" border="1" style="border-collapse: collapse;  text-align: center; border: solid 1px; ">
 <caption> <span style="font-style:italic;">Game Record</span></caption>
 <tbody>
-<tr style="border-top:solid 3px;"><th rowspan="2">Game </th><th colspan="3">Players </th></tr>
-<tr><th>A </th><th>B </th><th>C </th></tr>
-<tr><th>1 </th><td>1 </td><td>5 </td><td>3 </td></tr>
-<tr><th>2 </th><td>4 </td><td>5 </td><td>10 </td></tr>
-<tr style="border-top:solid 3px;; border-bottom:solid 3px;"><th>Total </th><td>5 </td><td>10 </td><td>13 </td></tr>
+<tr style="border-bottom:solid 2px;; border-top:solid 3px;"><th  rowspan="2" style="">Game </th><th  colspan="3" style="">Players </th></tr>
+<tr style="border-bottom:solid 3px;"><th  style="">A </th><th  style="">B </th><th  style="">C </th></tr>
+<tr><th  style="">1 </th><td  style="">1 </td><td  style="">5 </td><td  style="">3 </td></tr>
+<tr><th  style="">2 </th><td  style="">4 </td><td  style="">5 </td><td  style="">10 </td></tr>
+<tr style="border-bottom:solid 3px;; border-top:solid 3px;"><th  style="">Total </th><td  style="">5 </td><td  style="">10 </td><td  style="">13 </td></tr>
 </tbody>
 </table>
-<p class="wini">
+<p>
 Ruled lines can be erased individually.
 </p>
 
-<table id="winitable1" class="winitable" style="border-collapse: collapse; ">
+<table id="" class="winitable" style="border-collapse: collapse; ">
 <tbody>
-<tr style="border-top:solid 3px;"><th rowspan="2">Game </th><th colspan="3">Players </th></tr>
-<tr><th style="border-right:solid 0px; ">A </th><th style="border-right:solid 0px; border-left:solid 0px; ">B </th><th style="border-left:solid 0px; ">C </th></tr>
-<tr><th>1 </th><td style="border-right:solid 0px; ">1 </td><td class="em" style="border-right:solid 0px; border-left:solid 0px; ">5 </td><td style="border-left:solid 0px; ">3 </td></tr>
-<tr><th>2 </th><td style="border-right:solid 0px; ">4 </td><td style="border-right:solid 0px; border-left:solid 0px; ">5 </td><td class="em" style="border-left:solid 0px; ">10 </td></tr>
-<tr style="border-top:solid 3px;; border-bottom:solid 3px;"><th>Total </th><td style="border-right:solid 0px; ">5 </td><td style="border-right:solid 0px; border-left:solid 0px; ">10 </td><td class="em" style="border-left:solid 0px; ">13 </td></tr>
+<tr style="border-bottom:solid 2px;; border-top:solid 3px;"><th  rowspan="2" style="">Game</th><th  colspan="3" style="">Players</th></tr>
+<tr style="border-bottom:solid 3px;"><th  style="border-right:solid 0px; ">A</th><th  style="border-left:solid 0px; border-right:solid 0px; ">B</th><th  style="border-left:solid 0px; ">C</th></tr>
+<tr><th  style="">1</th><td  style="border-right:solid 0px; ">1</td><td  class="em" style="border-left:solid 0px; border-right:solid 0px; ">5</td><td  style="border-left:solid 0px; ">3</td></tr>
+<tr><th  style="">2</th><td  style="border-right:solid 0px; ">4</td><td  style="border-left:solid 0px; border-right:solid 0px; ">5</td><td  class="em" style="border-left:solid 0px; ">10</td></tr>
+<tr style="border-bottom:solid 3px;; border-top:solid 3px;"><th  style="">Total</th><td  style="border-right:solid 0px; ">5</td><td  style="border-left:solid 0px; border-right:solid 0px; ">10</td><td  class="em" style="border-left:solid 0px; ">13</td></tr>
 </tbody>
 </table>
-<p class="wini">
+<p>
 To make table without vertical ruled lines, border widths should be set 0 not only for table but all cells.
 </p>
 
-<table id="winitable1" class="winitable" style="border-collapse: collapse; ">
+<table id="" class="winitable" style="border-collapse: collapse; ">
 <tbody>
-<tr style="border-top:solid 3px;"><th rowspan="2" style="border-right:solid 0px; border-left:solid 0px; ">Game </th><th colspan="3" style="border-right:solid 0px; border-left:solid 0px; ">Players </th></tr>
-<tr><th style="border-right:solid 0px; border-left:solid 0px; ">A </th><th style="border-right:solid 0px; border-left:solid 0px; ">B </th><th style="border-right:solid 0px; border-left:solid 0px; ">C </th></tr>
-<tr><th style="border-right:solid 0px; border-left:solid 0px; ">1 </th><td style="border-right:solid 0px; border-left:solid 0px; ">1 </td><td class="em" style="border-right:solid 0px; border-left:solid 0px; ">5 </td><td style="border-right:solid 0px; border-left:solid 0px; ">3 </td></tr>
-<tr><th style="border-right:solid 0px; border-left:solid 0px; ">2 </th><td style="border-right:solid 0px; border-left:solid 0px; ">4 </td><td style="border-right:solid 0px; border-left:solid 0px; ">5 </td><td class="em" style="border-right:solid 0px; border-left:solid 0px; ">10 </td></tr>
-<tr style="border-top:solid 3px;; border-bottom:solid 3px;"><th style="border-right:solid 0px; border-left:solid 0px; ">Total </th><td style="border-right:solid 0px; border-left:solid 0px; ">5 </td><td style="border-right:solid 0px; border-left:solid 0px; ">10 </td><td class="em" style="border-right:solid 0px; border-left:solid 0px; ">13 </td></tr>
+<tr style="border-bottom:solid 2px;; border-top:solid 3px;"><th  rowspan="2" style="border-left:solid 0px; border-right:solid 0px; ">Game</th><th  colspan="3" style="border-left:solid 0px; border-right:solid 0px; ">Players</th></tr>
+<tr style="border-bottom:solid 3px;"><th  style="border-left:solid 0px; border-right:solid 0px; ">A</th><th  style="border-left:solid 0px; border-right:solid 0px; ">B</th><th  style="border-left:solid 0px; border-right:solid 0px; ">C</th></tr>
+<tr><th  style="border-left:solid 0px; border-right:solid 0px; ">1</th><td  style="border-left:solid 0px; border-right:solid 0px; ">1</td><td  class="em" style="border-left:solid 0px; border-right:solid 0px; ">5</td><td  style="border-left:solid 0px; border-right:solid 0px; ">3</td></tr>
+<tr><th  style="border-left:solid 0px; border-right:solid 0px; ">2</th><td  style="border-left:solid 0px; border-right:solid 0px; ">4</td><td  style="border-left:solid 0px; border-right:solid 0px; ">5</td><td  class="em" style="border-left:solid 0px; border-right:solid 0px; ">10</td></tr>
+<tr style="border-bottom:solid 3px;; border-top:solid 3px;"><th  style="border-left:solid 0px; border-right:solid 0px; ">Total</th><td  style="border-left:solid 0px; border-right:solid 0px; ">5</td><td  style="border-left:solid 0px; border-right:solid 0px; ">10</td><td  class="em" style="border-left:solid 0px; border-right:solid 0px; ">13</td></tr>
 </tbody>
 </table>
-<p class="wini">
+<p>
 By class definition and CSS setting, appearance of tables can be flexibly modified.
 </p>
 
-<table id="winitable1" class="winitable" style="border-collapse: collapse; ">
+<table id="" class="winitable" style="border-collapse: collapse; ">
 <tbody>
-<tr><td class="b-r">AAAAAAA </td><td class="b-g">BBB </td><td class="f-w b-b">CCC </td></tr>
-<tr><td class="a-r">abcd </td><td class="f-m">DDD </td><td class="f-p">EEE </td></tr>
-<tr><td class="a-l">abcd </td><td class="f-b50">FFF </td><td class="b-b f-r">GGG </td></tr>
-<tr  class="a-c"><td>a </td><td>b </td><td>c </td></tr>
+<tr><td  class="b-r" style="">AAAAAAA</td><td  class="b-g" style="">BBB</td><td  class="b-b f-w" style="">CCC</td></tr>
+<tr><td  class="a-r" style="">abcd</td><td  class="f-m" style="">DDD</td><td  class="f-p" style="">EEE</td></tr>
+<tr><td  class="a-l" style="">abcd</td><td  class="f-b50" style="">FFF</td><td  class="b-b f-r" style="">GGG</td></tr>
+<tr  class="a-c"><td  style="">a</td><td  style="">b</td><td  style="">c</td></tr>
 </tbody>
 </table>
+

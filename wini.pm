@@ -294,6 +294,7 @@ sub css{
 
 {
 my($footnote_cnt, %footnotes);
+my(@auto_table_id);
 sub wini_sects{
   my($x, $opt) = @_;
   (defined $opt) or $opt={};
@@ -464,7 +465,12 @@ sub wini{
 
   # footnote
   if(exists $opt->{table}){ # in table
-    footnote($t0, '*', $footnote_cnt->{$opt->{table}}, $footnotes{$opt->{table}});
+    my $table_id = $opt->{table};
+    unless($table_id){
+      print STDERR "Specify table ID explicitly.\n";
+      $table_id = 'table '.($#auto_table_id+1);
+    }
+    footnote($t0, '*', $footnote_cnt->{$table_id}, $footnotes{$table_id});
   }else{ # for main text
     $t0=~s&\{\{\^\|([^}|]*)(?:\|([^}]*))?}}&
       footnote($1, $2, $footnote_cnt->{'_'}, $footnotes{'_'});
@@ -532,8 +538,9 @@ sub whole_html{
   my($x, $title, $opt) = @_;
   $x=~s/[\s\n\r]*$//s;
   #  my($cssfile, $cssflameworks) = map {$opt->{$_}} qw/cssfile cssflameworks/;
-  my $cssfile = $opt->{cssfile};
+  my $cssfile = $opt->{cssfile} || '';
   my $style   = '';
+  $title = $title || 'wini page';
   (defined $opt->{cssflameworks}[0]) and map {$style .= qq{<link rel="stylesheet" type="text/css" href="$_">\n}} @{$opt->{cssflameworks}};
   $style   .= ($cssfile)?qq{<link rel="stylesheet" type="text/css" href="$cssfile">} : "<style>\n".css($CSS)."</style>\n";
   return <<"EOD";
@@ -577,13 +584,14 @@ sub list{
   my($t, $cr, $ptype, $para, $myclass) = @_;
   $ptype = $ptype || '';
   $cr = $cr || "\n";
-  my $r;
   my $t2='';
   my $lastlistdepth=0;
   my $listtagc;
   my @is_dl;  # $is_dl[1]: whether list type of depth 1 is 'dl'
   my @listtagc;
   my %listitems;
+  my @innerlist; # *# in ;:
+  my($itemtag, $listtag, $itemtagc);
   foreach my $l (split("\n", $t)) {
     # line/page break
     if (($l=~s/^---$/<br style="page-break-after: always;">/) or
@@ -593,15 +601,18 @@ sub list{
 
     my($x, $listtype, $txt) = $l=~/^\s*([#*:;]*)([#*:;])\s*(.*)$/; # whether list item
     $listtype = $listtype || '';
-    if ($listtype ne '') {
+    $x        = $x        || '';
+    if ($x=~/[:;]/ and $listtype=~/[*#]/){ # *# within :;
+      push(@innerlist, "$listtype $txt");
+    }elsif ($listtype ne '') {
       $ptype = 'list';
       my $listdepth = length($x)+length($listtype);
       ($listtype eq ';') and $is_dl[$listdepth]='dl';
-      my($itemtag, $listtag) = ($listtype eq '*') ? qw/li ul/
+      ($itemtag, $listtag) = ($listtype eq '*') ? qw/li ul/
         : ($listtype eq ':') ? ((($is_dl[$listdepth]||'') eq 'dl')?qw/dd dl/:(qq{li style="list-style:none"}, 'ul'))
         : ($listtype eq ';') ? qw/dt dl/ : qw/li ol/;
-      my $itemtagc = $itemtag;   # closing tag for list item
-      $listtagc = $listtag;      # closing tag for list
+      $itemtagc = $itemtag;   # closing tag for list item
+      $listtagc = $listtag;   # closing tag for list
       $itemtagc =~ s/ .*//;
       $listtagc =~ s/ .*//;
       $listtagc[$listdepth] = $listtagc;
@@ -613,29 +624,41 @@ sub list{
       for (my $i = $lastlistdepth-$listdepth; $i>0; $i--) {
         $t2 .= sprintf("%*s</%s>$cr", $i+$listdepth, ' ', $listtagc[$i+$listdepth]);
       }
-      my $txt1 = $txt;
-      $txt1=~s/%/%%/g;
-      $t2 .= sprintf("%*s<$itemtag>$txt1</$itemtagc>$cr",$listdepth+1,' ');
+      my $txt_innerlist = '';
+      if(defined $innerlist[0]){
+        print STDERR ">>>>$txt>>>>\n";
+        $txt_innerlist = (WINI::wini(join("\n", @innerlist), {para=>'nb'}))[0] .
+          "</${itemtagc}>\n<${itemtagc}>";
+      }
+      $txt = $txt_innerlist.$txt;
+      $txt =~s/%/%%/g;
+      $t2 .= sprintf("%*s<$itemtag>$txt</$itemtagc>$cr",$listdepth+1,' ');
       $lastlistdepth = $listdepth;
-      push(@{$listitems{join("\t", grep {$_||''} @listtagc)}}, $txt);
+      push(@{$listitems{join("\t", grep {$_||''} @listtagc)}}, {$itemtag => $txt});
     } else { # if not list item
       $t2 .= "$l\n";
     }
-  } # $l
+  } # foreach $l
+  if(defined $innerlist[0]){
+    $DB::single=$DB::single=1;
+    $t2 .= sprintf("%*s<$itemtag> <!-- rrrr -->", $lastlistdepth, ' ') . (WINI::wini(join("\n", @innerlist), {para=>'nb'}))[0] .
+      "</${itemtagc}>\n<!-- ssss -->";
+  }
+
   if ($lastlistdepth>0) {
     $t2 .= sprintf("%*s", $lastlistdepth-1, ' ') . ("</$listtagc>" x $lastlistdepth) . $cr;
     $lastlistdepth=0;
   }
 
-  if($t2=~/\S/){
-    $r = ($ptype eq 'header' or $ptype eq 'list')                                      ? "$t2\n"
-       : ($para eq 'br')                                                               ? "$t2<br>$cr"
-       : ($para eq 'nb')                                                               ? $t2
-       : $t2=~m{<(html|body|head|p|table|img|figure|blockquote|[uod]l)[^>]*>.*</\1>}is ? $t2
-       : $t2=~m{<!doctype}is                                                           ? $t2
-       : "<p${myclass}>\n$t2</p>$cr$cr";
-  }
-  return($r || '', \%listitems);
+  return(
+    ($t2=~/\S/)?(
+    ($ptype eq 'header' or $ptype eq 'list')                                      ? "$t2\n"
+  : ($para eq 'br')                                                               ? "$t2<br>$cr"
+  : ($para eq 'nb')                                                               ? $t2
+  : $t2=~m{<(html|body|head|p|table|img|figure|blockquote|[uod]l)[^>]*>.*</\1>}is ? $t2
+  : $t2=~m{<!doctype}is                                                           ? $t2
+  : "<p${myclass}>\n$t2</p>$cr$cr"
+  ): '', \%listitems);
 } # sub list
 
 sub close_listtag{
@@ -662,6 +685,19 @@ sub symmacro{
   return($r);
 }
 
+sub listmacro{
+  my($listtype, $pars) = @_; # (ul|ol|nl), item1, item2, ...
+  my($listtag, $otag, $ctag) = ($listtype eq 'nl')
+    ? ('ul',      qq{li style="list-style:none"}, 'li')
+    : ($listtype, 'li',                           'li');
+  my $r = "<$listtag>\n";
+  foreach my $item (@$pars){
+    $r .= "<$otag>" . (wini($item, {para=>'nb', nocr=>1}))[0] . "</$ctag>\n";
+  }
+  $r .= "</$listtag>\n";
+  return($r);
+}
+
 sub call_macro{
   my($fulltext, $macroname, $opt, $baseurl, @f) = @_;
   my(@class, @id);
@@ -681,6 +717,7 @@ sub call_macro{
 #  ($macroname eq 'va')     and return(var($f[0], $opt->{_v}));
   ($macroname=~/^va$/i)      and return($opt->{_v}{$f[0]});
   ($macroname=~/^envname$/i) and return($ENVNAME);
+  ($macroname=~/^([oun]l)$/) and return(listmacro($1, \@f));
   ($macroname=~/^[IBUS]$/)   and $_=lc($macroname), return("<$_${class_id}>$f[0]</$_>");
   ($macroname eq 'i')        and return(qq!<span${class_id} style="font-style:italic;">$f[0]</span>!);
   ($macroname eq 'b')        and return(qq!<span${class_id} style="font-weight:bold;">$f[0]</span>!);
