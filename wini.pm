@@ -608,8 +608,8 @@ sub list{
       my $listdepth = length($x)+length($listtype);
       ($listtype eq ';') and $is_dl[$listdepth]='dl';
       ($itemtag, $listtag) = ($listtype eq '*') ? qw/li ul/
-        : ($listtype eq ':') ? ((($is_dl[$listdepth]||'') eq 'dl')?qw/dd dl/:(qq{li style="list-style:none"}, 'ul'))
-        : ($listtype eq ';') ? qw/dt dl/ : qw/li ol/;
+                           : ($listtype eq ':') ? ((($is_dl[$listdepth]||'') eq 'dl')?qw/dd dl/:(qq{li style="list-style:none"}, 'ul'))
+                           : ($listtype eq ';') ? qw/dt dl/ : qw/li ol/;
       $itemtagc = $itemtag;   # closing tag for list item
       $listtagc = $listtag;   # closing tag for list
       $itemtagc =~ s/ .*//;
@@ -634,14 +634,16 @@ sub list{
       $t2 .= sprintf("%*s<$itemtag>$txt</$itemtagc>$cr",$listdepth+1,' ');
       $lastlistdepth = $listdepth;
       push(@{$listitems{join("\t", grep {$_||''} @listtagc)}}, {$itemtag => $txt});
+print STDERR "1>>>>".($itemtag||'')."<<<<\n";
     } else { # if not list item
+print STDERR "2>>>>".($itemtag||'')."<<<<\n";
       $t2 .= "$l\n";
     }
   } # foreach $l
   if(defined $innerlist[0]){
+print STDERR "0>>>>".($itemtag||'')."<<<<\n";
     $DB::single=$DB::single=1;
     my $wini2 = (WINI::wini(join("\n", @innerlist), {para=>'nb'}))[0];
-print STDERR "### $wini2\n", Dumper @innerlist;
     $t2 .= sprintf("%*s<$itemtag>\n<!-- rrrr -->\n", $lastlistdepth, ' ') . $wini2 .
       "\n<!-- ssss -->\n</${itemtagc}>\n";
   }
