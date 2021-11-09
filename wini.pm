@@ -164,8 +164,8 @@ my $debug;
 
 # barrier-free color codes: https://jfly.uni-koeln.de/html/manuals/pdf/color_blind.pdf
 our ($red, $green, $blue, $magenta, $purple) 
-  = map {sprintf('rgb(%s); /* %s */', @$_)} 
-    (['219,94,0', 'red'], ['0,158,115', 'green'], ['0,114,178', 'blue'], ['218,0,250', 'magenta'], ['204,121,167', 'purple']);
+  = map {sprintf('rgb(%s) /* %s */', @$_)} 
+  (['219,94,0', 'red'], ['0,158,115', 'green'], ['0,114,178', 'blue'], ['218,0,250', 'magenta'], ['204,121,167', 'purple']);
 my $CSS = {
   'ol, ul, dl' => {'padding-left'     => '1em'},
   'table, figure, img' 
@@ -272,6 +272,17 @@ sub stand_alone{
 sub help{
   print pod2usage(-verbose => 2, -input => $FindBin::Bin . "/" . $FindBin::Script);
   exit();
+}
+
+sub color{
+  my($colorname) = @_;
+  return(
+    ($colorname eq 'red') ? $WINI::red
+   :($colorname eq 'green') ? $WINI::green
+   :($colorname eq 'blue') ? $WINI::blue
+   :($colorname eq 'purple') ? $WINI::purple
+   :($colorname eq 'magenta') ? $WINI::magenta:$colorname
+  );
 }
 
 sub css{
@@ -580,6 +591,14 @@ sub footnote{
 
 sub list{
   my($t, $cr, $ptype, $para, $myclass) = @_;
+  my ($pack, $file, $line, $subname, $hasargs, $wantarray, 
+      $evaltext, $is_require) = caller(0);
+#  print STDERR "****CALLER**** $subname is called: $line\@$file\n";
+  {
+    my $i = 0; my @subs;
+    while ( ($pack, $file, $line, $subname, $hasargs, $wantarray, $evaltext, $is_require) = caller( $i++) ){push(@subs, "$line\[$subname]")}
+    print STDERR "****CALLER**** ", join(' <- ', @subs), "\n";
+  } 
   $ptype = $ptype || '';
   $cr = $cr || "\n";
   my $t2='';
@@ -588,21 +607,36 @@ sub list{
   my @is_dl;  # $is_dl[1]: whether list type of depth 1 is 'dl'
   my @listtagc;
   my %listitems;
-  my @innerlist; # *# in ;:
+#  my @innerlist; # *# in ;:
   my($itemtag, $listtag, $itemtagc);
-  foreach my $l (split("\n", $t)) {
+  my @list;
+  my $lastlisttype = '';
+  foreach my $x (split("\n", $t)){
+    if($#list>=0 and $x=~/^([;:])([;:*#].*)/ and ($1 eq $lastlisttype)){
+      $list[$#list] = ($list[$#list]) ? $list[$#list]."\n$2" : $x;
+      $lastlisttype = $1;
+    }else{
+      $x=~/^([;:])/ and $lastlisttype = $1;
+      push(@list, $x);
+    }
+  }
+  foreach my $l (@list) {
     # line/page break
     if (($l=~s/^---$/<br style="page-break-after: always;">/) or
         ($l=~s/^--$/<br style="clear: both;">/)) {
       $t2 .= $l; next;
     }
 
-    my($hmarks, $x, $listtype, $txt) = $l=~/^\s*(([#*:;]*)([#*:;]))\s*(.*)$/; # whether list item
+    my($hmarks, $x, $listtype, $txt0) = $l=~/^\s*(([#*:;]*)([#*:;]))\s*(.*)$/s; # whether list item
+      $l=~/list1/ and $DB::single=$DB::single=1;
     $listtype  = $listtype || '';
     $x         = $x        || '';
+    $txt0      = $txt0     || '';
+    my $txt = (WINI::wini($txt0, {para=>'nb'}))[0];
+    $txt0=~/list1/ and $DB::single=$DB::single=1;
     my $hmark2 = ($hmarks) ? substr($hmarks, 1) : '';
     if ($x=~/[:;]/ and $listtype=~/[*#]/){ # *# within :;
-      push(@innerlist, "$hmark2 $txt");
+ #     push(@innerlist, "$hmark2 $txt");
     }elsif ($listtype ne '') {
       $ptype = 'list';
       my $listdepth = length($x)+length($listtype);
@@ -623,30 +657,27 @@ sub list{
       for (my $i = $lastlistdepth-$listdepth; $i>0; $i--) {
         $t2 .= sprintf("%*s</%s>$cr", $i+$listdepth, ' ', $listtagc[$i+$listdepth]);
       }
-      my $txt_innerlist = '';
-      if(defined $innerlist[0]){
-        $txt_innerlist = (WINI::wini(join("\n", @innerlist), {para=>'nb'}))[0] .
-          "</${itemtagc}>\n<${itemtagc}>";
-        undef @innerlist;
-      }
-      $txt = $txt_innerlist.$txt;
+#      my $txt_innerlist = '';
+#      if(defined $innerlist[0]){
+#        $txt_innerlist = (WINI::wini(join("\n", @innerlist), {para=>'nb'}))[0] .
+#          "</${itemtagc}>\n<${itemtagc}>";
+#        undef @innerlist;
+#      }
+#      $txt = $txt_innerlist.$txt;
       $txt =~s/%/%%/g;
       $t2 .= sprintf("%*s<$itemtag>$txt</$itemtagc>$cr",$listdepth+1,' ');
       $lastlistdepth = $listdepth;
       push(@{$listitems{join("\t", grep {$_||''} @listtagc)}}, {$itemtag => $txt});
-print STDERR "1>>>>".($itemtag||'')."<<<<\n";
     } else { # if not list item
-print STDERR "2>>>>".($itemtag||'')."<<<<\n";
       $t2 .= "$l\n";
     }
   } # foreach $l
-  if(defined $innerlist[0]){
-print STDERR "0>>>>".($itemtag||'')."<<<<\n";
-    $DB::single=$DB::single=1;
-    my $wini2 = (WINI::wini(join("\n", @innerlist), {para=>'nb'}))[0];
-    $t2 .= sprintf("%*s<$itemtag>\n<!-- rrrr -->\n", $lastlistdepth, ' ') . $wini2 .
-      "\n<!-- ssss -->\n</${itemtagc}>\n";
-  }
+#  if(defined $innerlist[0]){
+#    $DB::single=$DB::single=1;
+#    my $wini2 = (WINI::wini(join("\n", @innerlist), {para=>'nb'}))[0];
+#    $t2 .= sprintf("%*s<$itemtag>\n<!-- rrrr -->\n", $lastlistdepth, ' ') . $wini2 .
+#      "\n<!-- ssss -->\n</${itemtagc}>\n";
+#  }
 
   if ($lastlistdepth>0) {
     $t2 .= sprintf("%*s", $lastlistdepth-1, ' ') . ("</$listtagc>" x $lastlistdepth) . $cr;
@@ -701,6 +732,49 @@ sub listmacro{
   return($r);
 }
 
+sub span{ # text deco with <span></span>
+  my($f, $class_id)=@_;
+  my($txt, @opt) = ($f->[0], @$f[1..$#$f]);
+  my %style;
+  my $style = '';
+  foreach my $o (@opt){
+    if(my($o1,$o2) = $o=~/(_|\[\])(\w*)/){ # underline, frame
+      my $prop = ($o1 eq '_') ? 'border-bottom' : 'border';
+      $style{"${prop}-style"} = 'solid';
+      $style{"${prop}-width"} = '1px';
+      $o2=~s/(\d+)/$style{"${prop}-width"} = $1."px"; ''/ge;
+      $o2=~s[^(dotted|dashed|solid|double|groove|ridge|inset|outset)$]
+            [$style{"${prop}-style"}=$o2; '']ge;
+      $o2=~s[^([a-z]+|#[0-9a-f]{3}|#[0-9a-f]{6})$]
+            [$style{"${prop}-color"} = color($1); '']ige;
+    }elsif($o=~/^
+([\d.]+(?:em|rem|vw|vh|%|px|pt|pc|vmin|vmax))<
+([\d.]+(?:em|rem|vw|vh|%|px|pt|pc|vmin|vmax))<
+([\d.]+(?:em|rem|vw|vh|%|px|pt|pc|vmin|vmax))/x){
+      $style{fontsize} = sprintf('clamp(%s, %s, %s)', $1, $2, $3);
+    }elsif($o=~/^(
+[\d.]+(?:em|rem|vw|vh|%|px|pt|pc|vmin|vmax)| # absolute or relative length
+smaller|larger| # relative kw
+(?:x-|xx-)?(?:small|large) # absolute kw
+)$/x){
+      $style{fontsize} = $1;
+    }elsif($o eq 'wb'){ # color: white,black
+      ($style{"color"}, $style{"background-color"}) = qw/white black/;
+    }elsif($o=~/^([a-z]+|#[0-9a-f]{3}|#[0-9a-f]{6})(?:,([a-z]+|#[0-9a-f]{3}|#[0-9a-f]{6}))?/){ # color
+      my($fcolor, $bcolor) = ($1||'', $2||'');
+      $fcolor=~s/^(red|green|blue|magenta|purple)$/color($1)/e;
+      $bcolor=~s/^(red|green|blue|magenta|purple)$/color($1)/e;
+      $style{'color'} = $fcolor;
+      ($bcolor) and $style{'background-color'} = $bcolor;
+    }
+  } # foreach $o
+  $style = join('; ',  map {"$_: $style{$_}"} (sort keys %style));
+  $class_id = $class_id || '';
+  print STDERR "##### ", Dumper %style;
+  $style = ($style) ? qq{ style="$style"} : '';
+  return(qq!<span${class_id}$style>$txt</span>!);
+}
+
 sub call_macro{
   my($fulltext, $macroname, $opt, $baseurl, @f) = @_;
   my(@class, @id);
@@ -712,7 +786,8 @@ sub call_macro{
   $macroname=~s/^[\n\s]*//;
   $macroname=~s/[\n\s]*$//;
   if($macroname eq ''){
-    return(($class_id) ? qq!<span${class_id}>$f[0]</span>! : $f[0]);
+    return(span(\@f, $class_id));
+#    return(($class_id) ? qq!<span${class_id}>$f[0]</span>! : $f[0]);
   }
 
   (defined $MACROS{$macroname}) and return($MACROS{$macroname}(@f));
