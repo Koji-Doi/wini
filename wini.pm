@@ -597,43 +597,62 @@ sub list{
   {
     my $i = 0; my @subs;
     while ( ($pack, $file, $line, $subname, $hasargs, $wantarray, $evaltext, $is_require) = caller( $i++) ){push(@subs, "$line\[$subname]")}
-    print STDERR "****CALLER**** ", join(' <- ', @subs), "\n";
+#    print STDERR "****CALLER**** ", join(' <- ', @subs), "\n";
   } 
   $ptype = $ptype || '';
   $cr = $cr || "\n";
   my $t2='';
-  my $lastlistdepth=0;
-  my $listtagc;
-  my @is_dl;  # $is_dl[1]: whether list type of depth 1 is 'dl'
-  my @listtagc;
+  #my $lastlistdepth=0;
+  #my $listtagc;
+  #my @is_dl;  # $is_dl[1]: whether list type of depth 1 is 'dl'
+  #my @listtagc;
   my %listitems;
+  my %listtype = (''=>'', ';'=>'dl', ':'=>'dl', '*'=>'ul', '#'=>'ol');
+  my %listtag  = (''=>'', ';'=>'dt', ':'=>'dd', '*'=>'li', '#'=>'li');
 #  my @innerlist; # *# in ;:
   my($itemtag, $listtag, $itemtagc);
   my @list;
-  my $lastlisttype = '';
+  my $rootlisttype = '';
   foreach my $x (split("\n", $t)){
-    if($#list>=0 and $x=~/^([;:])([;:*#].*)/ and ($1 eq $lastlisttype)){
-      $list[$#list] = ($list[$#list]) ? $list[$#list]."\n$2" : $x;
-      $lastlisttype = $1;
+    #if($#list==-1){ # new item entry
+    #  push(@list, $x);
+    #}els
+    if($x=~/^([;:*#])([;:*#].*)/ and ($1 eq $rootlisttype)){
+      if($#list>=0){
+        $list[-1] = $list[-1]."\n$2";
+      }else{
+        push(@list, $2);
+      }
+      $rootlisttype = $1;
     }else{
-      $x=~/^([;:])/ and $lastlisttype = $1;
+      $x=~/^([;:*#])/ and $rootlisttype = $1;
       push(@list, $x);
     }
   }
+
+  my($lastlisttype, $lastlisttag) = ('', '');
   foreach my $l (@list) {
     # line/page break
     if (($l=~s/^---$/<br style="page-break-after: always;">/) or
         ($l=~s/^--$/<br style="clear: both;">/)) {
       $t2 .= $l; next;
     }
+    my($hmark, $txt0) = $l=~/^\s*([#*:;])(\S*\s+.*)/s;
+    ($txt0) or $t2 .= $l,next; # non-list content
+    my($txt1, undef) = WINI::wini($txt0, {para=>'nb'});
+    if($hmark){
+      my($listtype, $listtag) = ($listtype{$hmark},  $listtag{$hmark});
+      ($lastlisttype ne $listtype) and $t2 .= "</$lastlisttype>\n<$listtype>\n";
+      $t2 .= "<$listtag>$txt1</$listtag>\n";
+      ($lastlisttype, $lastlisttag) = ($listtype, $listtag);
+    }
 
+=begin c
     my($hmarks, $x, $listtype, $txt0) = $l=~/^\s*(([#*:;]*)([#*:;]))\s*(.*)$/s; # whether list item
-      $l=~/list1/ and $DB::single=$DB::single=1;
     $listtype  = $listtype || '';
     $x         = $x        || '';
     $txt0      = $txt0     || '';
     my $txt = (WINI::wini($txt0, {para=>'nb'}))[0];
-    $txt0=~/list1/ and $DB::single=$DB::single=1;
     my $hmark2 = ($hmarks) ? substr($hmarks, 1) : '';
     if ($x=~/[:;]/ and $listtype=~/[*#]/){ # *# within :;
  #     push(@innerlist, "$hmark2 $txt");
@@ -657,13 +676,6 @@ sub list{
       for (my $i = $lastlistdepth-$listdepth; $i>0; $i--) {
         $t2 .= sprintf("%*s</%s>$cr", $i+$listdepth, ' ', $listtagc[$i+$listdepth]);
       }
-#      my $txt_innerlist = '';
-#      if(defined $innerlist[0]){
-#        $txt_innerlist = (WINI::wini(join("\n", @innerlist), {para=>'nb'}))[0] .
-#          "</${itemtagc}>\n<${itemtagc}>";
-#        undef @innerlist;
-#      }
-#      $txt = $txt_innerlist.$txt;
       $txt =~s/%/%%/g;
       $t2 .= sprintf("%*s<$itemtag>$txt</$itemtagc>$cr",$listdepth+1,' ');
       $lastlistdepth = $listdepth;
@@ -671,19 +683,17 @@ sub list{
     } else { # if not list item
       $t2 .= "$l\n";
     }
+=end c
+=cut
+
   } # foreach $l
-#  if(defined $innerlist[0]){
-#    $DB::single=$DB::single=1;
-#    my $wini2 = (WINI::wini(join("\n", @innerlist), {para=>'nb'}))[0];
-#    $t2 .= sprintf("%*s<$itemtag>\n<!-- rrrr -->\n", $lastlistdepth, ' ') . $wini2 .
-#      "\n<!-- ssss -->\n</${itemtagc}>\n";
+
+  $lastlisttype and $t2 .= "</$lastlisttype>\n";
+#  if ($lastlistdepth>0) {
+#    $t2 .= sprintf("%*s", $lastlistdepth-1, ' ') . ("</$listtagc>" x $lastlistdepth) . $cr;
+#    $lastlistdepth=0;
 #  }
-
-  if ($lastlistdepth>0) {
-    $t2 .= sprintf("%*s", $lastlistdepth-1, ' ') . ("</$listtagc>" x $lastlistdepth) . $cr;
-    $lastlistdepth=0;
-  }
-
+  $t2=~s{(</>|<>)}{}g;
   return(
     ($t2=~/\S/)?(
     ($ptype eq 'header' or $ptype eq 'list')                                      ? "$t2\n"
@@ -770,7 +780,7 @@ smaller|larger| # relative kw
   } # foreach $o
   $style = join('; ',  map {"$_: $style{$_}"} (sort keys %style));
   $class_id = $class_id || '';
-  print STDERR "##### ", Dumper %style;
+#  print STDERR "##### ", Dumper %style;
   $style = ($style) ? qq{ style="$style"} : '';
   return(qq!<span${class_id}$style>$txt</span>!);
 }
