@@ -591,32 +591,21 @@ sub footnote{
 
 sub list{
   my($t, $cr, $ptype, $para, $myclass) = @_;
-  my ($pack, $file, $line, $subname, $hasargs, $wantarray, 
-      $evaltext, $is_require) = caller(0);
-#  print STDERR "****CALLER**** $subname is called: $line\@$file\n";
   {
-    my $i = 0; my @subs;
-    while ( ($pack, $file, $line, $subname, $hasargs, $wantarray, $evaltext, $is_require) = caller( $i++) ){push(@subs, "$line\[$subname]")}
+#    my $i = 0; my @subs;
+#    while ( ($pack, $file, $line, $subname, $hasargs, $wantarray, $evaltext, $is_require) = caller( $i++) ){push(@subs, "$line\[$subname]")}
 #    print STDERR "****CALLER**** ", join(' <- ', @subs), "\n";
   } 
   $ptype = $ptype || '';
   $cr = $cr || "\n";
   my $t2='';
-  #my $lastlistdepth=0;
-  #my $listtagc;
-  #my @is_dl;  # $is_dl[1]: whether list type of depth 1 is 'dl'
-  #my @listtagc;
   my %listitems;
   my %listtype = (''=>'', ';'=>'dl', ':'=>'dl', '*'=>'ul', '#'=>'ol');
   my %listtag  = (''=>'', ';'=>'dt', ':'=>'dd', '*'=>'li', '#'=>'li');
-#  my @innerlist; # *# in ;:
   my($itemtag, $listtag, $itemtagc);
   my @list;
   my $rootlisttype = '';
   foreach my $x (split("\n", $t)){
-    #if($#list==-1){ # new item entry
-    #  push(@list, $x);
-    #}els
     if($x=~/^([;:*#])([;:*#].*)/ and ($1 eq $rootlisttype)){
       if($#list>=0){
         $list[-1] = $list[-1]."\n$2";
@@ -646,53 +635,9 @@ sub list{
       $t2 .= "<$listtag>$txt1</$listtag>\n";
       ($lastlisttype, $lastlisttag) = ($listtype, $listtag);
     }
-
-=begin c
-    my($hmarks, $x, $listtype, $txt0) = $l=~/^\s*(([#*:;]*)([#*:;]))\s*(.*)$/s; # whether list item
-    $listtype  = $listtype || '';
-    $x         = $x        || '';
-    $txt0      = $txt0     || '';
-    my $txt = (WINI::wini($txt0, {para=>'nb'}))[0];
-    my $hmark2 = ($hmarks) ? substr($hmarks, 1) : '';
-    if ($x=~/[:;]/ and $listtype=~/[*#]/){ # *# within :;
- #     push(@innerlist, "$hmark2 $txt");
-    }elsif ($listtype ne '') {
-      $ptype = 'list';
-      my $listdepth = length($x)+length($listtype);
-      ($listtype eq ';') and $is_dl[$listdepth]='dl';
-      ($itemtag, $listtag) = ($listtype eq '*') ? qw/li ul/
-                           : ($listtype eq ':') ? ((($is_dl[$listdepth]||'') eq 'dl')?qw/dd dl/:(qq{li style="list-style:none"}, 'ul'))
-                           : ($listtype eq ';') ? qw/dt dl/ : qw/li ol/;
-      $itemtagc = $itemtag;   # closing tag for list item
-      $listtagc = $listtag;   # closing tag for list
-      $itemtagc =~ s/ .*//;
-      $listtagc =~ s/ .*//;
-      $listtagc[$listdepth] = $listtagc;
-      # new list start?
-      if ($listdepth>$lastlistdepth) {
-        $t2 .= sprintf(qq!%*s<$listtag class="winilist">$cr!, $listdepth, ' ');
-      }
-      # new list end?
-      for (my $i = $lastlistdepth-$listdepth; $i>0; $i--) {
-        $t2 .= sprintf("%*s</%s>$cr", $i+$listdepth, ' ', $listtagc[$i+$listdepth]);
-      }
-      $txt =~s/%/%%/g;
-      $t2 .= sprintf("%*s<$itemtag>$txt</$itemtagc>$cr",$listdepth+1,' ');
-      $lastlistdepth = $listdepth;
-      push(@{$listitems{join("\t", grep {$_||''} @listtagc)}}, {$itemtag => $txt});
-    } else { # if not list item
-      $t2 .= "$l\n";
-    }
-=end c
-=cut
-
   } # foreach $l
 
   $lastlisttype and $t2 .= "</$lastlisttype>\n";
-#  if ($lastlistdepth>0) {
-#    $t2 .= sprintf("%*s", $lastlistdepth-1, ' ') . ("</$listtagc>" x $lastlistdepth) . $cr;
-#    $lastlistdepth=0;
-#  }
   $t2=~s{(</>|<>)}{}g;
   return(
     ($t2=~/\S/)?(
@@ -780,13 +725,13 @@ smaller|larger| # relative kw
   } # foreach $o
   $style = join('; ',  map {"$_: $style{$_}"} (sort keys %style));
   $class_id = $class_id || '';
-#  print STDERR "##### ", Dumper %style;
   $style = ($style) ? qq{ style="$style"} : '';
   return(qq!<span${class_id}$style>$txt</span>!);
 }
 
 sub call_macro{
   my($fulltext, $macroname, $opt, $baseurl, @f) = @_;
+# macroname: "macroname" or "add-in package name:macroname". e.g. "{{x|abc}}", "{{mypackage:x|abc}}"
   my(@class, @id);
   $macroname=~s/\.([^.#]+)/push(@id,    $1); ''/ge;
   $macroname=~s/\#([^.#]+)/push(@class, $1); ''/ge;
@@ -799,7 +744,6 @@ sub call_macro{
     return(span(\@f, $class_id));
 #    return(($class_id) ? qq!<span${class_id}>$f[0]</span>! : $f[0]);
   }
-
   (defined $MACROS{$macroname}) and return($MACROS{$macroname}(@f));
   ($macroname=~/^calc$/i)    and return(ev(\@f, $opt->{_v}));
 #  ($macroname eq 'va')     and return(var($f[0], $opt->{_v}));
@@ -831,13 +775,16 @@ sub call_macro{
 sub readpars{
   my($p, @list)=@_;
   my %pars; my @pars;
-  foreach my $x (split(/\|/, $p)){
+  my @par0 = (ref $p eq 'ARRAY') ? @$p : split(/\|/, $p);
+
+  foreach my $x (@par0){
     if(my($k,$v) = $x=~/(\w+)\s*=\s*(.*)\s*/){
       $pars{$k}=$v;
     }else{
       push(@pars, $x);
     }
   }
+
   foreach my $k (@list){
     (exists $pars{$k}) or $pars{$k} = shift(@pars);
   }
