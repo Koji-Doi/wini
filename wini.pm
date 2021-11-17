@@ -591,11 +591,11 @@ sub footnote{
 
 sub list{
   my($t, $cr, $ptype, $para, $myclass) = @_;
-  {
+#  {
 #    my $i = 0; my @subs;
 #    while ( ($pack, $file, $line, $subname, $hasargs, $wantarray, $evaltext, $is_require) = caller( $i++) ){push(@subs, "$line\[$subname]")}
 #    print STDERR "****CALLER**** ", join(' <- ', @subs), "\n";
-  } 
+#  }
   $ptype = $ptype || '';
   $cr = $cr || "\n";
   my $t2='';
@@ -659,7 +659,7 @@ sub close_listtag{
 
 sub symmacro{
   # {{/*_-|text}}
-  my($tag0, $text)=@_;
+  my($tag0, $text)= map {$_ || ''} @_;
   my @styles;
   my $r;
   my $strong=0;
