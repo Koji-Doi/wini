@@ -9,6 +9,16 @@ use mysystem;
 use lib '.';
 use wini;
 
+sub std{
+  my($x)=@_;
+  $x=~s/[\n\r]*//g;
+  $x=~s/> */>/g;
+  $x=~s/\s{2,}//g;
+  $x=~s/ +</</g;
+  $x=~s/> +/>/g;
+  return($x);
+}
+
 {
   my($o, undef) = WINI::wini(<<'EOC');
 Table
@@ -21,7 +31,7 @@ Table
 |!        l5 |&b     a5 |@4 b5 |
 
 EOC
-  $o=~s/[\n\r]*//g;
+  $o=std($o);
 
 my $p = <<EOC;
 <p>
@@ -40,7 +50,7 @@ Table
 </table>
 
 EOC
-  $p=~s/[\n\r]*//g;
+  $p=std($p);
 
   is $o, $p;
 }

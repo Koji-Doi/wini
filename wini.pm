@@ -472,8 +472,7 @@ sub wini{
   $t0 =~ s/^"""([\w =]*)\n(.*?)\n"""$/&save_quote("q $1", $2)/esmg;
     
   # conv table to html
-  $t0 =~ s/^\s*(\|.*?)[\n\r]+(?!\|)/make_table($1)/esmg;
-
+  $t0 =~ s/^\s*(\|.*?)[\n\r]+(?!\|)/table($1)/esmg;
   # footnote
   if(exists $opt->{table}){ # in table
     my $table_id = $opt->{table};
@@ -495,8 +494,6 @@ sub wini{
   my $r = '';
   my @localclass = ('wini');
   ($is_bs4) and push(@localclass, "col-sm-12");
-  #my $section;
-  #my $myclass = ' class="'.join(' ',@localclass).'"';
   foreach my $t (split(/\n{2,}/, $t0)){ # for each paragraph
     my @myclass = @localclass;
     my($myclass, $myid) = ('', '');
@@ -524,10 +521,13 @@ sub wini{
         $t =~ s!\[([^]]*?)\]!make_a($1, $baseurl)!esg #or
       ) or last; # no subst need, then escape inner loop
     } # loop while subst needed
+    print STDERR __LINE__, "t=$t\n#####\n";
 
     my($rr, $list) = list($t, $cr, $ptype, $para, $myclass);
     #(defined $section and $section ne '') and $rr="$section\n$r" and $section='';
+    print STDERR __LINE__, "rr=$rr\n#####\n";
     $r .= $rr;
+
   } # foreach $t # for each paragraph
 
   $r=~s/\x00i=(\d+)\x01/$save[$1]/ge;
@@ -602,21 +602,13 @@ sub list{
   $ptype = $ptype || '';
   $cr = $cr || "\n";
   my $t2='';
-  #my $lastlistdepth=0;
-  #my $listtagc;
-  #my @is_dl;  # $is_dl[1]: whether list type of depth 1 is 'dl'
-  #my @listtagc;
   my %listitems;
   my %listtype = (''=>'', ';'=>'dl', ':'=>'dl', '*'=>'ul', '#'=>'ol');
   my %listtag  = (''=>'', ';'=>'dt', ':'=>'dd', '*'=>'li', '#'=>'li');
-#  my @innerlist; # *# in ;:
   my($itemtag, $listtag, $itemtagc);
   my @list;
   my $rootlisttype = '';
   foreach my $x (split("\n", $t)){
-    #if($#list==-1){ # new item entry
-    #  push(@list, $x);
-    #}els
     if($x=~/^([;:*#])([;:*#].*)/ and ($1 eq $rootlisttype)){
       if($#list>=0){
         $list[-1] = $list[-1]."\n$2";
@@ -640,59 +632,17 @@ sub list{
     my($hmark, $txt0) = $l=~/^\s*([#*:;])(\S*\s+.*)/s;
     ($txt0) or $t2 .= $l,next; # non-list content
     my($txt1, undef) = WINI::wini($txt0, {para=>'nb'});
+    $txt1=~s/([^\n])$/$1\n/;
     if($hmark){
       my($listtype, $listtag) = ($listtype{$hmark},  $listtag{$hmark});
-      ($lastlisttype ne $listtype) and $t2 .= "</$lastlisttype>\n<$listtype>\n";
+      ($lastlisttype ne $listtype) and $t2 .= qq!</$lastlisttype>\n<$listtype class="winilist">\n!;
       $t2 .= "<$listtag>$txt1</$listtag>\n";
       ($lastlisttype, $lastlisttag) = ($listtype, $listtag);
     }
 
-=begin c
-    my($hmarks, $x, $listtype, $txt0) = $l=~/^\s*(([#*:;]*)([#*:;]))\s*(.*)$/s; # whether list item
-    $listtype  = $listtype || '';
-    $x         = $x        || '';
-    $txt0      = $txt0     || '';
-    my $txt = (WINI::wini($txt0, {para=>'nb'}))[0];
-    my $hmark2 = ($hmarks) ? substr($hmarks, 1) : '';
-    if ($x=~/[:;]/ and $listtype=~/[*#]/){ # *# within :;
- #     push(@innerlist, "$hmark2 $txt");
-    }elsif ($listtype ne '') {
-      $ptype = 'list';
-      my $listdepth = length($x)+length($listtype);
-      ($listtype eq ';') and $is_dl[$listdepth]='dl';
-      ($itemtag, $listtag) = ($listtype eq '*') ? qw/li ul/
-                           : ($listtype eq ':') ? ((($is_dl[$listdepth]||'') eq 'dl')?qw/dd dl/:(qq{li style="list-style:none"}, 'ul'))
-                           : ($listtype eq ';') ? qw/dt dl/ : qw/li ol/;
-      $itemtagc = $itemtag;   # closing tag for list item
-      $listtagc = $listtag;   # closing tag for list
-      $itemtagc =~ s/ .*//;
-      $listtagc =~ s/ .*//;
-      $listtagc[$listdepth] = $listtagc;
-      # new list start?
-      if ($listdepth>$lastlistdepth) {
-        $t2 .= sprintf(qq!%*s<$listtag class="winilist">$cr!, $listdepth, ' ');
-      }
-      # new list end?
-      for (my $i = $lastlistdepth-$listdepth; $i>0; $i--) {
-        $t2 .= sprintf("%*s</%s>$cr", $i+$listdepth, ' ', $listtagc[$i+$listdepth]);
-      }
-      $txt =~s/%/%%/g;
-      $t2 .= sprintf("%*s<$itemtag>$txt</$itemtagc>$cr",$listdepth+1,' ');
-      $lastlistdepth = $listdepth;
-      push(@{$listitems{join("\t", grep {$_||''} @listtagc)}}, {$itemtag => $txt});
-    } else { # if not list item
-      $t2 .= "$l\n";
-    }
-=end c
-=cut
-
   } # foreach $l
 
   $lastlisttype and $t2 .= "</$lastlisttype>\n";
-#  if ($lastlistdepth>0) {
-#    $t2 .= sprintf("%*s", $lastlistdepth-1, ' ') . ("</$listtagc>" x $lastlistdepth) . $cr;
-#    $lastlistdepth=0;
-#  }
   $t2=~s{(</>|<>)}{}g;
   return(
     ($t2=~/\S/)?(
@@ -941,7 +891,7 @@ sub ruby{
 
 {
 my $table_no;
-sub make_table{
+sub table{
   my($in, $footnotes)=@_;
   (defined $table_no) or $table_no=1;
   my $ln=0;
@@ -1249,14 +1199,14 @@ sub make_table{
             map {$style{$c} = $_} (@{$htmlitem[$rn][$_]{copt}{style}{$c}});
           }
         }
-        $copt .= ' style="' . join('', sort map { "$_:$style{$_}; " } grep {$style{$_}} sort keys %style) . '"'; #option for each cell
+        my $style0 = join(' ', sort map { "$_:$style{$_};" } grep {$style{$_}} sort keys %style);
+        ($style0) and $copt .= qq! style="$style0"!; #option for each cell
         my $ctag = (
           (not $htmlitem[$rn][0]{footnote}) and (
           ($htmlitem[$rn][$_]{ctag} and $htmlitem[$rn][$_]{ctag} eq 'th') or 
           ($htmlitem[0][$_]{ctag}   and $htmlitem[0][$_]{ctag}   eq 'th') or
           ($htmlitem[$rn][0]{ctag}  and $htmlitem[$rn][0]{ctag}  eq 'th'))
         )?'th':'td';
-        $copt and $copt=" $copt";
         sprintf("<$ctag$copt>%s</$ctag>", ($htmlitem[$rn][$_]{wini} || ''));
       }
     } (1 .. $#{$htmlitem[1]}) # map
@@ -1280,7 +1230,7 @@ sub make_table{
   $outtxt .= "</table>\n\n";
   $outtxt=~s/\t+/ /g; # tab is separator of cells vertically unified
   return($outtxt);
-} # sub make_table
+} # sub table
 
 } # table env
 
