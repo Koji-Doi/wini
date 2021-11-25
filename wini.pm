@@ -521,13 +521,12 @@ sub wini{
         $t =~ s!\[([^]]*?)\]!make_a($1, $baseurl)!esg #or
       ) or last; # no subst need, then escape inner loop
     } # loop while subst needed
-    print STDERR __LINE__, "t=$t\n#####\n";
 
-    my($rr, $list) = list($t, $cr, $ptype, $para, $myclass);
-    #(defined $section and $section ne '') and $rr="$section\n$r" and $section='';
-    print STDERR __LINE__, "rr=$rr\n#####\n";
-    $r .= $rr;
-
+#    my($rr, $list) = list($t, $cr, $ptype, $para, $myclass);
+    #    $r .= $rr;
+     $t=~s{([*#;:].*?(?:(?=\n[^*#;:])|$))}
+          {my($r,$o)=list($1, $cr, $ptype, $para, $myclass); $r}esg;
+    $r .= $t;
   } # foreach $t # for each paragraph
 
   $r=~s/\x00i=(\d+)\x01/$save[$1]/ge;
@@ -591,16 +590,15 @@ sub footnote{
 
 sub list{
   my($t, $cr, $ptype, $para, $myclass) = @_;
-  my ($pack, $file, $line, $subname, $hasargs, $wantarray, 
-      $evaltext, $is_require) = caller(0);
-#  print STDERR "****CALLER**** $subname is called: $line\@$file\n";
-  {
-    my $i = 0; my @subs;
-    while ( ($pack, $file, $line, $subname, $hasargs, $wantarray, $evaltext, $is_require) = caller( $i++) ){push(@subs, "$line\[$subname]")}
+#  {
+#    my $i = 0; my @subs;
+#    while ( ($pack, $file, $line, $subname, $hasargs, $wantarray, $evaltext, $is_require) = caller( $i++) ){push(@subs, "$line\[$subname]")}
 #    print STDERR "****CALLER**** ", join(' <- ', @subs), "\n";
-  } 
+  #  }
+  
   $ptype = $ptype || '';
   $cr = $cr || "\n";
+  $para = $para || '';
   my $t2='';
   my %listitems;
   my %listtype = (''=>'', ';'=>'dl', ':'=>'dl', '*'=>'ul', '#'=>'ol');
@@ -639,7 +637,6 @@ sub list{
       $t2 .= "<$listtag>$txt1</$listtag>\n";
       ($lastlisttype, $lastlisttag) = ($listtype, $listtag);
     }
-
   } # foreach $l
 
   $lastlisttype and $t2 .= "</$lastlisttype>\n";
@@ -664,7 +661,7 @@ sub close_listtag{
 
 sub symmacro{
   # {{/*_-|text}}
-  my($tag0, $text)=@_;
+  my($tag0, $text)= map {$_ || ''} @_;
   my @styles;
   my $r;
   my $strong=0;
@@ -730,13 +727,13 @@ smaller|larger| # relative kw
   } # foreach $o
   $style = join('; ',  map {"$_: $style{$_}"} (sort keys %style));
   $class_id = $class_id || '';
-#  print STDERR "##### ", Dumper %style;
   $style = ($style) ? qq{ style="$style"} : '';
   return(qq!<span${class_id}$style>$txt</span>!);
 }
 
 sub call_macro{
   my($fulltext, $macroname, $opt, $baseurl, @f) = @_;
+# macroname: "macroname" or "add-in package name:macroname". e.g. "{{x|abc}}", "{{mypackage:x|abc}}"
   my(@class, @id);
   $macroname=~s/\.([^.#]+)/push(@id,    $1); ''/ge;
   $macroname=~s/\#([^.#]+)/push(@class, $1); ''/ge;
@@ -749,7 +746,6 @@ sub call_macro{
     return(span(\@f, $class_id));
 #    return(($class_id) ? qq!<span${class_id}>$f[0]</span>! : $f[0]);
   }
-
   (defined $MACROS{$macroname}) and return($MACROS{$macroname}(@f));
   ($macroname=~/^calc$/i)    and return(ev(\@f, $opt->{_v}));
 #  ($macroname eq 'va')     and return(var($f[0], $opt->{_v}));
@@ -781,13 +777,16 @@ sub call_macro{
 sub readpars{
   my($p, @list)=@_;
   my %pars; my @pars;
-  foreach my $x (split(/\|/, $p)){
+  my @par0 = (ref $p eq 'ARRAY') ? @$p : split(/\|/, $p);
+
+  foreach my $x (@par0){
     if(my($k,$v) = $x=~/(\w+)\s*=\s*(.*)\s*/){
       $pars{$k}=$v;
     }else{
       push(@pars, $x);
     }
   }
+
   foreach my $k (@list){
     (exists $pars{$k}) or $pars{$k} = shift(@pars);
   }
