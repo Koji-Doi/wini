@@ -21,8 +21,16 @@ use wini;
 EOC
   $o=~s/[\n\r]*//g;
   $o=~s/\s{2,}/ /g;
-my $p = <<EOC;
-<table id="winitable1" class="winitable" border="1" style="border-collapse: collapse; border: solid 1px; "><caption> table with &r and &&&l</caption><tbody><tr><th style="text-align:left; ">aaaaaaaaa</th><th style="text-align:center; ">bbbbbbbbbb</th><th style="">cccccccc</th></tr><tr style="text-align:right;"><td style="text-align:right; ">d</td><td style="text-align:left; ">e</td><td style="">f</td></tr><tr><td style="text-align:left; ">g</td><td style="text-align:right; ">h</td><td style="">i</td></tr><tr><td style="text-align:left; ">jjjjjjjjjjjjjjjjjjjjjjjjjjjj</td><td style="text-align:center; ">kkkkkkkkkkkkkkkkkkkkkkkkkk</td><td style="">lllllllllllllllllllllllllll</td></tr></tbody></table>
+  my $p = <<EOC;
+<table id="winitable1" class="winitable" border="1" style="border-collapse: collapse; border: solid 1px; ">
+<caption> table with &r and &&&l</caption>
+<tbody>
+<tr><th style="text-align:left;">aaaaaaaaa </th><th style="text-align:center;">bbbbbbbbbb </th><th>cccccccc </th></tr>
+<tr style="text-align:right;"><td style="text-align:right;">d </td><td style="text-align:left;">e </td><td>f </td></tr>
+<tr><td style="text-align:left;">g </td><td style="text-align:right;">h </td><td>i </td></tr>
+<tr><td style="text-align:left;">jjjjjjjjjjjjjjjjjjjjjjjjjjjj </td><td style="text-align:center;">kkkkkkkkkkkkkkkkkkkkkkkkkk </td><td>lllllllllllllllllllllllllll </td></tr>
+</tbody>
+</table>
 EOC
   $p=~s/[\n\r]*//g;
   $p=~s/\s{2,}/ /g;

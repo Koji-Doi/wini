@@ -448,7 +448,7 @@ sub wini_sects{
 }
 
 sub wini{
-# wini($tagettext, {para=>'br', 'is_bs4'=>1, baseurl=>'http://example.com', nocr=>1});
+# wini($tagettext, {para=>'br', baseurl=>'http://example.com', nocr=>1});
   # para: paragraph mode (br:set <br>, p: set <p>, nb: no separation
   # nocr: whether CRs are conserved in result text. 0(default): conserved, 1: not conserved
   # table: table-mode, where footnote macro is effective. $opt->{table} must be a table ID. Footnote texts are set to @{$opt->{footnote}}
@@ -456,7 +456,7 @@ sub wini{
   ($t0) and $t0=~s/\r(?=\n)//g; # cr/lf -> lf
   ($t0) and $t0=~s/(?!\n)$/\n/s;
   ($t0) or return('');
-  my($baseurl, $is_bs4, $cssfile) = map {$opt->{$_}} qw/baseurl is_bs4 cssfile/;
+  my($baseurl, $cssfile) = map {$opt->{$_}} qw/baseurl cssfile/;
   my $cr    = (defined $opt->{nocr} and $opt->{nocr}==1)
               ?"\t":"\n"; # option to inhibit CR insertion (in table)
   my $para  = (defined $opt->{para}) ? $opt->{para} : 'p'; # p or br or none;
@@ -493,11 +493,10 @@ sub wini{
 
   my $r = '';
   my @localclass = ('wini');
-  ($is_bs4) and push(@localclass, "col-sm-12");
   foreach my $t (split(/\n{2,}/, $t0)){ # for each paragraph
     my @myclass = @localclass;
     my($myclass, $myid) = ('', '');
-    my $ptype; # type of each paragraph (list, header, normal paragraph, etc.)
+    my $ptype = ''; # type of each paragraph (list, header, normal paragraph, etc.)
 
     while(1){ # loop while subst needed      
       my($x, $id0, $cont) = $t=~/^(!+)([-#.\w]*)\s*(.*)$/m; # !!!...
@@ -524,8 +523,16 @@ sub wini{
 
 #    my($rr, $list) = list($t, $cr, $ptype, $para, $myclass);
     #    $r .= $rr;
-     $t=~s{([*#;:].*?(?:(?=\n[^*#;:])|$))}
-          {my($r,$o)=list($1, $cr, $ptype, $para, $myclass); $r}esg;
+     $t=~s{(?:^|(?<=\n))([*#;:].*?(?:(?=\n[^*#;:])|$))}
+          {print STDERR "*** 1: $1\n***\n"; my($r,$o)=list($1, $cr, $ptype, $para, $myclass); $r}esg;
+     ($t=~/\S/) and 
+       $t = ($ptype eq 'header' or $ptype eq 'list')                                     ? "$t\n"
+          : ($para eq 'br')                                                              ? "$t<br>$cr"
+          : ($para eq 'nb')                                                              ? $t
+          : $t=~m{<(html|body|head|p|table|img|figure|blockquote|[uod]l)[^>]*>.*</\1>}is ? $t
+          : $t=~m{<!doctype}is                                                           ? $t
+          : "<p${myclass}>\n$t</p>$cr$cr";
+
     $r .= $t;
   } # foreach $t # for each paragraph
 
