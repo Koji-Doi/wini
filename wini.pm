@@ -754,6 +754,7 @@ sub call_macro{
 #    return(($class_id) ? qq!<span${class_id}>$f[0]</span>! : $f[0]);
   }
   (defined $MACROS{$macroname}) and return($MACROS{$macroname}(@f));
+  ($macroname=~m{^[ -/:-@\[-~]$}) and (!$f[0]) and return('&#x'.unpack('H*',$macroname).';');
   ($macroname=~/^calc$/i)    and return(ev(\@f, $opt->{_v}));
 #  ($macroname eq 'va')     and return(var($f[0], $opt->{_v}));
   ($macroname=~/^va$/i)      and return($opt->{_v}{$f[0]});
@@ -771,10 +772,6 @@ sub call_macro{
   ($macroname=~/^l$/i)       and return('&#x7b;'); # {
   ($macroname=~/^bar$/i )    and return('&#x7c;'); # |
   ($macroname=~/^r$/i)       and return('&#x7d;'); # }
-  ($macroname eq '<')        and return('&#x3c;'); # <
-  ($macroname eq '>')        and return('&#x3e;'); # >
-  ($macroname eq '[')        and return('&#x5b;'); # [
-  ($macroname eq ']')        and return('&#x5d;'); # ]
 
   warn("Macro named '$macroname' not found");
   my $r = sprintf(qq#\\{\\{%s}}<!-- Macro named '$macroname' not found! -->#, join('|', $macroname, @f));
