@@ -218,21 +218,21 @@ sub stand_alone{
     "cssflamework:s" => \@cssflameworks
   );
   foreach my $i (@libpaths){
-    print STDERR "Trying to add $i into library directory\n";
+    mes("Trying to add $i into library directory\n");
     (-d $i) ? push(@INC, $i) : warn("$i for extra library not found.\n");
   }
   foreach my $lib (@libs){ # 'form', etc.
     my $r = eval{load($lib)};
-    (defined $r) ? print(STDERR "Loaded library: $lib\n") : warn("failed to load library '$lib'\n");
+    (defined $r) ? mes("Loaded library: $lib\n") : warn("failed to load library '$lib'\n");
   }
 
   (defined $cssflameworks[0]) and ($cssflameworks[0] eq '') and $cssflameworks[0]='https://unpkg.com/mvp.css'; # 'https://newcss.net/new.min.css';
   ($test) and ($input, $output)=("test.wini", "test.html");
   if ($input) {
     unless(open($fhi, '<:utf8', $input)){
-      print STDERR "Not accessible: $input\n";
+      mes("Not accessible: $input\n");
       $input = "$input.wini";
-      print STDERR "Will try to open: $input\n";
+      mes("Will try to open: $input\n");
       open($fhi, '<:utf8', $input) or die "Not accessible either: $input";
     }
   } else {
@@ -243,7 +243,7 @@ sub stand_alone{
   unless($output){
     if ($input) {
       $output = "$input.html";
-      print STDERR "Will try to create $output\n";
+      mes("Will try to create $output\n");
       open($fho, '>:utf8', $output) or die "Cannot open file: $output";
     } else {
       binmode STDOUT, ':utf8';
@@ -253,11 +253,11 @@ sub stand_alone{
     if (-d $output) {
       $output = "$output/$input.html";
     } elsif (substr($output, -1) eq '/') {
-      print STDERR "Will try to create directory: $output\n";
+      mes("Will try to create directory: $output\n");
       mkdir($output) or die "Cannot create directory: $output";
       $output = "$output/$input.html";
     }
-    print STDERR "Will try to create file: $output\n";
+    mes("Will try to create file: $output\n");
     open($fho, '>:utf8', $output) or die "Cannot create file: $output";
   }
   (defined $cssfile) and ($cssfile eq '') and $cssfile="wini.css";
@@ -269,6 +269,10 @@ sub stand_alone{
   print {$fho} (wini_sects(join('', @input), {dir=>getcwd, whole=>$whole, cssfile=>$cssfile, title=>$title, cssflameworks=>\@cssflameworks}))[0];
 } # sub stand_alone
 
+sub mes{ # display guide, warning etc. to STDERR
+  my($x, $o) = @_;
+  print STDERR "$x\n";
+}
 sub help{
   print pod2usage(-verbose => 2, -input => $FindBin::Bin . "/" . $FindBin::Script);
   exit();
@@ -419,7 +423,7 @@ sub wini_sects{
     (-f $basefile) or $basefile = $opt->{dir}."/$basefile";
     (-f $basefile) or $basefile =    "_template/$basefile";
     (-f $basefile) or die qq{File "$sectdata_depth[0][-1]{template}": not found};
-    print STDERR "We use $basefile as template.\n";
+    ($debug) and print STDERR "We use $basefile as template.\n";
     open(my $fhi, '<:utf8', $basefile);
     my $opt1 = { %$opt };
     foreach my $k (grep {$_ ne 'template'} keys %{$sectdata_depth[0][-1]{val}}){
@@ -524,7 +528,7 @@ sub wini{
 #    my($rr, $list) = list($t, $cr, $ptype, $para, $myclass);
     #    $r .= $rr;
      $t=~s{(?:^|(?<=\n))([*#;:].*?(?:(?=\n[^*#;:])|$))}
-          {print STDERR "*** 1: $1\n***\n"; my($r,$o)=list($1, $cr, $ptype, $para, $myclass); $r}esg;
+          {my($r,$o)=list($1, $cr, $ptype, $para, $myclass); $r}esg;
      ($t=~/\S/) and 
        $t = ($ptype eq 'header' or $ptype eq 'list')                                     ? "$t\n"
           : ($para eq 'br')                                                              ? "$t<br>$cr"
