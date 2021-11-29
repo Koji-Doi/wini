@@ -457,8 +457,8 @@ sub wini{
   # nocr: whether CRs are conserved in result text. 0(default): conserved, 1: not conserved
   # table: table-mode, where footnote macro is effective. $opt->{table} must be a table ID. Footnote texts are set to @{$opt->{footnote}}
   my($t0, $opt) = @_;
-  ($t0) and $t0=~s/\r(?=\n)//g; # cr/lf -> lf
-  ($t0) and $t0=~s/(?!\n)$/\n/s;
+  (defined $t0) and $t0=~s/\r(?=\n)//g; # cr/lf -> lf
+  (defined $t0) and $t0=~s/(?!\n)$/\n/s;
   ($t0) or return('');
   my($baseurl, $cssfile) = map {$opt->{$_}} qw/baseurl cssfile/;
   my $cr    = (defined $opt->{nocr} and $opt->{nocr}==1)
@@ -519,7 +519,7 @@ sub wini{
       } # endif header
       (
         $t =~ s!\[\[(\w+)(?:\|(.*))?\]\]!$opt->{_v}{$1}!ge or
-        $t =~ s!(\{\{([^|]*?)(?:\|([^{}]*?))?}})!call_macro($1, $2, $opt, $baseurl, split(/\|/,$3||''))!esg or
+        $t =~ s!(\{\{([^|]*?)(?:\|([^{}]*?))?}})!call_macro($1, $2, $opt, $baseurl, split(/\|/,((defined $3)?$3:'')))!esg or
         $t =~ s!\[([^]]*?)\]\(([^)]*?)\)!make_a_from_md($1, $2, $baseurl)!eg or
         $t =~ s!\[([^]]*?)\]!make_a($1, $baseurl)!esg #or
       ) or last; # no subst need, then escape inner loop
@@ -672,7 +672,7 @@ sub close_listtag{
 
 sub symmacro{
   # {{/*_-|text}}
-  my($tag0, $text)= map {$_ || ''} @_;
+  my($tag0, $text)= map {defined($_) ? $_ : ''} @_;
   my @styles;
   my $r;
   my $strong=0;
@@ -758,7 +758,11 @@ sub call_macro{
 #    return(($class_id) ? qq!<span${class_id}>$f[0]</span>! : $f[0]);
   }
   (defined $MACROS{$macroname}) and return($MACROS{$macroname}(@f));
-  ($macroname=~m{^[ -/:-@\[-~]$}) and (!$f[0]) and return('&#x'.unpack('H*',$macroname).';');
+  ($macroname=~/^l$/i)       and return('&#x7b;'); # {
+  ($macroname=~/^bar$/i )    and return('&#x7c;'); # |
+  ($macroname=~/^r$/i)       and return('&#x7d;'); # }
+  ($macroname=~m{^[ -/:-@\[-~]$}) and (not defined $f[0]) and 
+    return('&#x'.unpack('H*',$macroname).';'); # char -> ascii code
   ($macroname=~/^calc$/i)    and return(ev(\@f, $opt->{_v}));
 #  ($macroname eq 'va')     and return(var($f[0], $opt->{_v}));
   ($macroname=~/^va$/i)      and return($opt->{_v}{$f[0]});
@@ -773,9 +777,6 @@ sub call_macro{
   ($macroname=~/^v$/i)       and return(qq!<span class="tategaki">$f[0]</span>!);
 
   ($macroname=~m!([-_/*]+[-_/* ]*)!) and return(symmacro($1, $f[0]));
-  ($macroname=~/^l$/i)       and return('&#x7b;'); # {
-  ($macroname=~/^bar$/i )    and return('&#x7c;'); # |
-  ($macroname=~/^r$/i)       and return('&#x7d;'); # }
 
   warn("Macro named '$macroname' not found");
   my $r = sprintf(qq#\\{\\{%s}}<!-- Macro named '$macroname' not found! -->#, join('|', $macroname, @f));
@@ -855,7 +856,7 @@ sub make_a{
   ($prefix eq '#') and $url=$prefix.$url;
   #$text = escape($text) || $url;
   ($text) = wini($text, {nocr=>1, para=>'nb'});
-  $text = $text || $url;
+  ($text eq '') and $text = $url;
 
   # options
   my $style            = ($opts=~/</) ? "float: left;" : ($opts=~/>/) ? "float: right;" : '';
