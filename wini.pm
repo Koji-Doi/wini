@@ -761,7 +761,7 @@ sub call_macro{
   ($macroname=~/^l$/i)       and return('&#x7b;'); # {
   ($macroname=~/^bar$/i )    and return('&#x7c;'); # |
   ($macroname=~/^r$/i)       and return('&#x7d;'); # }
-  ($macroname=~m{^[ -/:-@\[-~]$}) and (not defined $f[0]) and 
+  ($macroname=~m{^[!-/:-@\[-~]$}) and (not defined $f[0]) and 
     return('&#x'.unpack('H*',$macroname).';'); # char -> ascii code
   ($macroname=~/^calc$/i)    and return(ev(\@f, $opt->{_v}));
 #  ($macroname eq 'va')     and return(var($f[0], $opt->{_v}));
