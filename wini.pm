@@ -419,21 +419,25 @@ sub wini_sects{
 
   # template?
   if(defined $sectdata_depth[0][-1]{val}{template}){ # template mode
-    my $basefile = $sectdata_depth[0][-1]{val}{template};
-    (-f $basefile) or $basefile = $opt->{dir}."/$basefile";
-    (-f $basefile) or $basefile =    "_template/$basefile";
-    (-f $basefile) or die qq{File "$sectdata_depth[0][-1]{template}": not found};
-    ($debug) and print STDERR "We use $basefile as template.\n";
-    open(my $fhi, '<:utf8', $basefile);
+    # read tmpl data
+    my $tmplfile = $sectdata_depth[0][-1]{val}{template};
+    (-f $tmplfile) or $tmplfile = $opt->{dir}."/$tmplfile";
+    (-f $tmplfile) or $tmplfile =    "_template/$tmplfile";
+    (-f $tmplfile) or die qq{File "$sectdata_depth[0][-1]{template}": not found};
+    ($debug) and print STDERR "We use $tmplfile as template.\n";
+    open(my $fhi, '<:utf8', $tmplfile);
+    $htmlout = join('', <$fhi>);
+    if($tmplfile=~/\.wini/){ # $htmlout is translated
+      $htmlout = wini_sects($htmlout, $opt1);
+    }
+
+    # read vals
     my $opt1 = { %$opt };
     foreach my $k (grep {$_ ne 'template'} keys %{$sectdata_depth[0][-1]{val}}){
-      $opt1->{_v} = $sectdata_depth[0][-1]{val}{$k};
+      $opt1->{_v}{$k} = $sectdata_depth[0][-1]{val}{$k};
     }
-    my $txt_from_tmpl = join('', <$fhi>);
-    if($basefile=~/\.wini/){ # $htmlout is translated
-      $htmlout = wini_sects($txt_from_tmpl, $opt1);
-    }else{ # Do macro substitution only ($htmlout is unchanged until macro substitution)
-      my $opt1 = {'_v'=>undef};
+    #else{ # Do macro substitution only ($htmlout is unchanged until macro substitution)
+    #  my $opt1 = {'_v'=>undef};
       foreach my $key (keys %{$sectdata{'_'}{val}}){
         $opt1->{'_v'}{$key} = $sectdata{'_'}{val}{$key};
         $htmlout =~ s!(\{\{([^|]*?)(?:\|([^{}]*?))?}})!call_macro($1, $2, $opt1, undef, split(/\|/,$3||''))!esg;
@@ -444,7 +448,7 @@ sub wini_sects{
         my($id, $txt) = ($html->{sect_id}, $html->{txt});
         $htmlout =~ s!\{\{v\|${id}}}!$txt!ge;
       }
-    }
+    #}
   }
 
   (defined $opt->{whole}) and $htmlout = whole_html($htmlout, $opt->{title}, $opt);
