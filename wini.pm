@@ -419,6 +419,21 @@ sub wini_sects{
 
   # template?
   if(defined $sectdata_depth[0][-1]{val}{template}){ # template mode
+    # read vals
+    my $opt1 = { %$opt };
+    foreach my $k (grep {$_ ne 'template'} keys %{$sectdata_depth[0][-1]{val}}){
+      $opt1->{_v}{$k} = $sectdata_depth[0][-1]{val}{$k};
+    }
+    foreach my $key (keys %{$sectdata{'_'}{val}}){
+      $opt1->{'_v'}{$key} = $sectdata{'_'}{val}{$key};
+      $htmlout =~ s!(\{\{([^|]*?)(?:\|([^{}]*?))?}})!call_macro($1, $2, $opt1, undef, split(/\|/,$3||''))!esg;
+    }
+    # from wini main text
+    foreach my $html (@html){
+      my($id, $txt) = ($html->{sect_id}, $html->{txt});
+      $htmlout =~ s!\{\{v\|${id}}}!$txt!ge;
+    }
+
     # read tmpl data
     my $tmplfile = $sectdata_depth[0][-1]{val}{template};
     (-f $tmplfile) or $tmplfile = $opt->{dir}."/$tmplfile";
@@ -430,25 +445,6 @@ sub wini_sects{
     if($tmplfile=~/\.wini/){ # $htmlout is translated
       $htmlout = wini_sects($htmlout, $opt1);
     }
-
-    # read vals
-    my $opt1 = { %$opt };
-    foreach my $k (grep {$_ ne 'template'} keys %{$sectdata_depth[0][-1]{val}}){
-      $opt1->{_v}{$k} = $sectdata_depth[0][-1]{val}{$k};
-    }
-    #else{ # Do macro substitution only ($htmlout is unchanged until macro substitution)
-    #  my $opt1 = {'_v'=>undef};
-      foreach my $key (keys %{$sectdata{'_'}{val}}){
-        $opt1->{'_v'}{$key} = $sectdata{'_'}{val}{$key};
-        $htmlout =~ s!(\{\{([^|]*?)(?:\|([^{}]*?))?}})!call_macro($1, $2, $opt1, undef, split(/\|/,$3||''))!esg;
-#        $htmlout =~ s!\{\{${key}}}!$opt1->{'_v'}{$key}!esg;
-      }
-      # from wini main text
-      foreach my $html (@html){
-        my($id, $txt) = ($html->{sect_id}, $html->{txt});
-        $htmlout =~ s!\{\{v\|${id}}}!$txt!ge;
-      }
-    #}
   }
 
   (defined $opt->{whole}) and $htmlout = whole_html($htmlout, $opt->{title}, $opt);
@@ -522,7 +518,7 @@ sub wini{
         $ptype = 'header';
       } # endif header
       (
-        $t =~ s!\[\[(\w+)(?:\|(.*))?\]\]!$opt->{_v}{$1}!ge or
+        $t =~ s!\[\[(\w+)(?:\|(.*))?\]\]!(defined $opt->{_v}{$1}) ? $opt->{_v}{$1} : ''!ge or
         $t =~ s!(\{\{([^|]*?)(?:\|([^{}]*?))?}})!call_macro($1, $2, $opt, $baseurl, split(/\|/,((defined $3)?$3:'')))!esg or
         $t =~ s!\[([^]]*?)\]\(([^)]*?)\)!make_a_from_md($1, $2, $baseurl)!eg or
         $t =~ s!\[([^]]*?)\]!make_a($1, $baseurl)!esg #or
