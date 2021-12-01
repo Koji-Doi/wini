@@ -435,10 +435,11 @@ sub wini_sects{
     }
 
     # read tmpl data
+    print "chk template: ", Dumper @sectdata_depth;
     my $tmplfile = $sectdata_depth[0][-1]{val}{template};
     (-f $tmplfile) or $tmplfile = $opt->{dir}."/$tmplfile";
     (-f $tmplfile) or $tmplfile =    "_template/$tmplfile";
-    (-f $tmplfile) or die qq{File "$sectdata_depth[0][-1]{template}": not found};
+    (-f $tmplfile) or die qq{File "$tmplfile": not found};
     ($debug) and print STDERR "We use $tmplfile as template.\n";
     open(my $fhi, '<:utf8', $tmplfile);
     $htmlout = join('', <$fhi>);
