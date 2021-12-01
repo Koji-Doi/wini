@@ -137,7 +137,7 @@ use Data::Dumper;
 use File::Basename;
 use FindBin;
 use Pod::Usage;
-use Getopt::Long;
+use Getopt::Long qw(:config no_ignore_case auto_abbrev);
 use Encode;
 use Cwd;
 #use Module::Load qw( load );
@@ -155,12 +155,16 @@ our %VARS;
 our $ENVNAME="_";
 our %ID; # list of ID assigned to tags in the target html
 our %EXT;
+our(@INDIR, @INFILE, $OUTFILE);
 
 my $scriptname = basename($0);
 my $version    = "ver. 1.0alpha rel. 20211023";
 my @save;
 my %ref; # $ref{image}{imageID} = 1; keys of %$ref: qw/image table formula citation math ref/
 my $debug;
+
+binmode STDIN, ':utf8';
+binmode STDERR,':utf8';
 
 # barrier-free color codes: https://jfly.uni-koeln.de/html/manuals/pdf/color_blind.pdf
 our ($red, $green, $blue, $magenta, $purple) 
@@ -202,11 +206,11 @@ __PACKAGE__->stand_alone() if !caller() || caller() eq 'PAR';
 
 # Following function is executed when this script is called as stand-alone script
 sub stand_alone{
-  my($input, $output, $fhi, $title, $cssfile, $test, $fho, $whole, @cssflameworks);
+  my(@input, $output, $fhi, $title, $cssfile, $test, $fho, $whole, @cssflameworks);
   GetOptions(
     "h|help"         => sub {help()},
     "v|version"      => sub {print STDERR "wini.pm $version\n"; exit()},
-    "i=s"            => \$input,
+    "i=s"            => \@input,
     "o=s"            => \$output,
     "title=s"        => \$title,
     "cssfile:s"      => \$cssfile,
@@ -218,61 +222,67 @@ sub stand_alone{
     "cssflamework:s" => \@cssflameworks
   );
   foreach my $i (@libpaths){
-    mes("Trying to add $i into library directory\n");
-    (-d $i) ? push(@INC, $i) : warn("$i for extra library not found.\n");
+    mes("Trying to add $i into library directory\n", {ln=>__LINE__});
+    (-d $i) ? push(@INC, $i) : mes("$i for extra library not found.", {warn=>1});
   }
   foreach my $lib (@libs){ # 'form', etc.
     my $r = eval{load($lib)};
-    (defined $r) ? mes("Loaded library: $lib\n") : warn("failed to load library '$lib'\n");
+    mes((defined $r) ? "Loaded library: $lib" : "failed to load library '$lib'");
   }
 
   (defined $cssflameworks[0]) and ($cssflameworks[0] eq '') and $cssflameworks[0]='https://unpkg.com/mvp.css'; # 'https://newcss.net/new.min.css';
-  ($test) and ($input, $output)=("test.wini", "test.html");
-  if ($input) {
-    unless(open($fhi, '<:utf8', $input)){
-      mes("Not accessible: $input\n");
-      $input = "$input.wini";
-      mes("Will try to open: $input\n");
-      open($fhi, '<:utf8', $input) or die "Not accessible either: $input";
-    }
-  } else {
-    binmode STDIN, ':utf8';
-    binmode STDERR,':utf8';
-    $fhi = *STDIN;
+  ($test) and ($INFILE[0], $OUTFILE)=("test.wini", "test.html");
+
+  my($inf, $outf) = winifiles(\@input, $output);
+  if(defined $inf->[0]){
+    mes("Input file: " . join(' ', @$inf), {q=>1});
+#  } else {
+#    push(@$inf, *STDIN);
   }
-  unless($output){
-    if ($input) {
-      $output = "$input.html";
-      mes("Will try to create $output\n");
-      open($fho, '>:utf8', $output) or die "Cannot open file: $output";
-    } else {
-      binmode STDOUT, ':utf8';
-      $fho = *STDOUT;
-    }
-  } else {
-    if (-d $output) {
-      $output = "$output/$input.html";
-    } elsif (substr($output, -1) eq '/') {
-      mes("Will try to create directory: $output\n");
-      mkdir($output) or die "Cannot create directory: $output";
-      $output = "$output/$input.html";
-    }
-    mes("Will try to create file: $output\n");
-    open($fho, '>:utf8', $output) or die "Cannot create file: $output";
+
+  # multiple infile -> multiple outfile (1:1)
+  if(scalar @$outf>1){
+    print STDERR "multi file mode.\n"; exit();
   }
+
+  # infiles -> one outfile or STDOUT
+  if(defined $outf->[0]){
+    mes("Will try to create file: $outf->[0]\n");
+    open($fho, '>:utf8', $outf->[0]) or die "Cannot create file: $output";
+  }else{
+    $fho = *STDOUT;
+  }
+  (defined $inf->[0]) or $fhi = *STDIN;
+
   (defined $cssfile) and ($cssfile eq '') and $cssfile="wini.css";
   $_=<$fhi>;
   s/\x{FEFF}//; # remove BOM if exists
-  push(my @input, $_);
-  push(@input, <$fhi>);
-  push(@input, "\n");
-  print {$fho} (wini_sects(join('', @input), {dir=>getcwd, whole=>$whole, cssfile=>$cssfile, title=>$title, cssflameworks=>\@cssflameworks}))[0];
+  push(@$inf, $_);
+  push(@$inf, <$fhi>);
+  push(@$inf, "\n");
+  print {$fho} (wini_sects(join('', @$inf), {dir=>getcwd, whole=>$whole, cssfile=>$cssfile, title=>$title, cssflameworks=>\@cssflameworks}))[0];
 } # sub stand_alone
 
 sub mes{ # display guide, warning etc. to STDERR
   my($x, $o) = @_;
-  print STDERR "$x\n";
+  chomp $x;
+  my $mestype = (exists $o->{err})  ? 'Error' 
+              : (exists $o->{warn}) ? 'Warning' : 'Message';
+  unless(exists $o->{q}){
+    my $i = 1; my @subs;
+    while ( my($pack, $file, $line, $subname, $hasargs, $wantarray, $evaltext, $is_require) = caller( $i++) ){push(@subs, "$line\[$subname]")}
+    print STDERR "${mestype} from wini.pm : ", join(' <- ', @subs), "\n";
+  }
+  ($o->{ln}) and $x = "$x [wini.pm line $o->{ln}]";
+  if(exists $o->{err}){
+    warn("  $x\n"); exit(1);
+  }elsif($o->{warn}){
+    warn("  $x\n");
+  }else{
+    print STDERR "  $x\n";
+  }
 }
+
 sub help{
   print pod2usage(-verbose => 2, -input => $FindBin::Bin . "/" . $FindBin::Script);
   exit();
@@ -306,6 +316,70 @@ sub css{
   }
   return($out);
 }
+
+sub winifiles{
+  my($in_ref, $out) = @_;
+
+  my $default_outdir='.';
+  my($stdin, $stdout) = qw/*STDIN *STDOUT/;
+  my(%in, %out);
+  my(@in_d, @in_f);
+  my($outdir, @outfile);
+
+  if(defined $in_ref->[0]){
+    foreach my $f (@$in_ref){
+      (-d $f) ? push(@in_d, $f)
+      :(-f $f) ? push(@in_f, $f): mes("File not found ($f).", {ln=>__LINE__, err=>1});
+    }
+#  }else{ # @in0 is empty
+#    @in_f = ($stdin);
+  }
+  if(defined $out){
+    if($out=~m{/$} or (-d $out)){ # out = directory
+      $outdir = $out;
+      unless(-d $out){ # create new dir
+        if(-f $out){
+          die "$out already exists";
+        }else{
+          print STDERR "mkdir $outdir\n";
+        }
+      }
+    }else{ # normal file
+      @outfile = ($out);
+    }
+  }else{
+#    @outfile = ($stdout);
+  }
+  (scalar @in_d > 1) and die "More than one directory are specified with -i option";
+  (scalar @in_d >=1 and scalar @in_f >=1) and die "Directoris are specified together with regular files with -i option";
+
+# @in_d -> @in_f
+  if(scalar @in_d == 1){
+    my @f =grep {/\.(wini|par|mg)$/} @{getfile($in_d[0])};
+    push(@in_f, @f);
+  }
+  if(defined $outdir){
+    if(defined $in_f[0]){
+      foreach my $infile (@in_f){
+        my $infile1 = $infile;
+        ($in_d[0]) and $infile1=~s{$in_d[0]/*}{};
+        $infile1=~s{\.(wini|par|mg)$}{};
+        push(@outfile, "$outdir$infile1.html");
+      }
+    }else{ # no inputfile specify (STDIN is expected)
+      my $outfile1;
+      L1:{
+        foreach my $n ( 'index', '0001'..'0003'){
+          (-f ($outfile1 = "${outdir}${n}.html")) or last L1;
+        }
+        mes("Could not specify output file name ($outfile1). Use -o option properly.", {err=>1});
+      }
+      mes("Output: $outfile1", {q=>1});
+      push(@outfile, $outfile1);
+    }
+  }
+  return(\@in_f, \@outfile);
+} # end of winifile()
 
 {
 my($footnote_cnt, %footnotes);
@@ -352,7 +426,7 @@ sub wini_sects{
       $secttitle = $k  || undef;
       $sect_id   = $id || "sect${sect_cnt}";
       $sect_id=~s/[^\w]//g;
-      (exists $sectdata{$sect_id}) and warn("duplicated section id ${sect_id}\n");
+      (exists $sectdata{$sect_id}) and mes("duplicated section id ${sect_id}", {warn=>1});
       push(@{$sectdata_depth[$depth]}, {sect_id => $sect_id, tag => $tag});
 
       # add close tag for the former section here if necessary
@@ -440,7 +514,7 @@ sub wini_sects{
     (-f $tmplfile) or $tmplfile = $opt->{dir}."/$tmplfile";
     (-f $tmplfile) or $tmplfile =    "_template/$tmplfile";
     (-f $tmplfile) or die qq{File "$tmplfile": not found};
-    ($debug) and print STDERR "We use $tmplfile as template.\n";
+    ($debug) and mes("We use $tmplfile as template.");
     open(my $fhi, '<:utf8', $tmplfile);
     $htmlout = join('', <$fhi>);
     if($tmplfile=~/\.wini/){ # $htmlout is translated
@@ -602,11 +676,6 @@ sub footnote{
 
 sub list{
   my($t, $cr, $ptype, $para, $myclass) = @_;
-#  {
-#    my $i = 0; my @subs;
-#    while ( ($pack, $file, $line, $subname, $hasargs, $wantarray, $evaltext, $is_require) = caller( $i++) ){push(@subs, "$line\[$subname]")}
-#    print STDERR "****CALLER**** ", join(' <- ', @subs), "\n";
-  #  }
   
   $ptype = $ptype || '';
   $cr = $cr || "\n";
@@ -779,7 +848,7 @@ sub call_macro{
 
   ($macroname=~m!([-_/*]+[-_/* ]*)!) and return(symmacro($1, $f[0]));
 
-  warn("Macro named '$macroname' not found");
+  mes("Macro named '$macroname' not found.", {warn=>1});
   my $r = sprintf(qq#\\{\\{%s}}<!-- Macro named '$macroname' not found! -->#, join('|', $macroname, @f));
   return($r);
 }
@@ -1134,8 +1203,6 @@ sub table{
         or $htmlitem[0][0]{copt}{style}{height}[0] = sprintf("%drem", (scalar @lines)*2);
   (defined $htmlitem[0][0]{copt}{style}{width}[0])
         or $htmlitem[0][0]{copt}{style}{width}[0] = sprintf("%drem", ((sort map{$_ or 0} @rowlen)[-1])*2);
-
-  ($debug) and print(STDERR "winiitem\n", (Dumper @winiitem), "htmlitem\n", (Dumper @htmlitem));
 
   # make html
   my $outtxt = sprintf(qq!\n<table id="%s" class="%s"!, $htmlitem[0][0]{copt}{id}[0], join(' ', sort @{$htmlitem[0][0]{copt}{class}}));
