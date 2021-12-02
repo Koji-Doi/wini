@@ -158,7 +158,7 @@ our %EXT;
 our(@INDIR, @INFILE, $OUTFILE);
 
 my $scriptname = basename($0);
-my $version    = "ver. 1.0alpha rel. 20211023";
+my $version    = "ver. 1.0alpha rel. 20211201";
 my @save;
 my %ref; # $ref{image}{imageID} = 1; keys of %$ref: qw/image table formula citation math ref/
 my $debug;
@@ -236,31 +236,46 @@ sub stand_alone{
   my($inf, $outf) = winifiles(\@input, $output);
   if(defined $inf->[0]){
     mes("Input file: " . join(' ', @$inf), {q=>1});
-#  } else {
-#    push(@$inf, *STDIN);
+  } else {
+    push(@$inf, '');
   }
+  
+  (defined $cssfile) and ($cssfile eq '') and $cssfile="wini.css";
 
-  # multiple infile -> multiple outfile (1:1)
+  # 1. multiple infile -> multiple outfile (1:1)
   if(scalar @$outf>1){
     print STDERR "multi file mode.\n"; exit();
   }
 
-  # infiles -> one outfile or STDOUT
-  if(defined $outf->[0]){
-    mes("Will try to create file: $outf->[0]\n");
-    open($fho, '>:utf8', $outf->[0]) or die "Cannot create file: $output";
-  }else{
-    $fho = *STDOUT;
-  }
-  (defined $inf->[0]) or $fhi = *STDIN;
+  # 2. infiles -> one outfile or STDOUT
+  for(my $i=0; $i<=$#$inf; $i++){
+    my $inf0 = ($inf->[$i] eq '') ? 'STDIN' : $inf->[$i];
+    if(defined $outf->[$i]){
+      mes("$i. $inf0 -> $outf->[$i]", {q=>1});
+      open($fho, '>:utf8', $outf->[$i]) or mes("Cannot create file: $output", {err=>1, q=>1, ln=>__LINE__});
+    }else{
+      mes("$i. $inf0 -> STDOUT", {q=>1});
+      $fho = *STDOUT;
+    }
+    if(defined $inf->[$i]){
+      print STDERR $inf->[$i],"\n";
+      if($inf->[$i] eq ''){
+        $fhi = *STDIN;
+      }else{
+        open($fhi, '<:utf8', $inf->[$i]);
+      }
+    }else{
+      print "WWW\n";
+      $fhi = *STDIN;
+    }
 
-  (defined $cssfile) and ($cssfile eq '') and $cssfile="wini.css";
-  $_=<$fhi>;
-  s/\x{FEFF}//; # remove BOM if exists
-  push(@$inf, $_);
-  push(@$inf, <$fhi>);
-  push(@$inf, "\n");
-  print {$fho} (wini_sects(join('', @$inf), {dir=>getcwd, whole=>$whole, cssfile=>$cssfile, title=>$title, cssflameworks=>\@cssflameworks}))[0];
+    $_=<$fhi>;
+    s/\x{FEFF}//; # remove BOM if exists
+    push(my @inf0, $_);
+    push(@inf0, <$fhi>);
+    push(@inf0, "\n");
+    print {$fho} (wini_sects(join('', @inf0), {dir=>getcwd, whole=>$whole, cssfile=>$cssfile, title=>$title, cssflameworks=>\@cssflameworks}))[0];
+  }
 } # sub stand_alone
 
 sub mes{ # display guide, warning etc. to STDERR
@@ -275,7 +290,7 @@ sub mes{ # display guide, warning etc. to STDERR
   }
   ($o->{ln}) and $x = "$x [wini.pm line $o->{ln}]";
   if(exists $o->{err}){
-    warn("  $x\n"); exit(1);
+    die("  $x\n");
   }elsif($o->{warn}){
     warn("  $x\n");
   }else{
