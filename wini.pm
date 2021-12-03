@@ -1042,7 +1042,7 @@ sub table{
     while($o=~/#([-\w]+)/g){
       $htmlitem[0][0]{copt}{id}[0] = $1;
     }
-    ($htmlitem[0][0]{copt}{id}[0]) or $htmlitem[0][0]{copt}{id}[0] = sprintf("winitable%d", $table_no++);
+
     push(@{$ID{table}}, $htmlitem[0][0]{copt}{id}[0]);
     while($o=~/\&([lrcjsebtm]+)/g){
       my $h = {qw/l left r right c center j justify s start e end/}->{$1};
@@ -1062,6 +1062,7 @@ sub table{
     $caption=~s/[\s\n\r]+$//;
   ''&emg; # end of caption & table setting
 
+  ($htmlitem[0][0]{copt}{id}[0]) or $htmlitem[0][0]{copt}{id}[0] = sprintf("winitable%d", $table_no++);
   my @lines = split(/\n/, $in);
   my $macro = '';
   my %tablemacros;
@@ -1239,6 +1240,7 @@ sub table{
         or $htmlitem[0][0]{copt}{style}{width}[0] = sprintf("%drem", ((sort map{$_ or 0} @rowlen)[-1])*2);
 
   # make html
+print STDERR "#### ", Dumper $htmlitem[0][0]{copt};
   my $outtxt = sprintf(qq!\n<table id="%s" class="%s"!, $htmlitem[0][0]{copt}{id}[0], join(' ', sort @{$htmlitem[0][0]{copt}{class}}));
   (defined $htmlitem[0][0]{copt}{border}) and $outtxt .= ' border="1"';
   $outtxt .= q{ style="border-collapse: collapse; };
