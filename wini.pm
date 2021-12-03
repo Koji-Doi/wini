@@ -244,15 +244,21 @@ sub stand_alone{
 
   # 1. multiple infile -> multiple outfile (1:1)
   if(scalar @$outf>1){
+    for(my $i=0; $i<=$#$outf; $i++){
+      print STDERR "$i:conv $inf->[$i] -> $outf->[$i]\n";
+      
+    }
     print STDERR "multi file mode.\n"; exit();
   }
 
   # 2. infiles -> one outfile or STDOUT
+  (defined $outf->[0] and -f $outf->[0]) and unlink $outf->[0];
+  my @inf0;
   for(my $i=0; $i<=$#$inf; $i++){
     my $inf0 = ($inf->[$i] eq '') ? 'STDIN' : $inf->[$i];
-    if(defined $outf->[$i]){
-      mes("$i. $inf0 -> $outf->[$i]", {q=>1});
-      open($fho, '>:utf8', $outf->[$i]) or mes("Cannot create file: $output", {err=>1, q=>1, ln=>__LINE__});
+    if(defined $outf->[0]){
+      mes("$i. $inf0 -> $outf->[0]", {q=>1});
+      open($fho, '>>:utf8', $outf->[0]) or mes("Cannot create file: $output", {err=>1, q=>1, ln=>__LINE__});
     }else{
       mes("$i. $inf0 -> STDOUT", {q=>1});
       $fho = *STDOUT;
@@ -265,17 +271,16 @@ sub stand_alone{
         open($fhi, '<:utf8', $inf->[$i]);
       }
     }else{
-      print "WWW\n";
       $fhi = *STDIN;
     }
 
     $_=<$fhi>;
     s/\x{FEFF}//; # remove BOM if exists
-    push(my @inf0, $_);
+    push(@inf0, $_);
     push(@inf0, <$fhi>);
     push(@inf0, "\n");
-    print {$fho} (wini_sects(join('', @inf0), {dir=>getcwd, whole=>$whole, cssfile=>$cssfile, title=>$title, cssflameworks=>\@cssflameworks}))[0];
   }
+  print {$fho} (wini_sects(join('', @inf0), {dir=>getcwd, whole=>$whole, cssfile=>$cssfile, title=>$title, cssflameworks=>\@cssflameworks}))[0];
 } # sub stand_alone
 
 sub mes{ # display guide, warning etc. to STDERR
@@ -343,7 +348,7 @@ sub winifiles{
 
   if(defined $in_ref->[0]){
     foreach my $f (@$in_ref){
-      (-d $f) ? push(@in_d, $f)
+      (-d $f) ? push(@in_d, (grep {s!/+$!!} $f))
       :(-f $f) ? push(@in_f, $f): mes("File not found ($f).", {ln=>__LINE__, err=>1});
     }
 #  }else{ # @in0 is empty
@@ -395,6 +400,20 @@ sub winifiles{
   }
   return(\@in_f, \@outfile);
 } # end of winifile()
+
+sub getfile{
+  my($dir, $regexp) = @_;
+  my @foundfiles;
+  (defined $regexp) or $regexp = '.*';
+  foreach my $file (grep {/$regexp/} <$dir/*>){
+    if(-d $file){
+      push(@foundfiles, @{getfile($file)});
+    }elsif(-f $file){
+      push(@foundfiles, $file);
+    }
+  }
+  return(\@foundfiles);
+}
 
 {
 my($footnote_cnt, %footnotes);
