@@ -339,7 +339,6 @@ sub css{
 
 sub winifiles{
   my($in_ref, $out) = @_;
-
   my $default_outdir='.';
   my($stdin, $stdout) = qw/*STDIN *STDOUT/;
   my(%in, %out);
@@ -348,11 +347,9 @@ sub winifiles{
 
   if(defined $in_ref->[0]){
     foreach my $f (@$in_ref){
-      (-d $f) ? push(@in_d, (grep {s!/+$!!} $f))
+      (-d $f) ? (map {s!/+$!!; push(@in_d, $_)} $f)
       :(-f $f) ? push(@in_f, $f): mes("File not found ($f).", {ln=>__LINE__, err=>1});
     }
-#  }else{ # @in0 is empty
-#    @in_f = ($stdin);
   }
   if(defined $out){
     if($out=~m{/$} or (-d $out)){ # out = directory
@@ -405,6 +402,7 @@ sub getfile{
   my($dir, $regexp) = @_;
   my @foundfiles;
   (defined $regexp) or $regexp = '.*';
+  ((not defined $dir) or ($dir eq '')) and $dir=getcwd();
   foreach my $file (grep {/$regexp/} <$dir/*>){
     if(-d $file){
       push(@foundfiles, @{getfile($file)});
@@ -1240,7 +1238,6 @@ sub table{
         or $htmlitem[0][0]{copt}{style}{width}[0] = sprintf("%drem", ((sort map{$_ or 0} @rowlen)[-1])*2);
 
   # make html
-print STDERR "#### ", Dumper $htmlitem[0][0]{copt};
   my $outtxt = sprintf(qq!\n<table id="%s" class="%s"!, $htmlitem[0][0]{copt}{id}[0], join(' ', sort @{$htmlitem[0][0]{copt}{class}}));
   (defined $htmlitem[0][0]{copt}{border}) and $outtxt .= ' border="1"';
   $outtxt .= q{ style="border-collapse: collapse; };
