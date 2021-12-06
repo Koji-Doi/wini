@@ -233,7 +233,11 @@ sub stand_alone{
   (defined $cssflameworks[0]) and ($cssflameworks[0] eq '') and $cssflameworks[0]='https://unpkg.com/mvp.css'; # 'https://newcss.net/new.min.css';
   ($test) and ($INFILE[0], $OUTFILE)=("test.wini", "test.html");
 
-  my($inf, $outf) = winifiles(\@input, $output);
+  my($ind, $inf, $outd, $outf) = winifiles(\@input, $output);
+  if(defined $outd){
+    (-f $outd) and unlink $outd;
+    (-d $outd) or mkdir $outd;
+  }
   if(defined $inf->[0]){
     mes("Input file: " . join(' ', @$inf), {q=>1});
   } else {
@@ -338,6 +342,65 @@ sub css{
 }
 
 sub winifiles{
+  my($in, $out) = @_;
+  # $in: string or array reference
+  # $out: string (not array reference)
+  my($indir, @infile, $outdir, @outfile);
+  my @in;
+  (defined $in) and @in = (ref $in eq 'ARRAY') ? @$in : ($in);
+  my @out;
+  (defined $out) and @out = (ref $out eq 'ARRAY') ? @$out : ($out);
+  
+  # check $indir
+  foreach my $in1 (@in){
+    if(not defined $in1){
+    }elsif(-d $in1){
+      mes("dir '$in1' is chosen as input", {q=>1});
+      $indir = $in1;
+      $indir=~s{/$}{};
+    }elsif(not -f $in1){ # non-existing entry, x/=dir x.wini=file
+      ($in1=~m{/$}) ? ($indir = $in1) : push(@infile, $in1);
+    }else{ # existing normal file
+      mes("file '$in1' is chosen as input", {q=>1});
+      push(@infile, $in1);
+    }
+  }
+  if((not defined $infile[0]) and (defined $indir)){
+    push(@infile, grep {/\.(wini|par|mg)$/} <$indir/*>);
+  }
+
+  # check $outdir
+  if(not defined $out){
+    if(not defined $in){
+    }
+  }elsif(-d $out){
+    mes("out '$out' is chosen as output", {q=>1});
+    $outdir = $out;
+  }elsif(-f $out){
+    $outfile[0] = $out;
+  }else{ # new entry
+    ($out=~m{(.*)/$}) ? ($outdir = $1) : ($outfile[0] = $out);
+  }
+
+  if(defined $outdir){
+    foreach my $in1 (@infile){
+      my($base, $indir1, $ext) = fileparse($in1, qw/.wini .par .mg/);
+      if(defined $indir){
+        $indir1=~s{^$indir/}{};
+      }
+      print "-- $base\n";
+      push(@outfile, "$outdir/" . (($indir1 eq '')?'':"$indir1/") . "$base.html");
+    }
+  }
+  print STDERR "indir:   ", ($indir)?$indir:'undef', "\n",
+               "infile:  ", ($infile[0])?join(' ', @infile):'undef', "\n",
+               "outdir:  ", ($outdir)?$outdir:'undef', "\n",
+               "outfile: ", ($outfile[0])?join(' ',@outfile):'undef', "\n";
+  return($indir, \@infile, $outdir, \@outfile);
+}
+
+=begin c
+sub _winifiles{
   my($in_ref, $out) = @_;
   my $default_outdir='.';
   my($stdin, $stdout) = qw/*STDIN *STDOUT/;
@@ -345,14 +408,13 @@ sub winifiles{
   my(@in_d, @in_f);
   my($outdir, @outfile);
 
-  if(defined $in_ref->[0]){
-    foreach my $f (@$in_ref){
-      (-d $f) ? (map {s!/+$!!; push(@in_d, $_)} $f)
-      :(-f $f) ? push(@in_f, $f): mes("File not found ($f).", {ln=>__LINE__, err=>1});
-    }
+  foreach my $f (@$in_ref){
+    (-d $f) ? (map {s!/+$!!; push(@in_d, $_)} $f)
+    :(-f $f) ? push(@in_f, $f): mes("File not found ($f).", {ln=>__LINE__, err=>1});
   }
   if(defined $out){
     if($out=~m{/$} or (-d $out)){ # out = directory
+      mes("Directory '$out' is selected for output.", {q=>1});
       $outdir = $out;
       unless(-d $out){ # create new dir
         if(-f $out){
@@ -367,21 +429,22 @@ sub winifiles{
   }else{
 #    @outfile = ($stdout);
   }
-  (scalar @in_d > 1) and die "More than one directory are specified with -i option";
   (scalar @in_d >=1 and scalar @in_f >=1) and die "Directoris are specified together with regular files with -i option";
+  (scalar @in_d > 1) and die "More than one directory are specified with -i option";
+  (scalar @in_d == 0) and $in_d[0] = getcwd();
 
 # @in_d -> @in_f
-  if(scalar @in_d == 1){
-    my @f =grep {/\.(wini|par|mg)$/} @{getfile($in_d[0])};
-    push(@in_f, @f);
-  }
+  my @f =grep {/\.(wini|par|mg)$/} @{getfile($in_d[0])};
+  push(@in_f, @f); #input files in full-path
+
   if(defined $outdir){
     if(defined $in_f[0]){
       foreach my $infile (@in_f){
         my $infile1 = $infile;
         ($in_d[0]) and $infile1=~s{$in_d[0]/*}{};
-        $infile1=~s{\.(wini|par|mg)$}{};
-        push(@outfile, "$outdir$infile1.html");
+        my($dir, $base, $ext) = fileparse($infile1, qw/.wini .par .mg/);
+        print STDERR "**** $outdir/$base.html\n";
+        push(@outfile, "$outdir/$infile1.html");
       }
     }else{ # no inputfile specify (STDIN is expected)
       my $outfile1;
@@ -395,8 +458,11 @@ sub winifiles{
       push(@outfile, $outfile1);
     }
   }
+  mes("outfile at the last of winifile(): ".join(" ", @outfile));
   return(\@in_f, \@outfile);
 } # end of winifile()
+=end c
+=cut
 
 sub getfile{
   my($dir, $regexp) = @_;
