@@ -417,10 +417,8 @@ sub winifiles{
     foreach my $in1 (@infile){
       my($base, $indir1, $ext) = fileparse($in1, qw/.wini .par .mg/);
       $indir1=~s{/$}{};
-      if(defined $indir){
-        $indir1=~s{^$indir/}{};
-      }
-      my $outdir1 = "$outdir/" . (($indir1 eq '') ? '' : "$indir1");
+      $indir1=~s{^$indir(/|$)}{};
+      my $outdir1 = "$outdir" . (($indir1 eq '') ? '' : "/$indir1");
       my $d1 = '';
       (-d $outdir1) or (mkpath $outdir1) or die "Failed to create $outdir";
       push(@outfile, "$outdir1/$base.html");
