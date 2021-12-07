@@ -206,7 +206,7 @@ __PACKAGE__->stand_alone() if !caller() || caller() eq 'PAR';
 
 # Following function is executed when this script is called as stand-alone script
 sub stand_alone{
-  my(@input, $output, $fhi, $title, $cssfile, $test, $fho, $whole, @cssflameworks);
+  my(@input, $output, $fhi, $title, $cssfile, $test, $whole, @cssflameworks);
   GetOptions(
     "h|help"         => sub {help()},
     "v|version"      => sub {print STDERR "wini.pm $version\n"; exit()},
@@ -254,8 +254,10 @@ sub stand_alone{
     for(my $i=0; $i<=$#$inf; $i++){
       print STDERR "$i:conv $inf->[$i] -> $outf->[$i]\n";
       open(my $fhi, '<:utf8', $inf->[$i]);
+      open(my $fho, '>:utf8', $outf->[$i]);
       my $winitxt = join('', <$fhi>);
-      print {$fho} (wini_sects($winitxt, {dir=>getcwd, whole=>$whole, cssfile=>$cssfile, title=>$title, cssflameworks=>\@cssflameworks}))[0];
+      my($htmlout) = wini_sects($winitxt, {dir=>getcwd(), whole=>$whole, cssfile=>$cssfile, title=>$title, cssflameworks=>\@cssflameworks});
+      print {$fho} $htmlout;
     }
   }else{
     # 2. infiles -> one outfile or STDOUT
@@ -268,6 +270,7 @@ sub stand_alone{
     }
     my @winitxt;
     map {open(my $fhi, '<:utf8', $_); push(@winitxt, <$fhi>, "\n")} @$inf;
+    my $opt = {dir=>getcwd()};
     print {$fho} (wini_sects(join('', @winitxt), {dir=>getcwd, whole=>$whole, cssfile=>$cssfile, title=>$title, cssflameworks=>\@cssflameworks}))[0];
   }
 
