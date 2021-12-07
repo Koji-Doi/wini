@@ -233,6 +233,7 @@ sub stand_alone{
   (defined $cssflameworks[0]) and ($cssflameworks[0] eq '') and $cssflameworks[0]='https://unpkg.com/mvp.css'; # 'https://newcss.net/new.min.css';
   ($test) and ($INFILE[0], $OUTFILE)=("test.wini", "test.html");
 
+  # check input/output
   my($ind, $inf, $outd, $outf) = winifiles(\@input, $output);
   if(defined $outd){
     (-f $outd) and unlink $outd;
@@ -246,17 +247,31 @@ sub stand_alone{
   
   (defined $cssfile) and ($cssfile eq '') and $cssfile="wini.css";
 
-  # 1. multiple infile -> multiple outfile (1:1)
+  # output
   if(scalar @$outf>1){
-    for(my $i=0; $i<=$#$outf; $i++){
+    # 1. multiple infile -> multiple outfile (1:1)
+    print STDERR "multi file mode.\n";
+    for(my $i=0; $i<=$#$inf; $i++){
       print STDERR "$i:conv $inf->[$i] -> $outf->[$i]\n";
-      
+      open(my $fhi, '<:utf8', $inf->[$i]);
+      my $winitxt = join('', <$fhi>);
+      print {$fho} (wini_sects($winitxt, {dir=>getcwd, whole=>$whole, cssfile=>$cssfile, title=>$title, cssflameworks=>\@cssflameworks}))[0];
     }
-    print STDERR "multi file mode.\n"; exit();
+  }else{
+    # 2. infiles -> one outfile or STDOUT
+    my $fho;
+    if(defined $outf->[0]){
+      (-f $outf->[0]) and unlink $outf->[0];
+      open($fho, '>:utf8', $outf->[0]);
+    }else{
+      $fho = *STDOUT;
+    }
+    my @winitxt;
+    map {open(my $fhi, '<:utf8', $_); push(@winitxt, <$fhi>, "\n")} @$inf;
+    print {$fho} (wini_sects(join('', @winitxt), {dir=>getcwd, whole=>$whole, cssfile=>$cssfile, title=>$title, cssflameworks=>\@cssflameworks}))[0];
   }
 
-  # 2. infiles -> one outfile or STDOUT
-  (defined $outf->[0] and -f $outf->[0]) and unlink $outf->[0];
+=begin c
   my @inf0;
   for(my $i=0; $i<=$#$inf; $i++){
     my $inf0 = ($inf->[$i] eq '') ? 'STDIN' : $inf->[$i];
@@ -283,8 +298,11 @@ sub stand_alone{
     push(@inf0, $_);
     push(@inf0, <$fhi>);
     push(@inf0, "\n");
-  }
-  print {$fho} (wini_sects(join('', @inf0), {dir=>getcwd, whole=>$whole, cssfile=>$cssfile, title=>$title, cssflameworks=>\@cssflameworks}))[0];
+  } #2.
+=end c
+=cut
+  
+#  print {$fho} (wini_sects(join('', @inf0), {dir=>getcwd, whole=>$whole, cssfile=>$cssfile, title=>$title, cssflameworks=>\@cssflameworks}))[0];
 } # sub stand_alone
 
 sub mes{ # display guide, warning etc. to STDERR
@@ -383,6 +401,7 @@ sub winifiles{
   }
 
   if(defined $outdir){
+    $outdir=~s{/$}{};
     foreach my $in1 (@infile){
       my($base, $indir1, $ext) = fileparse($in1, qw/.wini .par .mg/);
       if(defined $indir){
