@@ -135,6 +135,7 @@ package WINI;
 use strict;
 use Data::Dumper;
 use File::Basename;
+use File::Path 'mkpath';
 use FindBin;
 use Pod::Usage;
 use Getopt::Long qw(:config no_ignore_case auto_abbrev);
@@ -256,6 +257,7 @@ sub stand_alone{
       open(my $fhi, '<:utf8', $inf->[$i]);
       open(my $fho, '>:utf8', $outf->[$i]);
       my $winitxt = join('', <$fhi>);
+      $winitxt=~s/\x{FEFF}//; # remove BOM if exists
       my($htmlout) = wini_sects($winitxt, {dir=>getcwd(), whole=>$whole, cssfile=>$cssfile, title=>$title, cssflameworks=>\@cssflameworks});
       print {$fho} $htmlout;
     }
@@ -269,9 +271,15 @@ sub stand_alone{
       $fho = *STDOUT;
     }
     my @winitxt;
-    map {open(my $fhi, '<:utf8', $_); push(@winitxt, <$fhi>, "\n")} @$inf;
-    my $opt = {dir=>getcwd()};
-    print {$fho} (wini_sects(join('', @winitxt), {dir=>getcwd, whole=>$whole, cssfile=>$cssfile, title=>$title, cssflameworks=>\@cssflameworks}))[0];
+    map {
+      open(my $fhi, '<:utf8', $_);
+      while(<$fhi>){
+        s/[\n\r]*$//; s/\x{FEFF}//; # remove BOM if exists
+        push(@winitxt, "$_\n");
+      }
+    } @$inf;
+    my($htmlout) = wini_sects(join('', @winitxt), {dir=>getcwd(), whole=>$whole, cssfile=>$cssfile, title=>$title, cssflameworks=>\@cssflameworks});
+    print {$fho} $htmlout;
   }
 
 =begin c
@@ -376,18 +384,19 @@ sub winifiles{
   foreach my $in1 (@in){
     if(not defined $in1){
     }elsif(-d $in1){
-      mes("dir '$in1' is chosen as input", {q=>1});
+      mes("Dir '$in1' is chosen as input", {q=>1});
       $indir = $in1;
       $indir=~s{/$}{};
     }elsif(not -f $in1){ # non-existing entry, x/=dir x.wini=file
       ($in1=~m{/$}) ? ($indir = $in1) : push(@infile, $in1);
     }else{ # existing normal file
-      mes("file '$in1' is chosen as input", {q=>1});
+      mes("File '$in1' is chosen as input", {q=>1});
       push(@infile, $in1);
     }
   }
   if((not defined $infile[0]) and (defined $indir)){
-    push(@infile, grep {/\.(wini|par|mg)$/} <$indir/*>);
+#    push(@infile, grep {/\.(wini|par|mg)$/} <$indir/*>);
+    findfile($indir, sub{$_[0]=~/\.(wini|par|mg)$/ and push(@infile, $_[0])});
   }
 
   # check $outdir
@@ -407,11 +416,14 @@ sub winifiles{
     $outdir=~s{/$}{};
     foreach my $in1 (@infile){
       my($base, $indir1, $ext) = fileparse($in1, qw/.wini .par .mg/);
+      $indir1=~s{/$}{};
       if(defined $indir){
         $indir1=~s{^$indir/}{};
       }
-      print "-- $base\n";
-      push(@outfile, "$outdir/" . (($indir1 eq '')?'':"$indir1/") . "$base.html");
+      my $outdir1 = "$outdir/" . (($indir1 eq '') ? '' : "$indir1");
+      my $d1 = '';
+      (-d $outdir1) or (mkpath $outdir1) or die "Failed to create $outdir";
+      push(@outfile, "$outdir1/$base.html");
     }
   }
   print STDERR "indir:   ", ($indir)?$indir:'undef', "\n",
@@ -419,6 +431,14 @@ sub winifiles{
                "outdir:  ", ($outdir)?$outdir:'undef', "\n",
                "outfile: ", ($outfile[0])?join(' ',@outfile):'undef', "\n";
   return($indir, \@infile, $outdir, \@outfile);
+}
+
+sub findfile{
+  my($dir, $p) = @_;
+  my @files = <$dir/*>;
+  foreach my $file (@files) {
+    (-d $file) ? findfile($file, $p) : $p->($file);
+  }
 }
 
 =begin c
