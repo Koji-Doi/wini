@@ -119,6 +119,10 @@ Add specified directory PATH into library path
 
 Set text for <title>. Effective only when --whole option is set.
 
+=item B<--quiet>
+
+Suppress additional message output
+
 =item B<--version>
 
 Show version.
@@ -151,6 +155,7 @@ use warnings;
 my  @libs;
 my  @libpaths;
 our %MACROS;
+our $QUIET = 0; # 1: suppress most of messages
 
 our %VARS;
 our $ENVNAME="_";
@@ -220,7 +225,8 @@ sub stand_alone{
     "T"              => \$test,
     "D"              => \$debug,
     "whole"          => \$whole,
-    "cssflamework:s" => \@cssflameworks
+    "cssflamework:s" => \@cssflameworks,
+    "quiet"          => \$QUIET
   );
   foreach my $i (@libpaths){
     mes("Trying to add $i into library directory\n", {ln=>__LINE__});
@@ -253,7 +259,7 @@ sub stand_alone{
     # 1. multiple infile -> multiple outfile (1:1)
     print STDERR "multi file mode.\n";
     for(my $i=0; $i<=$#$inf; $i++){
-      print STDERR "$i:conv $inf->[$i] -> $outf->[$i]\n";
+      mes("$i:conv $inf->[$i] -> $outf->[$i]", {q=>1});
       open(my $fhi, '<:utf8', $inf->[$i]);
       open(my $fho, '>:utf8', $outf->[$i]);
       my $winitxt = join('', <$fhi>);
@@ -318,21 +324,25 @@ sub stand_alone{
 
 sub mes{ # display guide, warning etc. to STDERR
   my($x, $o) = @_;
+# $o->{err}: treat $x as error and die
+# $o->{warn}: treat $x as warning and use warn()
+# $o->{q}: do not show caller-related info
+# $QUIET: show err or warn, but any others are omitted
   chomp $x;
   my $mestype = (exists $o->{err})  ? 'Error' 
               : (exists $o->{warn}) ? 'Warning' : 'Message';
-  unless(exists $o->{q}){
+  if((not exists $o->{q}) or $QUIET==0){
     my $i = 1; my @subs;
     while ( my($pack, $file, $line, $subname, $hasargs, $wantarray, $evaltext, $is_require) = caller( $i++) ){push(@subs, "$line\[$subname]")}
     print STDERR "${mestype} from wini.pm : ", join(' <- ', @subs), "\n";
   }
-  ($o->{ln}) and $x = "$x [wini.pm line $o->{ln}]";
+  ($QUIET==0) and (exists $o->{ln}) and $x = "$x [wini.pm line $o->{ln}]";
   if(exists $o->{err}){
     die("  $x\n");
   }elsif($o->{warn}){
     warn("  $x\n");
   }else{
-    print STDERR "  $x\n";
+    $QUIET or print STDERR "  $x\n";
   }
 }
 
@@ -382,6 +392,9 @@ sub winifiles{
   
   # check $indir
   foreach my $in1 (@in){
+    my(@in1x) = ($in1);
+    (not -f $in1) and map {my $a="$in1.$_"; push(@in1x, $a); (-f $a) and $in1=$a} qw/mg wini par/;
+    (not -f $in1) and mes("File not found: ". join(" or ", @in1x), {err=>1});
     if(not defined $in1){
     }elsif(-d $in1){
       mes("Dir '$in1' is chosen as input", {q=>1});
@@ -433,9 +446,12 @@ sub winifiles{
   return($indir, \@infile, $outdir, \@outfile);
 }
 
-sub findfile{
+sub findfile{  # recursive file search.
+  # Any files or dirs of which name begin with '_' are ignored.
+  # &findfile('target_dir', sub{print "$_[0]\n"});
   my($dir, $p) = @_;
-  my @files = <$dir/*>;
+  ($dir=~/^_/) and return();
+  my @files = grep {!m(/_)} <$dir/*>;
   foreach my $file (@files) {
     (-d $file) ? findfile($file, $p) : $p->($file);
   }
