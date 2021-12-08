@@ -259,8 +259,13 @@ sub stand_alone{
     # 1. multiple infile -> multiple outfile (1:1)
     print STDERR "multi file mode.\n";
     for(my $i=0; $i<=$#$inf; $i++){
-      mes("$i:conv $inf->[$i] -> $outf->[$i]", {q=>1});
-      open(my $fhi, '<:utf8', $inf->[$i]);
+      if($inf->[$i] eq ''){
+        mes("$i:conv STDIN -> $outf->[$i]", {q=>1});
+        $fhi=*STDIN;
+      }else{
+        mes("$i:conv $inf->[$i] -> $outf->[$i]", {q=>1});
+        open(my $fhi, '<:utf8', $inf->[$i]);
+      }
       open(my $fho, '>:utf8', $outf->[$i]);
       my $winitxt = join('', <$fhi>);
       $winitxt=~s/\x{FEFF}//; # remove BOM if exists
@@ -276,12 +281,12 @@ sub stand_alone{
     }else{
       $fho = *STDOUT;
     }
-    my @winitxt;
+    my $winitxt = '';
     map {
-      open(my $fhi, '<:utf8', $_);
+      my $fhi; ($_ eq '') ? $fhi=*STDIN : open($fhi, '<:utf8', $_);
       while(<$fhi>){
         s/[\n\r]*$//; s/\x{FEFF}//; # remove BOM if exists
-        push(@winitxt, "$_\n");
+        $winitxt .= "$_\n";
       }
     } @$inf;
     my($htmlout) = wini_sects(join('', @winitxt), {dir=>getcwd(), whole=>$whole, cssfile=>$cssfile, title=>$title, cssflameworks=>\@cssflameworks});
@@ -331,7 +336,7 @@ sub mes{ # display guide, warning etc. to STDERR
   chomp $x;
   my $mestype = (exists $o->{err})  ? 'Error' 
               : (exists $o->{warn}) ? 'Warning' : 'Message';
-  if((not exists $o->{q}) or $QUIET==0){
+  if((not exists $o->{q}) and $QUIET!=0){
     my $i = 1; my @subs;
     while ( my($pack, $file, $line, $subname, $hasargs, $wantarray, $evaltext, $is_require) = caller( $i++) ){push(@subs, "$line\[$subname]")}
     print STDERR "${mestype} from wini.pm : ", join(' <- ', @subs), "\n";
@@ -342,7 +347,7 @@ sub mes{ # display guide, warning etc. to STDERR
   }elsif($o->{warn}){
     warn("  $x\n");
   }else{
-    $QUIET or print STDERR "  $x\n";
+    ($QUIET==0) and print STDERR "  $x\n";
   }
 }
 
@@ -393,8 +398,8 @@ sub winifiles{
   # check $indir
   foreach my $in1 (@in){
     my(@in1x) = ($in1);
-    (not -f $in1) and map {my $a="$in1.$_"; push(@in1x, $a); (-f $a) and $in1=$a} qw/mg wini par/;
-    (not -f $in1) and mes("File not found: ". join(" or ", @in1x), {err=>1});
+    (not -e $in1) and map {my $a="$in1.$_"; push(@in1x, $a); (-f $a) and $in1=$a} qw/mg wini par/;
+    (not -e $in1) and mes("File not found: ". join(" or ", @in1x), {err=>1});
     if(not defined $in1){
     }elsif(-d $in1){
       mes("Dir '$in1' is chosen as input", {q=>1});
