@@ -171,6 +171,7 @@ my $debug;
 
 binmode STDIN, ':utf8';
 binmode STDERR,':utf8';
+binmode STDOUT,':utf8';
 
 # barrier-free color codes: https://jfly.uni-koeln.de/html/manuals/pdf/color_blind.pdf
 our ($red, $green, $blue, $magenta, $purple) 
@@ -283,14 +284,13 @@ sub stand_alone{
     }
     my $winitxt = '';
     map {
-      my $fhi; ($_ eq '') ? $fhi=*STDIN : open($fhi, '<:utf8', $_);
+      my $fhi; ($_ eq '') ? $fhi=*STDIN : (print STDERR "open $_ in utf8\n", open($fhi, '<:utf8', $_));
       while(<$fhi>){
         s/[\n\r]*$//; s/\x{FEFF}//; # remove BOM if exists
         $winitxt .= "$_\n";
       }
       $winitxt .= "\n\n";
     } @$inf;
-    print STDERR $winitxt;
     my($htmlout) = wini_sects($winitxt, {dir=>getcwd(), whole=>$whole, cssfile=>$cssfile, title=>$title, cssflameworks=>\@cssflameworks});
     print {$fho} $htmlout;
   }
@@ -444,10 +444,12 @@ sub winifiles{
       push(@outfile, "$outdir1/$base.html");
     }
   }
-  print STDERR "indir:   ", ($indir)?$indir:'undef', "\n",
-               "infile:  ", ($infile[0])?join(' ', @infile):'undef', "\n",
-               "outdir:  ", ($outdir)?$outdir:'undef', "\n",
-               "outfile: ", ($outfile[0])?join(' ',@outfile):'undef', "\n";
+  mes(
+    "indir:   " . (($indir)?$indir:'undef') . "\n" .
+    "  infile:  " . (($infile[0])?join(' ', @infile):'undef') . "\n" .
+    "  outdir:  " . (($outdir)?$outdir:'undef') . "\n" .
+    "  outfile: " . (($outfile[0])?join(' ',@outfile):'undef'), {q=>1}
+  );
   return($indir, \@infile, $outdir, \@outfile);
 }
 
