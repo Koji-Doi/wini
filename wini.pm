@@ -264,7 +264,7 @@ sub stand_alone{
         $fhi=*STDIN;
       }else{
         mes("$i:conv $inf->[$i] -> $outf->[$i]", {q=>1});
-        open(my $fhi, '<:utf8', $inf->[$i]);
+        open($fhi, '<:utf8', $inf->[$i]);
       }
       open(my $fho, '>:utf8', $outf->[$i]);
       my $winitxt = join('', <$fhi>);
@@ -288,8 +288,10 @@ sub stand_alone{
         s/[\n\r]*$//; s/\x{FEFF}//; # remove BOM if exists
         $winitxt .= "$_\n";
       }
+      $winitxt .= "\n\n";
     } @$inf;
-    my($htmlout) = wini_sects(join('', @winitxt), {dir=>getcwd(), whole=>$whole, cssfile=>$cssfile, title=>$title, cssflameworks=>\@cssflameworks});
+    print STDERR $winitxt;
+    my($htmlout) = wini_sects($winitxt, {dir=>getcwd(), whole=>$whole, cssfile=>$cssfile, title=>$title, cssflameworks=>\@cssflameworks});
     print {$fho} $htmlout;
   }
 
