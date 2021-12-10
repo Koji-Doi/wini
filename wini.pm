@@ -162,7 +162,7 @@ our $ENVNAME="_";
 our %ID; # list of ID assigned to tags in the target html
 our %EXT;
 our(@INDIR, @INFILE, $OUTFILE);
-
+our $TEMPLATE;
 my $scriptname = basename($0);
 my $version    = "ver. 1.0alpha rel. 20211201";
 my @save;
@@ -227,6 +227,7 @@ sub stand_alone{
     "D"              => \$debug,
     "whole"          => \$whole,
     "cssflamework:s" => \@cssflameworks,
+    "template=s"     => \$TEMPLATE,
     "quiet"          => \$QUIET
   );
   foreach my $i (@libpaths){
@@ -656,6 +657,9 @@ sub wini_sects{
 
   # template?
   if(defined $sectdata_depth[0][-1]{val}{template}){ # template mode
+    $TEMPLATE = $sectdata_depth[0][-1]{val}{template};
+  }
+  if(defined $TEMPLATE){
     # read vals
     my $opt1 = { %$opt };
     foreach my $k (grep {$_ ne 'template'} keys %{$sectdata_depth[0][-1]{val}}){
@@ -673,20 +677,20 @@ sub wini_sects{
 
     # read tmpl data
     print "chk template: ", Dumper @sectdata_depth;
-    my $tmplfile = $sectdata_depth[0][-1]{val}{template};
-    (-f $tmplfile) or $tmplfile = $opt->{dir}."/$tmplfile";
-    (-f $tmplfile) or $tmplfile =    "_template/$tmplfile";
-    (-f $tmplfile) or die qq{File "$tmplfile": not found};
-    ($debug) and mes("We use $tmplfile as template.");
-    open(my $fhi, '<:utf8', $tmplfile);
-    $htmlout = join('', <$fhi>);
-    if($tmplfile=~/\.wini/){ # $htmlout is translated
-      $htmlout = wini_sects($htmlout, $opt1);
-    }
+    (-f $TEMPLATE) or $TEMPLATE = $opt->{dir}."/$TEMPLATE";
+    (-f $TEMPLATE) or $TEMPLATE =    "_template/$TEMPLATE";
+    (-f $TEMPLATE) or die qq{File "$TEMPLATE": not found};
+    ($debug) and mes("We use $TEMPLATE as template.");
+    open(my $fhi, '<:utf8', $TEMPLATE);
+    my $tmpltxt = join('', <$fhi>);
+#    if($tmplfile=~/\.wini/){ # $htmlout is translated
+#      $htmlout = wini_sects($htmlout, $opt1);
+#    }
+    $tmpltxt=~s!\[\[(.*?)]]!!;
+  }else{
+    (defined $opt->{whole}) and $htmlout = whole_html($htmlout, $opt->{title}, $opt);
+    return($htmlout, \@html);
   }
-
-  (defined $opt->{whole}) and $htmlout = whole_html($htmlout, $opt->{title}, $opt);
-  return($htmlout, \@html);
 }
 
 sub wini{
