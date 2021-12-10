@@ -665,14 +665,21 @@ sub wini_sects{
     foreach my $k (grep {$_ ne 'template'} keys %{$sectdata_depth[0][-1]{val}}){
       $opt1->{_v}{$k} = $sectdata_depth[0][-1]{val}{$k};
     }
+
+=begin c
     foreach my $key (keys %{$sectdata{'_'}{val}}){
       $opt1->{'_v'}{$key} = $sectdata{'_'}{val}{$key};
       $htmlout =~ s!(\{\{([^|]*?)(?:\|([^{}]*?))?}})!call_macro($1, $2, $opt1, undef, split(/\|/,$3||''))!esg;
     }
-    # from wini main text
+=end c
+=cut
+
+    # read main text
+    my %maintxt;
     foreach my $html (@html){
       my($id, $txt) = ($html->{sect_id}, $html->{txt});
-      $htmlout =~ s!\{\{v\|${id}}}!$txt!ge;
+      #$htmlout =~ s!\{\{v\|${id}}}!$txt!ge;
+      $maintxt{$id} = $txt;
     }
 
     # read tmpl data
@@ -686,8 +693,16 @@ sub wini_sects{
 #    if($tmplfile=~/\.wini/){ # $htmlout is translated
 #      $htmlout = wini_sects($htmlout, $opt1);
 #    }
-    $tmpltxt=~s!\[\[(.*?)]]!!;
-  }else{
+    $tmpltxt=~s!\[\[(.*?)]]!
+      if(exists $maintxt{$1}){
+       $maintxt{$1};
+      }else{
+        (defined $opt1->{_v}{$1}) ? ($opt1->{_v}{$1}) : '';
+      }
+    !ge;
+    (defined $opt->{whole}) and $tmpltxt = whole_html($htmlout, $opt->{title}, $opt);
+    return($tmpltxt);
+  }else{ # non-template
     (defined $opt->{whole}) and $htmlout = whole_html($htmlout, $opt->{title}, $opt);
     return($htmlout, \@html);
   }
@@ -1447,7 +1462,7 @@ sub table{
         ($style0) and $copt .= qq! style="$style0"!; #option for each cell
         my $ctag = (
           (not $htmlitem[$rn][0]{footnote}) and (
-          ($htmlitem[$rn][$_]{ctag} and $htmlitem[$rn][$_]{ctag} eq 'th') or 
+          ($htmlitem[$rn][$_]{ctag} and $htmlitem[$rn][$_]{ctag} eq 'th') or
           ($htmlitem[0][$_]{ctag}   and $htmlitem[0][$_]{ctag}   eq 'th') or
           ($htmlitem[$rn][0]{ctag}  and $htmlitem[$rn][0]{ctag}  eq 'th'))
         )?'th':'td';
@@ -1485,7 +1500,6 @@ my $avail_yamltiny;
 sub yaml{
   my($x, $opt) = @_;
   my $val = $opt->{_v};
-  my($package,$filename,$line) = caller();
   if($opt and $avail_yamltiny){
     my $yaml = YAML::Tiny->new;
     $val     = ($yaml->read_string($x))[0][0];
