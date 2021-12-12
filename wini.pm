@@ -271,7 +271,7 @@ sub stand_alone{
       open(my $fho, '>:utf8', $outf->[$i]);
       my $winitxt = join('', <$fhi>);
       $winitxt=~s/\x{FEFF}//; # remove BOM if exists
-      my($htmlout) = wini_sects($winitxt, {dir=>getcwd(), whole=>$whole, cssfile=>$cssfile, title=>$title, cssflameworks=>\@cssflameworks});
+      my($htmlout) = wini_sects($winitxt, {indir=>$ind, dir=>getcwd(), whole=>$whole, cssfile=>$cssfile, title=>$title, cssflameworks=>\@cssflameworks});
       print {$fho} $htmlout;
     }
   }else{
@@ -292,7 +292,7 @@ sub stand_alone{
       }
       $winitxt .= "\n\n";
     } @$inf;
-    my($htmlout) = wini_sects($winitxt, {dir=>getcwd(), whole=>$whole, cssfile=>$cssfile, title=>$title, cssflameworks=>\@cssflameworks});
+    my($htmlout) = wini_sects($winitxt, {indir=>$ind, dir=>getcwd(), whole=>$whole, cssfile=>$cssfile, title=>$title, cssflameworks=>\@cssflameworks});
     print {$fho} $htmlout;
   }
 
@@ -337,20 +337,22 @@ sub mes{ # display guide, warning etc. to STDERR
 # $o->{q}: do not show caller-related info
 # $QUIET: show err or warn, but any others are omitted
   chomp $x;
+  my $ind='';
   my $mestype = (exists $o->{err})  ? 'Error' 
               : (exists $o->{warn}) ? 'Warning' : 'Message';
-  if((not exists $o->{q}) and $QUIET!=0){
+  if((not exists $o->{q}) and $QUIET==0){
     my $i = 1; my @subs;
     while ( my($pack, $file, $line, $subname, $hasargs, $wantarray, $evaltext, $is_require) = caller( $i++) ){push(@subs, "$line\[$subname]")}
     print STDERR "${mestype} from wini.pm : ", join(' <- ', @subs), "\n";
+    $ind='  ';
   }
   ($QUIET==0) and (exists $o->{ln}) and $x = "$x [wini.pm line $o->{ln}]";
   if(exists $o->{err}){
-    die("  $x\n");
+    die("$ind$x\n");
   }elsif($o->{warn}){
-    warn("  $x\n");
+    warn("$ind$x\n");
   }else{
-    ($QUIET==0) and print STDERR "  $x\n";
+    ($QUIET==0) and print STDERR "$ind$x\n";
   }
 }
 
@@ -447,10 +449,12 @@ sub winifiles{
   }
   mes(
     "indir:   " . (($indir)?$indir:'undef') . "\n" .
-    "  infile:  " . (($infile[0])?join(' ', @infile):'undef') . "\n" .
-    "  outdir:  " . (($outdir)?$outdir:'undef') . "\n" .
-    "  outfile: " . (($outfile[0])?join(' ',@outfile):'undef'), {q=>1}
-  );
+    "infile:  " . (($infile[0])?join(' ', @infile):'undef') . "\n" .
+    "outdir:  " . (($outdir)?$outdir:'undef') . "\n" .
+    "outfile: " . (($outfile[0])?join(' ',@outfile):'undef'), {q=>1}
+     );
+  (defined $indir  or defined $infile[0])  or mes("Data will be read from STDIN", {q=>1});
+  (defined $outdir or defined $outfile[0]) or mes("Result will be output to STDOUT", {q=>1});  
   return($indir, \@infile, $outdir, \@outfile);
 }
 
@@ -561,7 +565,7 @@ sub wini_sects{
     $t=~s/^\n*//;
     $t=~s/[\s\n]+$//;
     if($t=~/^(\?+[-<=>]*)([a-z]*)(?:#(\S*))?(?:\s+(.*))?/){ # begin sect
-      my($level, $tagtype, $id, $k) = ($1, $2, $3, $4);
+      my($level, $tagtype, $id, $secttitle) = ($1, $2, $3, $4);
       
       # clarify section depth
       $lastdepth = $depth;
@@ -587,8 +591,7 @@ sub wini_sects{
       my $tag = {qw/section section a article s aside h header f footer n nav d details/}->{$tagtype};
       $tag = $tag || 'section';
       $sect_cnt++;
-      $secttitle = $k  || undef;
-      $sect_id   = $id || "sect${sect_cnt}";
+      $sect_id = $id || "sect${sect_cnt}";
       $sect_id=~s/[^\w]//g;
       (exists $sectdata{$sect_id}) and mes("duplicated section id ${sect_id}", {warn=>1});
       push(@{$sectdata_depth[$depth]}, {sect_id => $sect_id, tag => $tag});
@@ -683,12 +686,23 @@ sub wini_sects{
     }
 
     # read tmpl data
-    print "chk template: ", Dumper @sectdata_depth;
-    (-f $TEMPLATE) or $TEMPLATE = $opt->{dir}."/$TEMPLATE";
-    (-f $TEMPLATE) or $TEMPLATE =    "_template/$TEMPLATE";
-    (-f $TEMPLATE) or die qq{File "$TEMPLATE": not found};
-    ($debug) and mes("We use $TEMPLATE as template.");
-    open(my $fhi, '<:utf8', $TEMPLATE);
+    my $template = $TEMPLATE;
+    unless(-f $template){
+      my($base, $dir) = basename($template);
+      (defined $dir)  or $dir = cwd();
+      ($dir=~m{[^/]}) or $dir = cwd()."/$dir"; # $dir should be absolute path
+      my @testdirs = ($indir, $dir, $opt->{dir}, map {"$_/_template"} ("\$indir, $dir, $opt->{dir});
+    L1:{
+        foreach my $testdir (@testdirs){
+          $template = "$testdir/$base";
+          (-f $template) and last L1;
+        }
+      $DB::single=$DB::single=1;
+        mes("Cannot find template '$base' in '" . join(q{', '}, @testdirs) . "'.", {err=>1});
+      }
+    } # unless -f $TEMPLATE
+    mes("Will open '$template' as template file", {q=>1});
+    open(my $fhi, '<:utf8', $template);
     my $tmpltxt = join('', <$fhi>);
 #    if($tmplfile=~/\.wini/){ # $htmlout is translated
 #      $htmlout = wini_sects($htmlout, $opt1);
@@ -1016,8 +1030,9 @@ sub call_macro{
   ($macroname=~m{^[!-/:-@\[-~]$}) and (not defined $f[0]) and 
     return('&#x'.unpack('H*',$macroname).';'); # char -> ascii code
   ($macroname=~/^calc$/i)    and return(ev(\@f, $opt->{_v}));
-#  ($macroname eq 'va')     and return(var($f[0], $opt->{_v}));
-  ($macroname=~/^va$/i)      and return($opt->{_v}{$f[0]});
+  ($macroname=~/^va$/i)      and return(
+    (defined $opt->{_v}{$f[0]}) ? $opt->{_v}{$f[0]} : (mes("Variable '$f[0]' not defined", {warn=>1}), '')
+  );
   ($macroname=~/^envname$/i) and return($ENVNAME);
   ($macroname=~/^([oun]l)$/) and return(listmacro($1, \@f));
   ($macroname=~/^[IBUS]$/)   and $_=lc($macroname), return("<$_${class_id}>$f[0]</$_>");
