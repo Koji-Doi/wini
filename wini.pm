@@ -561,6 +561,7 @@ sub wini_sects{
   my @sectdata_depth = ([{sect_id=>'_'}]);
   my ($sect_cnt, $sect_id)       = (0, '_');
   my ($depth, $lastdepth)        = (0, 0);
+  my $ind = $opt->{indir};
   foreach my $t (split(/(^\?.*?\n)/m, $x)){ # for each section
     $t=~s/^\n*//;
     $t=~s/[\s\n]+$//;
@@ -669,14 +670,6 @@ sub wini_sects{
       $opt1->{_v}{$k} = $sectdata_depth[0][-1]{val}{$k};
     }
 
-=begin c
-    foreach my $key (keys %{$sectdata{'_'}{val}}){
-      $opt1->{'_v'}{$key} = $sectdata{'_'}{val}{$key};
-      $htmlout =~ s!(\{\{([^|]*?)(?:\|([^{}]*?))?}})!call_macro($1, $2, $opt1, undef, split(/\|/,$3||''))!esg;
-    }
-=end c
-=cut
-
     # read main text
     my %maintxt;
     foreach my $html (@html){
@@ -691,7 +684,7 @@ sub wini_sects{
       my($base, $dir) = basename($template);
       (defined $dir)  or $dir = cwd();
       ($dir=~m{[^/]}) or $dir = cwd()."/$dir"; # $dir should be absolute path
-      my @testdirs = ($indir, $dir, $opt->{dir}, map {"$_/_template"} ("\$indir, $dir, $opt->{dir});
+      my @testdirs = ($ind, $dir, $opt->{dir}, (map {"$_/_template"} ($ind, $dir, $opt->{dir})));
     L1:{
         foreach my $testdir (@testdirs){
           $template = "$testdir/$base";
