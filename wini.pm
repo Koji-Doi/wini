@@ -162,7 +162,7 @@ our $ENVNAME="_";
 our %ID; # list of ID assigned to tags in the target html
 our %EXT;
 our(@INDIR, @INFILE, $OUTFILE);
-our $TEMPLATE;
+our($TEMPLATE, $TEMPLATEDIR);
 my $scriptname = basename($0);
 my $version    = "ver. 1.0alpha rel. 20211201";
 my @save;
@@ -228,6 +228,7 @@ sub stand_alone{
     "whole"          => \$whole,
     "cssflamework:s" => \@cssflameworks,
     "template=s"     => \$TEMPLATE,
+    "templatedir=s"  => \$TEMPLATEDIR,
     "quiet"          => \$QUIET
   );
   foreach my $i (@libpaths){
@@ -295,37 +296,6 @@ sub stand_alone{
     my($htmlout) = wini_sects($winitxt, {indir=>$ind, dir=>getcwd(), whole=>$whole, cssfile=>$cssfile, title=>$title, cssflameworks=>\@cssflameworks});
     print {$fho} $htmlout;
   }
-
-=begin c
-  my @inf0;
-  for(my $i=0; $i<=$#$inf; $i++){
-    my $inf0 = ($inf->[$i] eq '') ? 'STDIN' : $inf->[$i];
-    if(defined $outf->[0]){
-      mes("$i. $inf0 -> $outf->[0]", {q=>1});
-      open($fho, '>>:utf8', $outf->[0]) or mes("Cannot create file: $output", {err=>1, q=>1, ln=>__LINE__});
-    }else{
-      mes("$i. $inf0 -> STDOUT", {q=>1});
-      $fho = *STDOUT;
-    }
-    if(defined $inf->[$i]){
-      print STDERR $inf->[$i],"\n";
-      if($inf->[$i] eq ''){
-        $fhi = *STDIN;
-      }else{
-        open($fhi, '<:utf8', $inf->[$i]);
-      }
-    }else{
-      $fhi = *STDIN;
-    }
-
-    $_=<$fhi>;
-    s/\x{FEFF}//; # remove BOM if exists
-    push(@inf0, $_);
-    push(@inf0, <$fhi>);
-    push(@inf0, "\n");
-  } #2.
-=end c
-=cut
   
 #  print {$fho} (wini_sects(join('', @inf0), {dir=>getcwd, whole=>$whole, cssfile=>$cssfile, title=>$title, cssflameworks=>\@cssflameworks}))[0];
 } # sub stand_alone
@@ -469,71 +439,6 @@ sub findfile{  # recursive file search.
   }
 }
 
-=begin c
-sub _winifiles{
-  my($in_ref, $out) = @_;
-  my $default_outdir='.';
-  my($stdin, $stdout) = qw/*STDIN *STDOUT/;
-  my(%in, %out);
-  my(@in_d, @in_f);
-  my($outdir, @outfile);
-
-  foreach my $f (@$in_ref){
-    (-d $f) ? (map {s!/+$!!; push(@in_d, $_)} $f)
-    :(-f $f) ? push(@in_f, $f): mes("File not found ($f).", {ln=>__LINE__, err=>1});
-  }
-  if(defined $out){
-    if($out=~m{/$} or (-d $out)){ # out = directory
-      mes("Directory '$out' is selected for output.", {q=>1});
-      $outdir = $out;
-      unless(-d $out){ # create new dir
-        if(-f $out){
-          die "$out already exists";
-        }else{
-          print STDERR "mkdir $outdir\n";
-        }
-      }
-    }else{ # normal file
-      @outfile = ($out);
-    }
-  }else{
-#    @outfile = ($stdout);
-  }
-  (scalar @in_d >=1 and scalar @in_f >=1) and die "Directoris are specified together with regular files with -i option";
-  (scalar @in_d > 1) and die "More than one directory are specified with -i option";
-  (scalar @in_d == 0) and $in_d[0] = getcwd();
-
-# @in_d -> @in_f
-  my @f =grep {/\.(wini|par|mg)$/} @{getfile($in_d[0])};
-  push(@in_f, @f); #input files in full-path
-
-  if(defined $outdir){
-    if(defined $in_f[0]){
-      foreach my $infile (@in_f){
-        my $infile1 = $infile;
-        ($in_d[0]) and $infile1=~s{$in_d[0]/*}{};
-        my($dir, $base, $ext) = fileparse($infile1, qw/.wini .par .mg/);
-        print STDERR "**** $outdir/$base.html\n";
-        push(@outfile, "$outdir/$infile1.html");
-      }
-    }else{ # no inputfile specify (STDIN is expected)
-      my $outfile1;
-      L1:{
-        foreach my $n ( 'index', '0001'..'0003'){
-          (-f ($outfile1 = "${outdir}${n}.html")) or last L1;
-        }
-        mes("Could not specify output file name ($outfile1). Use -o option properly.", {err=>1});
-      }
-      mes("Output: $outfile1", {q=>1});
-      push(@outfile, $outfile1);
-    }
-  }
-  mes("outfile at the last of winifile(): ".join(" ", @outfile));
-  return(\@in_f, \@outfile);
-} # end of winifile()
-=end c
-=cut
-
 sub getfile{
   my($dir, $regexp) = @_;
   my @foundfiles;
@@ -555,13 +460,13 @@ my(@auto_table_id);
 sub wini_sects{
   my($x, $opt) = @_;
   (defined $opt) or $opt={};
-  #my($level, $tagtype, $secttytle, $k) = ('', '', '', '');
   my(%sectdata, $secttitle, @html);
   my $htmlout = '';
   my @sectdata_depth = ([{sect_id=>'_'}]);
   my ($sect_cnt, $sect_id)       = (0, '_');
   my ($depth, $lastdepth)        = (0, 0);
   my $ind = $opt->{indir};
+  (defined $ind) or $ind='';
   foreach my $t (split(/(^\?.*?\n)/m, $x)){ # for each section
     $t=~s/^\n*//;
     $t=~s/[\s\n]+$//;
@@ -680,11 +585,13 @@ sub wini_sects{
 
     # read tmpl data
     my $template = $TEMPLATE;
+    my $tmpldir  = (defined $TEMPLATEDIR) ? $TEMPLATEDIR : cwd();
     unless(-f $template){
-      my($base, $dir) = basename($template);
-      (defined $dir)  or $dir = cwd();
-      ($dir=~m{[^/]}) or $dir = cwd()."/$dir"; # $dir should be absolute path
-      my @testdirs = ($ind, $dir, $opt->{dir}, (map {"$_/_template"} ($ind, $dir, $opt->{dir})));
+      my($base, $dir) = fileparse($template);
+      ((not defined $dir)  or ($dir eq './')) and $dir = cwd();
+      ($dir=~m{[^/]}) or $dir = "$tmpldir/$dir"; # $dir should be absolute path
+      print STDERR "indir=$dir\n";
+      my @testdirs = ($tmpldir, $dir, $opt->{dir}, (map {"$_/_template"} ($tmpldir, $dir, $opt->{dir})));
     L1:{
         foreach my $testdir (@testdirs){
           $template = "$testdir/$base";
