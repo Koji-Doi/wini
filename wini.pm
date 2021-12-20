@@ -260,7 +260,6 @@ sub stand_alone{
   # output
   if(scalar @$outf>1){
     # 1. multiple infile -> multiple outfile (1:1)
-    print STDERR "multi file mode.\n";
     for(my $i=0; $i<=$#$inf; $i++){
       if($inf->[$i] eq ''){
         mes("$i:conv STDIN -> $outf->[$i]", {q=>1});
@@ -286,7 +285,10 @@ sub stand_alone{
     }
     my $winitxt = '';
     map {
-      my $fhi; ($_ eq '') ? $fhi=*STDIN : (print STDERR "open $_ in utf8\n", open($fhi, '<:utf8', $_));
+      my $fhi;
+      ($_ eq '') ? $fhi=*STDIN : (
+         open($fhi, '<:utf8', $_) or die "Could not open $_" || mes("open $_ in utf8", {q=>1})
+      );
       while(<$fhi>){
         s/[\n\r]*$//; s/\x{FEFF}//; # remove BOM if exists
         $winitxt .= "$_\n";
@@ -388,7 +390,6 @@ sub winifiles{
     }
   }
   if((not defined $infile[0]) and (defined $indir)){
-#    push(@infile, grep {/\.(wini|par|mg)$/} <$indir/*>);
     findfile($indir, sub{$_[0]=~/\.(wini|par|mg)$/ and push(@infile, $_[0])});
   }
 
@@ -397,7 +398,7 @@ sub winifiles{
     if(not defined $in){
     }
   }elsif(-d $out){
-    mes("out '$out' is chosen as output", {q=>1});
+    mes("File '$out' is chosen as output", {q=>1});
     $outdir = $out;
   }elsif(-f $out){
     $outfile[0] = $out;
@@ -544,7 +545,7 @@ sub wini_sects{
       }
       # vars in sect/main
       my $v;
-      $t=~s/===(.*)===/$v = &yaml($1, $opt); ''/es;
+      $t=~s/===(.*)===/$v = &ylml($1, $opt); ''/es;
       foreach my $k (keys %$v){
         $sectdata_depth[$depth][-1]{val}{$k} = $v->{$k};
         $sectdata{$sect_id}{val}{$k}         = $v->{$k};
@@ -586,27 +587,26 @@ sub wini_sects{
     # read tmpl data
     my $template = $TEMPLATE;
     my $tmpldir  = (defined $TEMPLATEDIR) ? $TEMPLATEDIR : cwd();
-    unless(-f $template){
-      my($base, $dir) = fileparse($template);
-      ((not defined $dir)  or ($dir eq './')) and $dir = cwd();
-      ($dir=~m{[^/]}) or $dir = "$tmpldir/$dir"; # $dir should be absolute path
-      print STDERR "indir=$dir\n";
-      my @testdirs = ($tmpldir, $dir, $opt->{dir}, (map {"$_/_template"} ($tmpldir, $dir, $opt->{dir})));
+    if($template=~m{^/}){ # absolute path
+    }else{
+        my @testdirs = ($tmpldir, $opt->{dir}, (map {"$_/_template"} ($tmpldir, $opt->{dir})));
     L1:{
-        foreach my $testdir (@testdirs){
-          $template = "$testdir/$base";
-          (-f $template) and last L1;
+        foreach my $d (@testdirs){
+          my $t = "$d/$TEMPLATE";
+          if(-f $t){
+            mes("Found $t as template file", {q=>1});
+            $template = $t;
+            last L1;
+          }else{
+            mes("Searched $t, but not found", {q=>1});
+          }
         }
-      $DB::single=$DB::single=1;
-        mes("Cannot find template '$base' in '" . join(q{', '}, @testdirs) . "'.", {err=>1});
-      }
-    } # unless -f $TEMPLATE
-    mes("Will open '$template' as template file", {q=>1});
+        mes("Cannot find template '$TEMPLATE' in '" . join(q{', '}, @testdirs) . "'.", {err=>1});
+      }  # L1
+    }
     open(my $fhi, '<:utf8', $template);
+    mes("Opened '$template' as template file", {q=>1});
     my $tmpltxt = join('', <$fhi>);
-#    if($tmplfile=~/\.wini/){ # $htmlout is translated
-#      $htmlout = wini_sects($htmlout, $opt1);
-#    }
     $tmpltxt=~s!\[\[(.*?)]]!
       if(exists $maintxt{$1}){
        $maintxt{$1};
@@ -1412,7 +1412,7 @@ sub table{
 my %vars;
 my $avail_yamltiny;
 
-sub yaml{
+sub ylml{
   my($x, $opt) = @_;
   my $val = $opt->{_v};
   if($opt and $avail_yamltiny){
@@ -1437,7 +1437,7 @@ sub yaml{
     } # for each $line
   }
   return($val);
-} # sub yaml
+} # sub ylml
 
 sub ev{ # <, >, %in%, and so on
   my($x, $v) = @_;
