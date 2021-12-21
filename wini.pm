@@ -137,6 +137,7 @@ Show this help.
 
 package WINI;
 use strict;
+use utf8;
 use Data::Dumper;
 use File::Basename;
 use File::Path 'mkpath';
@@ -145,6 +146,7 @@ use Pod::Usage;
 use Getopt::Long qw(:config no_ignore_case auto_abbrev);
 use Encode;
 use Cwd;
+use Time::Piece;
 #use Module::Load qw( load );
 #load('YAML::Tiny');
 
@@ -929,6 +931,7 @@ sub call_macro{
   ($macroname=~/^r$/i)       and return('&#x7d;'); # }
   ($macroname=~m{^[!-/:-@\[-~]$}) and (not defined $f[0]) and 
     return('&#x'.unpack('H*',$macroname).';'); # char -> ascii code
+  ($macroname=~/^date/i)     and return(date(\@f, $opt->{_v}));
   ($macroname=~/^calc$/i)    and return(ev(\@f, $opt->{_v}));
   ($macroname=~/^va$/i)      and return(
     (defined $opt->{_v}{$f[0]}) ? $opt->{_v}{$f[0]} : (mes("Variable '$f[0]' not defined", {warn=>1}), '')
@@ -1438,6 +1441,29 @@ sub ylml{
   }
   return($val);
 } # sub ylml
+
+sub date{
+  my($x, $v) = @_;
+  # $x->[0]: 2021-12-17
+  # $v->{_v}{lang}: ja or en
+  my $form = (defined $v->{_v}{lang} and $v->{_v}{lang} eq 'ja') ? "%y年%m月%d日" : undef;
+  my $t;
+  if(defined $x->[0]){
+    my @n = split("[-/.]", $x->[0]);
+    $t = Time::Piece->strptime("$n[0]-$n[1]-$n[2]", "%y-%m-%d");
+  }else{
+    $t = localtime;
+  }
+  my $res;
+  if(defined $form){
+    $res = $t->strftime($form);
+  }else{
+    $res = $t->cdate();
+    $res =~s/\d\d:\d\d:\d\d //; # remove hms
+    $res =~s/^\w+ //;           # remove weekday name
+  }
+  return($res);
+}
 
 sub ev{ # <, >, %in%, and so on
   my($x, $v) = @_;
