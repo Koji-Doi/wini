@@ -166,7 +166,7 @@ our %EXT;
 our(@INDIR, @INFILE, $OUTFILE);
 our($TEMPLATE, $TEMPLATEDIR);
 my $scriptname = basename($0);
-my $version    = "ver. 1.0alpha rel. 20211201";
+my $version    = "ver. 1.0alpha rel. 20220101";
 my @save;
 my %ref; # $ref{image}{imageID} = 1; keys of %$ref: qw/image table formula citation math ref/
 my $debug;
@@ -1114,13 +1114,13 @@ sub table{
     } # if defined $o
 
     push(@{$ID{table}}, $htmlitem[0][0]{copt}{id}[0]);
-    while($o=~/\&([lrcjsebtm]+)/g){
-      my $h = {qw/l left r right c center j justify s start e end/}->{$1};
-      (defined $h) and push(@{$htmlitem[0][0]{copt}{style}{'text-align'}}, $h);
-      my $v = {qw/t top m middle b bottom/}->{$1};
-      (defined $v) and push(@{$htmlitem[0][0]{copt}{style}{'vertical-align'}}, $v);
-    }
     if(defined $o){
+      while($o=~/\&([lrcjsebtm]+)/g){
+        my $h = {qw/l left r right c center j justify s start e end/}->{$1};
+        (defined $h) and push(@{$htmlitem[0][0]{copt}{style}{'text-align'}}, $h);
+        my $v = {qw/t top m middle b bottom/}->{$1};
+        (defined $v) and push(@{$htmlitem[0][0]{copt}{style}{'vertical-align'}}, $v);
+      }
       while($o=~/(?<!\w)([][_~@=|])+([,;:]?)(\d+)?/g){
         my($a, $aa, $b) = ($1, $2, $3);
         my $b1    = sprintf("%s %dpx", ($aa)?(($aa eq ',')?'dotted':($aa eq ';')?'dashed':'double'):'solid', $b);
