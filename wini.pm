@@ -931,7 +931,9 @@ sub call_macro{
   ($macroname=~/^r$/i)       and return('&#x7d;'); # }
   ($macroname=~m{^[!-/:-@\[-~]$}) and (not defined $f[0]) and 
     return('&#x'.unpack('H*',$macroname).';'); # char -> ascii code
-  ($macroname=~/^date/i)     and return(date(\@f, $opt->{_v}));
+  ($macroname=~/^date$/i)    and return(date(\@f, 'd', $opt->{_v}));
+  ($macroname=~/^time$/i)    and return(date(\@f, 't', $opt->{_v}));
+  ($macroname=~/^dt$/i)      and return(date(\@f, 'dt', $opt->{_v}));
   ($macroname=~/^calc$/i)    and return(ev(\@f, $opt->{_v}));
   ($macroname=~/^va$/i)      and return(
     (defined $opt->{_v}{$f[0]}) ? $opt->{_v}{$f[0]} : (mes("Variable '$f[0]' not defined", {warn=>1}), '')
@@ -1086,28 +1088,30 @@ sub table{
     my $caption0=$2;
     $caption0=~s/\|\s*$//;
     my($c, $o) = split(/ \|(?= |$)/, $caption0, 2); # $caption=~s{[| ]*$}{};
-    while($o =~ /([^=\s]+)="([^"]*)"/g){
-      my($k,$v) = ($1,$2);
-      ($k eq 'class')  and push(@{$htmlitem[0][0]{copt}{class}}, $v), next;
-      ($k eq 'border') and $htmlitem[0][0]{copt}{border}=$v         , next;
-      push(@{$htmlitem[0][0]{copt}{style}{$k}}, $v);
-    }
-    if($o=~/(?<![<>])([<>])(?![<>])/){
-      $htmlitem[0][0]{copt}{style}{float}[0] = ($1 eq '<')?'left':'right';
-    }
-    while($o=~/([tbf])@(?!@)(\d*)/g){
-      $htmlitem[0][0]{copt}{$1.'border'} = ($2)?$2:1;
-    }
-    while($o=~/([tbf])@@(\d*)/g){
-      $htmlitem[0][0]{copt}{$1.'borderall'} = ($2)?$2:1;
-      (defined $htmlitem[0][0]{copt}{$1.'border'}) or $htmlitem[0][0]{copt}{$1.'border'} = ($2)?$2:1; 
-    }
-    while($o=~/\.([-\w]+)/g){
-      push(@{$htmlitem[0][0]{copt}{class}}, $1);
-    }
-    while($o=~/#([-\w]+)/g){
-      $htmlitem[0][0]{copt}{id}[0] = $1;
-    }
+    if(defined $o){
+      while($o =~ /([^=\s]+)="([^"]*)"/g){
+        my($k,$v) = ($1,$2);
+        ($k eq 'class')  and push(@{$htmlitem[0][0]{copt}{class}}, $v), next;
+        ($k eq 'border') and $htmlitem[0][0]{copt}{border}=$v         , next;
+        push(@{$htmlitem[0][0]{copt}{style}{$k}}, $v);
+      }
+      if($o=~/(?<![<>])([<>])(?![<>])/){
+        $htmlitem[0][0]{copt}{style}{float}[0] = ($1 eq '<')?'left':'right';
+      }
+      while($o=~/([tbf])@(?!@)(\d*)/g){
+        $htmlitem[0][0]{copt}{$1.'border'} = ($2)?$2:1;
+      }
+      while($o=~/([tbf])@@(\d*)/g){
+        $htmlitem[0][0]{copt}{$1.'borderall'} = ($2)?$2:1;
+        (defined $htmlitem[0][0]{copt}{$1.'border'}) or $htmlitem[0][0]{copt}{$1.'border'} = ($2)?$2:1; 
+      }
+      while($o=~/\.([-\w]+)/g){
+        push(@{$htmlitem[0][0]{copt}{class}}, $1);
+      }
+      while($o=~/#([-\w]+)/g){
+        $htmlitem[0][0]{copt}{id}[0] = $1;
+      }
+    } # if defined $o
 
     push(@{$ID{table}}, $htmlitem[0][0]{copt}{id}[0]);
     while($o=~/\&([lrcjsebtm]+)/g){
@@ -1116,14 +1120,16 @@ sub table{
       my $v = {qw/t top m middle b bottom/}->{$1};
       (defined $v) and push(@{$htmlitem[0][0]{copt}{style}{'vertical-align'}}, $v);
     }
-    while($o=~/(?<!\w)([][_~@=|])+([,;:]?)(\d+)?/g){
-      my($a, $aa, $b) = ($1, $2, $3);
-      my $b1    = sprintf("%s %dpx", ($aa)?(($aa eq ',')?'dotted':($aa eq ';')?'dashed':'double'):'solid', $b);
-      ($a=~/[[@|]/) and $htmlitem[0][0]{copt}{style}{'border-left'}   = $b1;
-      ($a=~/[]@|]/) and $htmlitem[0][0]{copt}{style}{'border-right'}  = $b1;
-      ($a=~/[_@=]/) and $htmlitem[0][0]{copt}{style}{'border-bottom'} = $b1;
-      ($a=~/[~@=]/) and $htmlitem[0][0]{copt}{style}{'border-top'}    = $b1;
-    }
+    if(defined $o){
+      while($o=~/(?<!\w)([][_~@=|])+([,;:]?)(\d+)?/g){
+        my($a, $aa, $b) = ($1, $2, $3);
+        my $b1    = sprintf("%s %dpx", ($aa)?(($aa eq ',')?'dotted':($aa eq ';')?'dashed':'double'):'solid', $b);
+        ($a=~/[[@|]/) and $htmlitem[0][0]{copt}{style}{'border-left'}   = $b1;
+        ($a=~/[]@|]/) and $htmlitem[0][0]{copt}{style}{'border-right'}  = $b1;
+        ($a=~/[_@=]/) and $htmlitem[0][0]{copt}{style}{'border-bottom'} = $b1;
+        ($a=~/[~@=]/) and $htmlitem[0][0]{copt}{style}{'border-top'}    = $b1;
+      }
+    } # if defined $o
     ($caption)=wini($c, {para=>'nb', nocr=>1});
     $caption=~s/[\s\n\r]+$//;
   ''&emg; # end of caption & table setting
@@ -1443,26 +1449,33 @@ sub ylml{
 } # sub ylml
 
 sub date{
-  my($x, $v) = @_;
+  my($x, $type, $v) = @_;
+  # $type: 'd', 't', 'dt'
   # $x->[0]: 2021-12-17
   # $v->{_v}{lang}: ja or en
-  my $form = (defined $v->{_v}{lang} and $v->{_v}{lang} eq 'ja') ? "%y年%m月%d日" : undef;
+  my $p = readpars($x, qw/lang dow date/);
+  my $lang = $v->{_v}{lang} || '';
+  (defined $p->{lang}) and $lang = $p->{lang};
+  my $form = ($lang eq 'ja') ? "%Y年%m月%d日" . (($p->{dow})?'（%a）':'')
+    : (($p->{dow})?'%a. ':'') . "%Y-%m-%d";
   my $t;
-  if(defined $x->[0]){
-    my @n = split("[-/.]", $x->[0]);
-    $t = Time::Piece->strptime("$n[0]-$n[1]-$n[2]", "%y-%m-%d");
+  if($p->{date}){
+    my @n = split("[-/.]", $p->{date});
+    eval{ $t = Time::Piece->strptime("$n[0]-$n[1]-$n[2]", "%Y-%m-%d") };
+    $@ and mes("Invalid date format: $p->{date}", {err=>1});
   }else{
     $t = localtime;
   }
   my $res;
   if(defined $form){
+    print STDERR ">> form=$form\n";
     $res = $t->strftime($form);
   }else{
     $res = $t->cdate();
     $res =~s/\d\d:\d\d:\d\d //; # remove hms
-    $res =~s/^\w+ //;           # remove weekday name
+    ($p->{dow}) or $res =~s/^\w+ //; # remove weekday name
   }
-  return($res);
+  return(decode('utf-8', $res));
 }
 
 sub ev{ # <, >, %in%, and so on
