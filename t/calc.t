@@ -1,0 +1,26 @@
+#!/usr/bin/perl
+
+use strict;
+use warnings;
+use Test::More;
+
+use lib '.';
+use wini;
+
+{
+  my($o, undef) = WINI::to_html(<<'EOC');
+===
+a:1
+b:2
+ c:3
+===
+
+Value of variable 'b' is {{va|b}}.
+
+EOC
+
+  $o=~s/[\n\r]*//g;
+  is $o, "<p>Value of variable 'b' is 2.</p>";
+}
+  
+done_testing;

@@ -11,7 +11,7 @@ use wini;
 
 
 {
-  my($o, undef) = WINI::wini_sects(<<'EOC');
+  my($o, undef) = WINI::to_html(<<'EOC');
 links without link text.  [http://example.com]
 
 Links with [http://example.com link text].

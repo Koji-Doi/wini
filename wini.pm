@@ -273,7 +273,7 @@ sub stand_alone{
       open(my $fho, '>:utf8', $outf->[$i]);
       my $winitxt = join('', <$fhi>);
       $winitxt=~s/\x{FEFF}//; # remove BOM if exists
-      my($htmlout) = wini_sects($winitxt, {indir=>$ind, dir=>getcwd(), whole=>$whole, cssfile=>$cssfile, title=>$title, cssflameworks=>\@cssflameworks});
+      my($htmlout) = to_html($winitxt, {indir=>$ind, dir=>getcwd(), whole=>$whole, cssfile=>$cssfile, title=>$title, cssflameworks=>\@cssflameworks});
       print {$fho} $htmlout;
     }
   }else{
@@ -297,11 +297,11 @@ sub stand_alone{
       }
       $winitxt .= "\n\n";
     } @$inf;
-    my($htmlout) = wini_sects($winitxt, {indir=>$ind, dir=>getcwd(), whole=>$whole, cssfile=>$cssfile, title=>$title, cssflameworks=>\@cssflameworks});
+    my($htmlout) = to_html($winitxt, {indir=>$ind, dir=>getcwd(), whole=>$whole, cssfile=>$cssfile, title=>$title, cssflameworks=>\@cssflameworks});
     print {$fho} $htmlout;
   }
   
-#  print {$fho} (wini_sects(join('', @inf0), {dir=>getcwd, whole=>$whole, cssfile=>$cssfile, title=>$title, cssflameworks=>\@cssflameworks}))[0];
+#  print {$fho} (to_html(join('', @inf0), {dir=>getcwd, whole=>$whole, cssfile=>$cssfile, title=>$title, cssflameworks=>\@cssflameworks}))[0];
 } # sub stand_alone
 
 sub mes{ # display guide, warning etc. to STDERR
@@ -460,7 +460,7 @@ sub getfile{
 {
 my($footnote_cnt, %footnotes);
 my(@auto_table_id);
-sub wini_sects{
+sub to_html{
   my($x, $opt) = @_;
   (defined $opt) or $opt={};
   my(%sectdata, $secttitle, @html);
@@ -556,7 +556,7 @@ sub wini_sects{
       # WINI interpretation
       my $opt1 = { %$opt };
       $opt1->{_v} = $sectdata{$sect_id}{val};
-      my($h, $o) = WINI::wini($t, $opt1);
+      my($h, $o) = WINI::markgaab($t, $opt1);
       $html[$sect_cnt]{sect_id} = $sect_id;
       $html[$sect_cnt]{txt}     = $h;
       $html[$sect_cnt]{opt}     = $o;
@@ -624,7 +624,7 @@ sub wini_sects{
   }
 }
 
-sub wini{
+sub markgaab{
 # wini($tagettext, {para=>'br', baseurl=>'http://example.com', nocr=>1});
   # para: paragraph mode (br:set <br>, p: set <p>, nb: no separation
   # nocr: whether CRs are conserved in result text. 0(default): conserved, 1: not conserved
@@ -808,7 +808,7 @@ sub list{
     }
     my($hmark, $txt0) = $l=~/^\s*([#*:;])(\S*\s+.*)/s;
     ($txt0) or $t2 .= $l,next; # non-list content
-    my($txt1, undef) = WINI::wini($txt0, {para=>'nb'});
+    my($txt1, undef) = WINI::markgaab($txt0, {para=>'nb'});
     $txt1=~s/([^\n])$/$1\n/;
     if($hmark){
       my($listtype, $listtag) = ($listtype{$hmark},  $listtag{$hmark});
@@ -862,7 +862,7 @@ sub listmacro{
     : ($listtype, 'li',                           'li');
   my $r = "<$listtag>\n";
   foreach my $item (@$pars){
-    $r .= "<$otag>" . (wini($item, {para=>'nb', nocr=>1}))[0] . "</$ctag>\n";
+    $r .= "<$otag>" . (WINI::markgaab($item, {para=>'nb', nocr=>1}))[0] . "</$ctag>\n";
   }
   $r .= "</$listtag>\n";
   return($r);
@@ -1027,7 +1027,7 @@ sub make_a{
   my($url, $opts) = (split(/\|/, $url0, 2), '', '');
   ($prefix eq '#') and $url=$prefix.$url;
   #$text = escape($text) || $url;
-  ($text) = wini($text, {nocr=>1, para=>'nb'});
+  ($text) = WINI::markgaab($text, {nocr=>1, para=>'nb'});
   ($text eq '') and $text = $url;
 
   # options
@@ -1130,7 +1130,7 @@ sub table{
         ($a=~/[~@=]/) and $htmlitem[0][0]{copt}{style}{'border-top'}    = $b1;
       }
     } # if defined $o
-    ($caption)=wini($c, {para=>'nb', nocr=>1});
+    ($caption)=WINI::markgaab($c, {para=>'nb', nocr=>1});
     $caption=~s/[\s\n\r]+$//;
   ''&emg; # end of caption & table setting
 
@@ -1148,7 +1148,6 @@ sub table{
       $line=~s!\{\{\^\|(.*?)}}!
         my($txt, @p) = split(/\|/, $1);
         my $fn_mark  = $p[0] || '*';
-        #my($r, $opt) = wini($1, {para=>'nb', nocr=>1, table=>$table_no});
         footnote($txt, $fn_mark, \%fn_cnt, \@footnotes);
       !e;
     }
@@ -1297,7 +1296,7 @@ sub table{
     for(my $i=1; $i<=$#{$htmlitem[$ln]}; $i++){ # set winified text to cells
       (defined $htmlitem[$ln][$i]) or next;
       my $cell = $htmlitem[$ln][$i];
-      ($cell->{wini}, my $opt) = wini($cell->{val}, {para=>'nb', nocr=>1, table=>$htmlitem[0][0]{copt}{id}[0]});
+      ($cell->{wini}, my $opt) = WINI::markgaab($cell->{val}, {para=>'nb', nocr=>1, table=>$htmlitem[0][0]{copt}{id}[0]});
       #(exists $opt->{footnote}) and push(@{$footnotes->{$table_no}}, @{$opt->{footnote}});
       $cell->{wini} =~ s/\t *//g;
       $cell->{wini} =~ s/[ \n]+/ /g;
@@ -1452,9 +1451,9 @@ sub date{
   my($x, $type, $v) = @_;
   # $type: 'd', 't', 'dt'
   # $x->[0]: 2021-12-17
-  # $v->{_v}{lang}: ja or en
+  # $v->{lang}: ja or en
   my $p = readpars($x, qw/lang dow date/);
-  my $lang = $v->{_v}{lang} || '';
+  my $lang = $v->{lang} || '';
   (defined $p->{lang}) and $lang = $p->{lang};
   my $form = ($lang eq 'ja') ? "%Y年%m月%d日" . (($p->{dow})?'（%a）':'')
     : (($p->{dow})?'%a. ':'') . "%Y-%m-%d";

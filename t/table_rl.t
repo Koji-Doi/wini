@@ -10,7 +10,7 @@ use lib '.';
 use wini;
 
 {
-  my($o, undef) = WINI::wini(<<'EOC');
+  my($o, undef) = WINI::markgaab(<<'EOC');
 |- table with &r and &&&l | border="1" |
 |!!&&&l aaaaaaaaa | bbbbbbbbbb | cccccccc |
 |&r   d |&&r&&&c&l e | f |

@@ -21,7 +21,7 @@ sub std{
 
 
 {
-  my($o, undef) = WINI::wini_sects(<<'EOC');
+  my($o, undef) = WINI::to_html(<<'EOC');
 * a
 * b
 
@@ -49,7 +49,7 @@ EOC
 
 
 {
-  my($o, undef) = WINI::wini_sects(<<'EOC');
+  my($o, undef) = WINI::to_html(<<'EOC');
 # a
 # b
 
@@ -77,7 +77,7 @@ EOC
 
 
 {
-  my($o, undef) = WINI::wini_sects(<<'EOC');
+  my($o, undef) = WINI::to_html(<<'EOC');
 ; a
 : a-text
 

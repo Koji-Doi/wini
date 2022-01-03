@@ -20,7 +20,7 @@ sub std{
 }
 
 {
-  my($o, undef) = WINI::wini(<<'EOC');
+  my($o, undef) = WINI::markgaab(<<'EOC');
 Table
 
 |- capt.     |    |

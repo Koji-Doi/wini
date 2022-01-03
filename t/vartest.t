@@ -10,7 +10,7 @@ use lib '.';
 use wini;
 
 {
-  my($o, undef) = WINI::wini_sects(<<'EOC');
+  my($o, undef) = WINI::to_html(<<'EOC');
 ===
 cmd: --title test
 a:1

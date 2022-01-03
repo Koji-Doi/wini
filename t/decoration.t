@@ -10,7 +10,7 @@ use lib '.';
 use wini;
 
 {
-  my($o, undef) = WINI::wini(<<'EOC');
+  my($o, undef) = WINI::markgaab(<<'EOC');
 {{b|bold}}
 {{*|bold}}
 
