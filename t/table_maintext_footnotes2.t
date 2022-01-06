@@ -4,8 +4,6 @@ use strict;
 use warnings;
 use Test::More;
 
-use lib '/home/koji/perl';
-use mysystem;
 use lib '.';
 use wini;
 

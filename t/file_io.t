@@ -4,14 +4,15 @@ use strict;
 use warnings;
 use Test::More;
 use File::Temp qw(tempdir);
+use File::Path qw(remove_tree);
 use lib '.';
 use wini;
 
 my $indir  = tempdir('wini_inXXXX');
 my $outdir = tempdir('wini_outXXXX');
-($indir, $outdir) = qw/wini_in wini_out/; #test
-(-d $indir)  ? system("rm -rf $indir/*")  : mkdir $indir;
-(-d $outdir) ? system("rm -rf $outdir/*") : mkdir $outdir;
+#($indir, $outdir) = qw/wini_in wini_out/; #test
+(-d $indir)  ? remove_tree($indir)  : mkdir $indir;
+(-d $outdir) ? remove_tree($outdir) : mkdir $outdir;
 
 # prepare test input files
 for my $x (0..3){
@@ -76,5 +77,8 @@ for my $x (0..3){
   is $o, $i;
   map { unlink $_} <$outdir/*>;
 }
+
+(-d $indir)  and print("remove $indir\n"),remove_tree($indir);
+(-d $outdir) and print("remove $outdir\n"),remove_tree($outdir);
 
 done_testing;
