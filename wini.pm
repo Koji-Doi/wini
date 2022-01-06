@@ -364,6 +364,45 @@ sub css{
   return($out);
 }
 
+sub winifiles0{
+  my($in, $out) = @_;
+  # $in: string or array reference
+  # $out: string (not array reference)
+  my($indir, @infile, $outdir, $outfile);
+  my @in;
+  (defined $in) and @in = (ref $in eq 'ARRAY') ? @$in : ($in);
+  my $cdir = cwd();
+
+  # clarify input files
+  my @in1;
+  if(defined $in[0]){
+    foreach my $in0 (@in){
+      my($base, $indir1, $ext) = fileparse($in0, qw/.wini .par .mg/);
+      if(-d $base){
+        ($indir1, $base) = ($base, '');
+      }elsif(not -f $base){
+        die "$base not found";
+      }
+      ($indir=~m{^/}) or $indir = "$cdir/$indir";
+      ($base eq '') and push(@in1, grep {/\.(wini|par|mg)$/} <$indir/*>);
+    }
+  }else{
+    $in1[0] = '*STDIN';
+  }
+
+  # clarify output
+  if((not defined $out) or ($out eq '')){
+    $outfile = '*STDOUT';
+  }else{
+    $out = ($out=~m{^/}) ? $out : "$cdir/$out";
+  }
+  if((-d $out) or ($out=~m{/$})){
+    $outdir = $out;
+  }else{
+    ($outdir, $outfile) = ($cdir, "$cdir/$out");
+  }
+}
+
 sub winifiles{
   my($in, $out) = @_;
   # $in: string or array reference
@@ -371,8 +410,8 @@ sub winifiles{
   my($indir, @infile, $outdir, @outfile);
   my @in;
   (defined $in) and @in = (ref $in eq 'ARRAY') ? @$in : ($in);
-  my @out;
-  (defined $out) and @out = (ref $out eq 'ARRAY') ? @$out : ($out);
+  #my @out;
+  #(defined $out) and @out = (ref $out eq 'ARRAY') ? @$out : ($out);
   
   # check $indir
   foreach my $in1 (@in){
@@ -396,24 +435,28 @@ sub winifiles{
   }
 
   # check $outdir
+
   if(not defined $out){
     if(not defined $in){
     }
+
   }elsif(-d $out){
-    mes("File '$out' is chosen as output", {q=>1});
+    mes("Directory '$out' is chosen as output", {q=>1});
     $outdir = $out;
+    ($outdir=~m{^/}) or $outdir = cwd()."/$outdir";
   }elsif(-f $out){
     $outfile[0] = $out;
   }else{ # new entry
     ($out=~m{(.*)/$}) ? ($outdir = $1) : ($outfile[0] = $out);
   }
-
+  
   if(defined $outdir){
-    $outdir=~s{/$}{};
+    #$outdir=~s{/$}{};
     foreach my $in1 (@infile){
       my($base, $indir1, $ext) = fileparse($in1, qw/.wini .par .mg/);
+      ($indir1 eq './') and $indir1='';
       $indir1=~s{/$}{};
-      $indir1=~s{^$indir(/|$)}{};
+      (defined $indir) and $indir1=~s{^$indir(/|$)}{};
       my $outdir1 = "$outdir" . (($indir1 eq '') ? '' : "/$indir1");
       my $d1 = '';
       (-d $outdir1) or (mkpath $outdir1) or die "Failed to create $outdir";
