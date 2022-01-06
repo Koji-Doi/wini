@@ -364,45 +364,6 @@ sub css{
   return($out);
 }
 
-sub winifiles0{
-  my($in, $out) = @_;
-  # $in: string or array reference
-  # $out: string (not array reference)
-  my($indir, @infile, $outdir, $outfile);
-  my @in;
-  (defined $in) and @in = (ref $in eq 'ARRAY') ? @$in : ($in);
-  my $cdir = cwd();
-
-  # clarify input files
-  my @in1;
-  if(defined $in[0]){
-    foreach my $in0 (@in){
-      my($base, $indir1, $ext) = fileparse($in0, qw/.wini .par .mg/);
-      if(-d $base){
-        ($indir1, $base) = ($base, '');
-      }elsif(not -f $base){
-        die "$base not found";
-      }
-      ($indir=~m{^/}) or $indir = "$cdir/$indir";
-      ($base eq '') and push(@in1, grep {/\.(wini|par|mg)$/} <$indir/*>);
-    }
-  }else{
-    $in1[0] = '*STDIN';
-  }
-
-  # clarify output
-  if((not defined $out) or ($out eq '')){
-    $outfile = '*STDOUT';
-  }else{
-    $out = ($out=~m{^/}) ? $out : "$cdir/$out";
-  }
-  if((-d $out) or ($out=~m{/$})){
-    $outdir = $out;
-  }else{
-    ($outdir, $outfile) = ($cdir, "$cdir/$out");
-  }
-}
-
 sub winifiles{
   my($in, $out) = @_;
   # $in: string or array reference
@@ -448,6 +409,9 @@ sub winifiles{
     $outfile[0] = $out;
   }else{ # new entry
     ($out=~m{(.*)/$}) ? ($outdir = $1) : ($outfile[0] = $out);
+  }
+  if(($outdir eq '.') or ($outdir=~m{/\.+$})){
+    $outdir = cwd();
   }
   
   if(defined $outdir){
