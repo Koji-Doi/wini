@@ -410,11 +410,11 @@ sub winifiles{
   }else{ # new entry
     ($out=~m{(.*)/$}) ? ($outdir = $1) : ($outfile[0] = $out);
   }
-  if(($outdir eq '.') or ($outdir=~m{/\.+$})){
-    $outdir = cwd();
-  }
   
   if(defined $outdir){
+    if(($outdir eq '.') or ($outdir=~m{/\.+$})){
+      $outdir = cwd();
+    }
     #$outdir=~s{/$}{};
     foreach my $in1 (@infile){
       my($base, $indir1, $ext) = fileparse($in1, qw/.wini .par .mg/);
@@ -447,21 +447,6 @@ sub findfile{  # recursive file search.
   foreach my $file (@files) {
     (-d $file) ? findfile($file, $p) : $p->($file);
   }
-}
-
-sub getfile{
-  my($dir, $regexp) = @_;
-  my @foundfiles;
-  (defined $regexp) or $regexp = '.*';
-  ((not defined $dir) or ($dir eq '')) and $dir=getcwd();
-  foreach my $file (grep {/$regexp/} <$dir/*>){
-    if(-d $file){
-      push(@foundfiles, @{getfile($file)});
-    }elsif(-f $file){
-      push(@foundfiles, $file);
-    }
-  }
-  return(\@foundfiles);
 }
 
 {
@@ -699,18 +684,23 @@ sub markgaab{
       } # endif header
       (
         $t =~ s!\[\[(\w+)(?:\|(.*))?\]\]!(defined $opt->{_v}{$1}) ? $opt->{_v}{$1} : ''!ge or
-        $t =~ s!(\{\{([^|]*?)(?:\|([^{}]*?))?}})!call_macro($1, $2, $opt, $baseurl, split(/\|/,((defined $3)?$3:'')))!esg or
+        $t =~ s!(\{\{([^|]*?)(?:\|([^{}]*?))?}})!
+        call_macro(
+          (defined $1) ? $1 : '',
+          (defined $2) ? $2 : '',
+          $opt,
+          $baseurl,
+          split(/\|/,((defined $3)?$3:''))
+        )!esg or
         $t =~ s!\[([^]]*?)\]\(([^)]*?)\)!make_a_from_md($1, $2, $baseurl)!eg or
         $t =~ s!\[([^]]*?)\]!make_a($1, $baseurl)!esg #or
       ) or last; # no subst need, then escape inner loop
     } # loop while subst needed
 
-#    my($rr, $list) = list($t, $cr, $ptype, $para, $myclass);
-    #    $r .= $rr;
-     $t=~s{(?:^|(?<=\n))([*#;:].*?(?:(?=\n[^*#;:])|$))}
-          {my($r,$o)=list($1, $cr, $ptype, $para, $myclass); $r}esg;
-     ($t=~/\S/) and 
-       $t = ($ptype eq 'header' or $ptype eq 'list')                                     ? "$t\n"
+    $t=~s{(?:^|(?<=\n))([*#;:].*?(?:(?=\n[^*#;:])|$))}
+         {my($r,$o)=list($1, $cr, $ptype, $para, $myclass); $r}esg;
+    ($t=~/\S/) and 
+      $t = ($ptype eq 'header' or $ptype eq 'list')                                     ? "$t\n"
           : ($para eq 'br')                                                              ? "$t<br>$cr"
           : ($para eq 'nb')                                                              ? $t
           : $t=~m{<(html|body|head|p|table|img|figure|blockquote|[uod]l)[^>]*>.*</\1>}is ? $t
