@@ -911,6 +911,21 @@ sub listmacro{
   return($r);
 }
 
+{
+my %abbr;
+sub term{
+# {{@|abbr=DNA|text=deoxyribonucleic acid|dfn=1}}
+  my($p) = @_;
+  my $par = readpars($p, qw/abbr text dfn/);
+  my $ab = (defined $par->{text}) ? qq!<abbr title="$par->{text}">$par->{abbr}</abbr>! : qq!<abbr>$par->{abbr}</abbr>!;
+  ($par->{dfn}) and $ab = qq!<dfn>$ab</dfn>!;
+  $abbr{$par->{abbr}} = $par->{text};
+  return($ab);
+}
+sub abbr{
+  return($abbr{$_[0]} || '');
+}
+} # term env
 sub span{ # text deco with <span></span>
   my($f, $class_id)=@_;
   my($txt, @opt) = ($f->[0], @$f[1..$#$f]);
@@ -974,6 +989,7 @@ sub call_macro{
   ($macroname=~/^r$/i)       and return('&#x7d;'); # }
   ($macroname=~m{^[!-/:-@\[-~]$}) and (not defined $f[0]) and 
     return('&#x'.unpack('H*',$macroname).';'); # char -> ascii code
+  ($macroname=~/^\@$/)        and return(term(\@f));
   ($macroname=~/^date$/i)    and return(date(\@f, 'd', $opt->{_v}));
   ($macroname=~/^time$/i)    and return(date(\@f, 't', $opt->{_v}));
   ($macroname=~/^dt$/i)      and return(date(\@f, 'dt', $opt->{_v}));
