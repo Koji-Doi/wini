@@ -163,6 +163,7 @@ our %VARS;
 our $ENVNAME="_";
 our %ID; # list of ID assigned to tags in the target html
 our %EXT;
+our $LANG='en';
 our(@INDIR, @INFILE, $OUTFILE);
 our($TEMPLATE, $TEMPLATEDIR);
 my $scriptname = basename($0);
@@ -225,6 +226,7 @@ sub stand_alone{
     "cssfile:s"      => \$cssfile,
     "E|extralib:s"   => \@libs,
     "I|libpath:s"    => \@libpaths,
+    "lang=s"         => \$LANG,
     "T"              => \$test,
     "D"              => \$debug,
     "whole"          => \$whole,
@@ -234,7 +236,7 @@ sub stand_alone{
     "quiet"          => \$QUIET
   );
   foreach my $i (@libpaths){
-    mes("Trying to add $i into library directory\n", {ln=>__LINE__});
+    mes(txt('ttap',, {path=>$i}), {ln=>__LINE__});
     (-d $i) ? push(@INC, $i) : mes("$i for extra library not found.", {warn=>1});
   }
   foreach my $lib (@libs){ # 'form', etc.
@@ -289,7 +291,7 @@ sub stand_alone{
     map {
       my $fhi;
       ($_ eq '') ? $fhi=*STDIN : (
-         open($fhi, '<:utf8', $_) or die "Could not open $_" || mes("open $_ in utf8", {q=>1})
+         open($fhi, '<:utf8', $_) or die txt('cno',,$_) || mes(txt('ou',,$_), {q=>1})
       );
       while(<$fhi>){
         s/[\n\r]*$//; s/\x{FEFF}//; # remove BOM if exists
@@ -304,6 +306,35 @@ sub stand_alone{
 #  print {$fho} (to_html(join('', @inf0), {dir=>getcwd, whole=>$whole, cssfile=>$cssfile, title=>$title, cssflameworks=>\@cssflameworks}))[0];
 } # sub stand_alone
 
+{
+  my %txt;
+sub txt{ # multilingual text from text id
+  my($id, $lang, $par) = @_;
+  print ">>> ", Dumper $lang;
+  print "### ", Dumper $par;
+  #|fin|completed|終了|
+  #id: 'fin', lang:'ja'
+  #$par: hash reference for paragraph
+  $lang = $lang || $LANG || 'en';
+  $DB::single=$DB::single=1;
+  if(scalar keys %txt == 0){
+    while(<DATA>){
+      chomp;
+      my $sp = '\\' . substr($_, 0, 1);
+      my($id, $en, $ja) = split($sp, substr($_,1));
+      $txt{$id} = {en=>$en, ja=>$ja};
+    }
+  } 
+  my $t = $txt{$id}{$lang} || $txt{$id}{en} || '';
+  $t=~s/\{\{(.*?)}}/
+#   (defined $par->{$id}{$lang}) ? $par->{$id}{$lang}
+#  :(defined $par->{$id}{en})    ? $par->{$id}{en}
+  (defined $par->{$1})        ? $par->{$1} : 'xxx'; 
+  /ge;
+  return($t);
+} # sub
+} # sub txt env
+
 sub mes{ # display guide, warning etc. to STDERR
   my($x, $o) = @_;
 # $o->{err}: treat $x as error and die
@@ -317,7 +348,7 @@ sub mes{ # display guide, warning etc. to STDERR
   if((not exists $o->{q}) and $QUIET==0){
     my $i = 1; my @subs;
     while ( my($pack, $file, $line, $subname, $hasargs, $wantarray, $evaltext, $is_require) = caller( $i++) ){push(@subs, "$line\[$subname]")}
-    print STDERR "${mestype} from wini.pm : ", join(' <- ', @subs), "\n";
+    print STDERR txt('mt', undef, {mestype=>$mestype}), join(' <- ', @subs), "\n";
     $ind='  ';
   }
   ($QUIET==0) and (exists $o->{ln}) and $x = "$x [wini.pm line $o->{ln}]";
@@ -378,7 +409,7 @@ sub winifiles{
   foreach my $in1 (@in){
     my(@in1x) = ($in1);
     (not -e $in1) and map {my $a="$in1.$_"; push(@in1x, $a); (-f $a) and $in1=$a} qw/mg wini par/;
-    (not -e $in1) and mes("File not found: ". join(" or ", @in1x), {err=>1});
+    (not -e $in1) and mes(txt('fnf').": ". join(" / ", @in1x), {err=>1});
     if(not defined $in1){
     }elsif(-d $in1){
       mes("Dir '$in1' is chosen as input", {q=>1});
@@ -433,8 +464,8 @@ sub winifiles{
     "outdir:  " . (($outdir)?$outdir:'undef') . "\n" .
     "outfile: " . (($outfile[0])?join(' ',@outfile):'undef'), {q=>1}
      );
-  (defined $indir  or defined $infile[0])  or mes("Data will be read from STDIN", {q=>1});
-  (defined $outdir or defined $outfile[0]) or mes("Result will be output to STDOUT", {q=>1});  
+  (defined $indir  or defined $infile[0])  or mes(txt('din'), {q=>1});
+  (defined $outdir or defined $outfile[0]) or mes(txt('rout'), {q=>1});  
   return($indir, \@infile, $outdir, \@outfile);
 }
 
@@ -595,7 +626,9 @@ sub to_html{
             mes("Searched $t, but not found", {q=>1});
           }
         }
-        mes("Cannot find template '$TEMPLATE' in '" . join(q{', '}, @testdirs) . "'.", {err=>1});
+#        mes(txt('cft', )"Cannot find template '$TEMPLATE' in '" . join(q{', '}, @testdirs) . "'.", {err=>1});
+        mes(txt('cft',, {t=>$TEMPLATE, d=>join(q{', '}, @testdirs)}), {err=>1});
+
       }  # L1
     }
     open(my $fhi, '<:utf8', $template);
@@ -1582,3 +1615,25 @@ sub array{
 } # val env
 
 1;
+
+__DATA__
+!cft!Cannot find template {{t}} in {{d}}!
+!cno!Could not open {{f}}!{{f}}を開けません!
+!dci!Dir {{d}} is chosen as input!
+!dco!Dir {{d}} is chosen as output!
+!din!Data will be read from STDIN!
+!elnf!{{d}} for extra library not found!{{d}}が見たらず、エキストラライブラリに登録できません!
+!fci!File {{f}} is chosen as input!
+|fin|completed|終了|
+|fail|failed|失敗|
+!fnf!File not found!ファイルが見つかりません!
+!ftf!Found {{t}} as template file!
+!if!input file:!入力ファイル!
+|ll|loaded library: {{lib}}|ライブラリロード完了： {{lib}}|
+|llf|failed to load library '{{lib}}'|ライブラリロード失敗： {{lib}}|
+!mt!{{mestype}} from wini.pm: !wini.pmより{{mestype}}：!
+!opf!open {{f}} in utf8!{{f}}をutf-8ファイルとして開きます!
+!ou!open {{f}} in utf8!ファイル{{f}}をutf8で開きます!
+!rout!Result will be output to STDOUT!
+!snf!Searched {{t}}, but not found!
+|ttap|trying to add {{path}} into library directory|{{path}}のライブラリディレクトリへの追加を試みます|  
