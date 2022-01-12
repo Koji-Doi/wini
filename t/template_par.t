@@ -50,6 +50,8 @@ for(my $i=0; $i<=$filecnt; $i++){
   my $o = join('', <$ph>);
   $o=~s/[\n\r]*//g;
   is $o, $out[$i];
+  unlink $parfile;
+  unlink $tmplfile;
 }
 
 done_testing;

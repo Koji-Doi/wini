@@ -237,11 +237,11 @@ sub stand_alone{
   );
   foreach my $i (@libpaths){
     mes(txt('ttap',, {path=>$i}), {ln=>__LINE__});
-    (-d $i) ? push(@INC, $i) : mes("$i for extra library not found.", {warn=>1});
+    (-d $i) ? push(@INC, $i) : mes(txt('elnf',, {d=>$i}), {warn=>1});
   }
   foreach my $lib (@libs){ # 'form', etc.
     my $r = eval{load($lib)};
-    mes((defined $r) ? "Loaded library: $lib" : "failed to load library '$lib'");
+    mes((defined $r) ? txt('ll',, {lib=>$lib}) : txt('llf',, {lib=>$lib}));
   }
 
   (defined $cssflameworks[0]) and ($cssflameworks[0] eq '') and $cssflameworks[0]='https://unpkg.com/mvp.css'; # 'https://newcss.net/new.min.css';
@@ -254,7 +254,7 @@ sub stand_alone{
     (-d $outd) or mkdir $outd;
   }
   if(defined $inf->[0]){
-    mes("Input file: " . join(' ', @$inf), {q=>1});
+    mes(txt('if') . join(' ', @$inf), {q=>1});
   } else {
     push(@$inf, '');
   }
@@ -266,10 +266,10 @@ sub stand_alone{
     # 1. multiple infile -> multiple outfile (1:1)
     for(my $i=0; $i<=$#$inf; $i++){
       if($inf->[$i] eq ''){
-        mes("$i:conv STDIN -> $outf->[$i]", {q=>1});
+        mes(txt('conv',, {from=>'STDIN', to=>$outf->[$i]}), {q=>1});
         $fhi=*STDIN;
       }else{
-        mes("$i:conv $inf->[$i] -> $outf->[$i]", {q=>1});
+        mes(txt('conv',, {from=>$inf->[$i], to=>$outf->[$i]}), {q=>1});
         open($fhi, '<:utf8', $inf->[$i]);
       }
       open(my $fho, '>:utf8', $outf->[$i]);
@@ -291,7 +291,7 @@ sub stand_alone{
     map {
       my $fhi;
       ($_ eq '') ? $fhi=*STDIN : (
-         open($fhi, '<:utf8', $_) or die txt('cno',,$_) || mes(txt('ou',,$_), {q=>1})
+         open($fhi, '<:utf8', $_) or die txt('cno',,{f=>$_}) || mes(txt('ou',,{f=>$_}), {q=>1})
       );
       while(<$fhi>){
         s/[\n\r]*$//; s/\x{FEFF}//; # remove BOM if exists
@@ -310,8 +310,6 @@ sub stand_alone{
   my %txt;
 sub txt{ # multilingual text from text id
   my($id, $lang, $par) = @_;
-  print ">>> ", Dumper $lang;
-  print "### ", Dumper $par;
   #|fin|completed|終了|
   #id: 'fin', lang:'ja'
   #$par: hash reference for paragraph
@@ -348,7 +346,7 @@ sub mes{ # display guide, warning etc. to STDERR
   if((not exists $o->{q}) and $QUIET==0){
     my $i = 1; my @subs;
     while ( my($pack, $file, $line, $subname, $hasargs, $wantarray, $evaltext, $is_require) = caller( $i++) ){push(@subs, "$line\[$subname]")}
-    print STDERR txt('mt', undef, {mestype=>$mestype}), join(' <- ', @subs), "\n";
+    print STDERR txt('mt', undef, {mestype=>txt($mestype)}), join(' <- ', @subs), "\n";
     $ind='  ';
   }
   ($QUIET==0) and (exists $o->{ln}) and $x = "$x [wini.pm line $o->{ln}]";
@@ -898,6 +896,36 @@ sub listmacro{
   return($r);
 }
 
+{
+my %abbr;
+sub term{
+# {{@|abbr=DNA|text=deoxyribonucleic acid|dfn=1}}
+  my($p) = @_;
+  my $par = readpars($p, qw/abbr text dfn list/);
+  my $out;
+  ($par->{list}) and print Dumper abbr();
+  if($par->{abbr}){
+    my $ab = (defined $par->{text}) ? qq!<abbr title="$par->{text}">$par->{abbr}</abbr>! : qq!<abbr>$par->{abbr}</abbr>!;
+    ($par->{dfn}) and $out = qq!<dfn>$ab</dfn>!;
+    $abbr{$par->{abbr}} = $par->{text};
+  }else{
+    $out = sprintf('<dfn>%s</dfn>', (defined $par->{text})?$par->{text}:'');
+  }
+  return($out);
+}
+sub abbr{
+  my($t) = @_;
+  my $o;
+  unless(defined $t){
+    foreach my $k (keys %abbr){
+      push(@$o, {term=>$k, abbr=>$abbr{$k}});
+    }
+    return($o);
+  }
+  return($abbr{$_[0]} || '');
+}
+} # term env
+
 sub span{ # text deco with <span></span>
   my($f, $class_id)=@_;
   my($txt, @opt) = ($f->[0], @$f[1..$#$f]);
@@ -961,6 +989,7 @@ sub call_macro{
   ($macroname=~/^r$/i)       and return('&#x7d;'); # }
   ($macroname=~m{^[!-/:-@\[-~]$}) and (not defined $f[0]) and 
     return('&#x'.unpack('H*',$macroname).';'); # char -> ascii code
+  ($macroname=~/^\@$/)        and return(term(\@f));
   ($macroname=~/^date$/i)    and return(date(\@f, 'd', $opt->{_v}));
   ($macroname=~/^time$/i)    and return(date(\@f, 't', $opt->{_v}));
   ($macroname=~/^dt$/i)      and return(date(\@f, 'dt', $opt->{_v}));
@@ -1497,7 +1526,6 @@ sub date{
   }
   my $res;
   if(defined $form){
-    print STDERR ">> form=$form\n";
     $res = $t->strftime($form);
   }else{
     $res = $t->cdate();
@@ -1619,21 +1647,25 @@ sub array{
 __DATA__
 !cft!Cannot find template {{t}} in {{d}}!
 !cno!Could not open {{f}}!{{f}}を開けません!
+!conv!Conv {{from}} -> {{to}}!変換 {{from}} -> {{to}}!
 !dci!Dir {{d}} is chosen as input!
 !dco!Dir {{d}} is chosen as output!
 !din!Data will be read from STDIN!
 !elnf!{{d}} for extra library not found!{{d}}が見たらず、エキストラライブラリに登録できません!
+!Error!error!エラー!
 !fci!File {{f}} is chosen as input!
 |fin|completed|終了|
 |fail|failed|失敗|
 !fnf!File not found!ファイルが見つかりません!
 !ftf!Found {{t}} as template file!
-!if!input file:!入力ファイル!
+!if!input file:!入力ファイル：!
 |ll|loaded library: {{lib}}|ライブラリロード完了： {{lib}}|
 |llf|failed to load library '{{lib}}'|ライブラリロード失敗： {{lib}}|
+!Message!Message!メッセージ!
 !mt!{{mestype}} from wini.pm: !wini.pmより{{mestype}}：!
 !opf!open {{f}} in utf8!{{f}}をutf-8ファイルとして開きます!
 !ou!open {{f}} in utf8!ファイル{{f}}をutf8で開きます!
 !rout!Result will be output to STDOUT!
 !snf!Searched {{t}}, but not found!
 |ttap|trying to add {{path}} into library directory|{{path}}のライブラリディレクトリへの追加を試みます|  
+!Warning!Warning!警告!
