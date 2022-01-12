@@ -310,8 +310,6 @@ sub stand_alone{
   my %txt;
 sub txt{ # multilingual text from text id
   my($id, $lang, $par) = @_;
-  print ">>> ", Dumper $lang;
-  print "### ", Dumper $par;
   #|fin|completed|終了|
   #id: 'fin', lang:'ja'
   #$par: hash reference for paragraph
@@ -1513,7 +1511,6 @@ sub date{
   }
   my $res;
   if(defined $form){
-    print STDERR ">> form=$form\n";
     $res = $t->strftime($form);
   }else{
     $res = $t->cdate();
