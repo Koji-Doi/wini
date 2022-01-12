@@ -15,6 +15,7 @@ l1: while(1){
   my $file = "no${filecnt}$tmplfile0";
   open(my $fho, '>', $file) or die "Failed to modify $file";
   while(<DATA>){
+    (defined $_) or last l1;
     /<<<next>>>/ and last;
     print {$fho} $_;
   }
@@ -23,6 +24,7 @@ l1: while(1){
   $file = "no${filecnt}$parfile0";
   open($fho, '>', $file) or die "Failed to modify $file";
   while(<DATA>){
+    (defined $_) or last l1;
     s/<<<filecnt>>>/$filecnt/g;
     /<<<next>>>/ and last;
     print {$fho} $_;
@@ -30,12 +32,14 @@ l1: while(1){
   close $fho;
 
   while(<DATA>){
+    (defined $_) or last l1;
     /<<<end>>>/ and last l1;
     /<<<next>>>/ and last;
     chomp;
     $out[$filecnt] .= $_;
   }
   $filecnt++;
+  ($filecnt>100) and die "Too many test files";
 } # l1
 
 # do test
