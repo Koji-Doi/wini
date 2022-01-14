@@ -1,5 +1,6 @@
 #!/usr/bin/perl
 
+package Text::Markup::Wini;
 use strict;
 use warnings;
 use Test::More;

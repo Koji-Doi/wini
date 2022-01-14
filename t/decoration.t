@@ -1,5 +1,6 @@
 #!/usr/bin/env perl
 
+package Text::Markup::Wini;
 use strict;
 use warnings;
 use Test::More;
@@ -10,7 +11,7 @@ use lib '.';
 use wini;
 
 {
-  my($o, undef) = WINI::markgaab(<<'EOC');
+  my($o, undef) = markgaab(<<'EOC');
 {{b|bold}}
 {{*|bold}}
 

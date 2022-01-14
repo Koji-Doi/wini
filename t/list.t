@@ -1,5 +1,6 @@
 #!/usr/bin/env perl
 
+package Text::Markup::Wini;
 use strict;
 use warnings;
 use Test::More;
@@ -19,7 +20,7 @@ sub std{
 
 
 {
-  my($o, undef) = WINI::to_html(<<'EOC');
+  my($o, undef) = to_html(<<'EOC');
 * a
 * b
 
@@ -47,7 +48,7 @@ EOC
 
 
 {
-  my($o, undef) = WINI::to_html(<<'EOC');
+  my($o, undef) = to_html(<<'EOC');
 # a
 # b
 
@@ -75,7 +76,7 @@ EOC
 
 
 {
-  my($o, undef) = WINI::to_html(<<'EOC');
+  my($o, undef) = to_html(<<'EOC');
 ; a
 : a-text
 

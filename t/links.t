@@ -1,5 +1,6 @@
 #!/usr/bin/env perl
 
+package Text::Markup::Wini;
 use strict;
 use warnings;
 use Test::More;
@@ -8,7 +9,7 @@ use lib '.';
 use wini;
 
 {
-  my($o, undef) = WINI::to_html(<<'EOC');
+  my($o, undef) = to_html(<<'EOC');
 links without link text.  [http://example.com]
 
 Links with [http://example.com link text].

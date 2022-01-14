@@ -1,5 +1,6 @@
 #!/usr/bin/env perl
 
+package Text::Markup::Wini;
 use strict;
 use warnings;
 use Test::More;
@@ -21,7 +22,7 @@ sub std{
 
 
 {
-  my($o, undef) = WINI::to_html(<<'EOC');
+  my($o, undef) = to_html(<<'EOC');
 root body
 
 ?#s1
@@ -94,7 +95,7 @@ EOC
 
 
 {
-  my($o, undef) = WINI::to_html(<<'EOC');
+  my($o, undef) = to_html(<<'EOC');
 root body
 
 ?h#s1

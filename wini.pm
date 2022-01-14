@@ -1,7 +1,7 @@
 #!/usr/bin/env perl
 =head1 NAME
 
-wini.pm - WIki markup ni NIta nanika (Japanese: "Something like wiki markup")
+Text::Markup::wini.pm - WIki markup ni NIta nanika (Japanese: "Something like wiki markup")
 
 =head1 SYNOPSIS
 
@@ -134,8 +134,9 @@ Show this help.
 =back
 
 =cut
-
-package WINI;
+package Text::Markup::Wini;
+#use Text::Wini;
+use 5.8.1;
 use strict;
 use utf8;
 use Data::Dumper;
@@ -161,15 +162,15 @@ our $QUIET = 0; # 1: suppress most of messages
 
 our %VARS;
 our $ENVNAME="_";
-our %ID; # list of ID assigned to tags in the target html
+#our %ID; # list of ID assigned to tags in the target html
 our %EXT;
 our $LANG='en';
 our(@INDIR, @INFILE, $OUTFILE);
 our($TEMPLATE, $TEMPLATEDIR);
 my $scriptname = basename($0);
-my $version    = "ver. 1.0alpha rel. 20220101";
+my $version    = "ver. 1.0alpha rel. 20220114";
 my @save;
-my %ref; # $ref{image}{imageID} = 1; keys of %$ref: qw/image table formula citation math ref/
+#my %ref; # $ref{image}{imageID} = 1; keys of %$ref: qw/image table formula citation math ref/
 my $debug;
 
 binmode STDIN, ':utf8';
@@ -187,26 +188,26 @@ my $CSS = {
 	           'border-collapse'  => 'collapse'},
   'tfoot, figcaption'
                => {'font-size'        => 'smaller'},
-  '.b-r'       => {'background-color' => $WINI::red},
-  '.b-g'       => {'background-color' => $WINI::green},
-  '.b-b'       => {'background-color' => $WINI::blue},
+  '.b-r'       => {'background-color' => $red},
+  '.b-g'       => {'background-color' => $green},
+  '.b-b'       => {'background-color' => $blue},
   '.b-w'       => {'background-color' => 'white'},
   '.b-b25'     => {'background-color' => '#CCC'},
   '.b-b50'     => {'background-color' => '#888'},
   '.b-b75'     => {'background-color' => '#444'},
   '.b-b100'    => {'background-color' => '#000'},
-  '.b-m'       => {'background-color' => $WINI::magenta},
-  '.b-p'       => {'background-color' => $WINI::purple},
-  '.f-r'       => {'color' => $WINI::red,    'border-color' => 'black'},
-  '.f-g'       => {'color' => $WINI::green,  'border-color' => 'black'},
-  '.f-b'       => {'color' => $WINI::blue,   'border-color' => 'black'},
+  '.b-m'       => {'background-color' => $magenta},
+  '.b-p'       => {'background-color' => $purple},
+  '.f-r'       => {'color' => $red,    'border-color' => 'black'},
+  '.f-g'       => {'color' => $green,  'border-color' => 'black'},
+  '.f-b'       => {'color' => $blue,   'border-color' => 'black'},
   '.f-w'       => {'color' => 'white',       'border-color' => 'black'},
   '.f-b25'     => {'color' => '#CCC',        'border-color' => 'black'},
   '.f-b50'     => {'color' => '#888',        'border-color' => 'black'},
   '.f-b75'     => {'color' => '#444',        'border-color' => 'black'},
   '.f-b100'    => {'color' => '#000',        'border-color' => 'black'},
-  '.f-m'       => {'color' => $WINI::magenta,'border-color' => 'black'},
-  '.f-p'       => {'color' => $WINI::purple, 'border-color' => 'black'},
+  '.f-m'       => {'color' => $magenta,'border-color' => 'black'},
+  '.f-p'       => {'color' => $purple, 'border-color' => 'black'},
   '.tategaki'  => {'-ms-writing-mode' => 'tb-rl', 'writing-mode' => 'vertical-rl', '-webkit-text-orientation' => 'mixed',   'text-orientation' => 'mixed'},
   '.tatetate'  => {'-ms-writing-mode' => 'tb-rl', 'writing-mode' => 'vertical-rl', '-webkit-text-orientation' => 'upright', 'text-orientation' => 'upright'},
   '.yokoyoko'  => {'-ms-writing-mode' => 'tb-rl', 'writing-mode' => 'vertical-rl', '-webkit-text-orientation' => 'sideways', 'text-orientation' => 'sideways'}
@@ -302,8 +303,6 @@ sub stand_alone{
     my($htmlout) = to_html($winitxt, {indir=>$ind, dir=>getcwd(), whole=>$whole, cssfile=>$cssfile, title=>$title, cssflameworks=>\@cssflameworks});
     print {$fho} $htmlout;
   }
-  
-#  print {$fho} (to_html(join('', @inf0), {dir=>getcwd, whole=>$whole, cssfile=>$cssfile, title=>$title, cssflameworks=>\@cssflameworks}))[0];
 } # sub stand_alone
 
 {
@@ -366,11 +365,11 @@ sub help{
 sub color{
   my($colorname) = @_;
   return(
-    ($colorname eq 'red') ? $WINI::red
-   :($colorname eq 'green') ? $WINI::green
-   :($colorname eq 'blue') ? $WINI::blue
-   :($colorname eq 'purple') ? $WINI::purple
-   :($colorname eq 'magenta') ? $WINI::magenta:$colorname
+    ($colorname eq 'red') ? $red
+   :($colorname eq 'green') ? $green
+   :($colorname eq 'blue') ? $blue
+   :($colorname eq 'purple') ? $purple
+   :($colorname eq 'magenta') ? $magenta:$colorname
   );
 }
 
@@ -576,7 +575,7 @@ sub to_html{
       # WINI interpretation
       my $opt1 = { %$opt };
       $opt1->{_v} = $sectdata{$sect_id}{val};
-      my($h, $o) = WINI::markgaab($t, $opt1);
+      my($h, $o) = markgaab($t, $opt1);
       $html[$sect_cnt]{sect_id} = $sect_id;
       $html[$sect_cnt]{txt}     = $h;
       $html[$sect_cnt]{opt}     = $o;
@@ -644,6 +643,19 @@ sub to_html{
     (defined $opt->{whole}) and $htmlout = whole_html($htmlout, $opt->{title}, $opt);
     return($htmlout, \@html);
   }
+} # sub to_html
+
+sub parse{ # for CPAN
+  my ($file, $encoding, $opts) = @_;
+#  my $md = Text::Wini->new(@{ $opts || [] });
+  $encoding = $encoding || 'utf8';
+  open my $fh, $file, ":encoding($encoding)";
+  local $/;
+  my $src = join('', <$fh>);
+  my $html = to_html($src);
+  return unless $html =~ /\S/;
+  utf8::encode($html);
+  return($html);
 }
 
 sub markgaab{
@@ -715,8 +727,6 @@ sub markgaab{
       (
         $t =~ s!\[\[(\w+)(?:\|(.*))?\]\]!(defined $opt->{_v}{$1}) ? $opt->{_v}{$1} : ''!ge or
         $t =~ s!(\{\{([^|]*?)(?:\|([^{}]*?))?}})!
-         my @t0 = ($1,$2,$3);
-         print join(" # ", @t0), "\n";
         call_macro(
           ((defined $1) ? $1 : ''),
           ((defined $2) ? $2 : ''),
@@ -837,7 +847,7 @@ sub list{
     }
     my($hmark, $txt0) = $l=~/^\s*([#*:;])(\S*\s+.*)/s;
     ($txt0) or $t2 .= $l,next; # non-list content
-    my($txt1, undef) = WINI::markgaab($txt0, {para=>'nb'});
+    my($txt1, undef) = markgaab($txt0, {para=>'nb'});
     $txt1=~s/([^\n])$/$1\n/;
     if($hmark){
       my($listtype, $listtag) = ($listtype{$hmark},  $listtag{$hmark});
@@ -891,7 +901,7 @@ sub listmacro{
     : ($listtype, 'li',                           'li');
   my $r = "<$listtag>\n";
   foreach my $item (@$pars){
-    $r .= "<$otag>" . (WINI::markgaab($item, {para=>'nb', nocr=>1}))[0] . "</$ctag>\n";
+    $r .= "<$otag>" . (markgaab($item, {para=>'nb', nocr=>1}))[0] . "</$ctag>\n";
   }
   $r .= "</$listtag>\n";
   return($r);
@@ -1097,7 +1107,7 @@ sub make_a{
   my($url, $opts) = (split(/\|/, $url0, 2), '', '');
   ($prefix eq '#') and $url=$prefix.$url;
   #$text = escape($text) || $url;
-  ($text) = WINI::markgaab($text, {nocr=>1, para=>'nb'});
+  ($text) = markgaab($text, {nocr=>1, para=>'nb'});
   ($text eq '') and $text = $url;
 
   # options
@@ -1114,7 +1124,8 @@ sub make_a{
     $img_no++;
     ($id) or $id = "image${img_no}";
     my $class = join(' ', @classes); ($class) and $class = qq{ class="$class"};
-    push(@{$ID{image}}, $ref{image}{$id} = $img_no);
+#    push(@{$ID{image}}, $ref{image}{$id} = $img_no);
+ #   push(@{$ID{image}}, $img_no);
     if($prefix eq '!!'){
       return(qq!<figure$style><img src="$url" alt="$id" id="$id"$class$imgopt><figcaption>$text</figcaption></figure>!);
     }elsif($prefix eq '??'){
@@ -1183,7 +1194,7 @@ sub table{
       }
     } # if defined $o
 
-    push(@{$ID{table}}, $htmlitem[0][0]{copt}{id}[0]);
+    #push(@{$ID{table}}, $htmlitem[0][0]{copt}{id}[0]);
     if(defined $o){
       while($o=~/\&([lrcjsebtm]+)/g){
         my $h = {qw/l left r right c center j justify s start e end/}->{$1};
@@ -1200,7 +1211,7 @@ sub table{
         ($a=~/[~@=]/) and $htmlitem[0][0]{copt}{style}{'border-top'}    = $b1;
       }
     } # if defined $o
-    ($caption)=WINI::markgaab($c, {para=>'nb', nocr=>1});
+    ($caption)=markgaab($c, {para=>'nb', nocr=>1});
     $caption=~s/[\s\n\r]+$//;
   ''&emg; # end of caption & table setting
 
@@ -1366,7 +1377,7 @@ sub table{
     for(my $i=1; $i<=$#{$htmlitem[$ln]}; $i++){ # set winified text to cells
       (defined $htmlitem[$ln][$i]) or next;
       my $cell = $htmlitem[$ln][$i];
-      ($cell->{wini}, my $opt) = WINI::markgaab($cell->{val}, {para=>'nb', nocr=>1, table=>$htmlitem[0][0]{copt}{id}[0]});
+      ($cell->{wini}, my $opt) = markgaab($cell->{val}, {para=>'nb', nocr=>1, table=>$htmlitem[0][0]{copt}{id}[0]});
       #(exists $opt->{footnote}) and push(@{$footnotes->{$table_no}}, @{$opt->{footnote}});
       $cell->{wini} =~ s/\t *//g;
       $cell->{wini} =~ s/[ \n]+/ /g;
