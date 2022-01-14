@@ -314,7 +314,6 @@ sub txt{ # multilingual text from text id
   #id: 'fin', lang:'ja'
   #$par: hash reference for paragraph
   $lang = $lang || $LANG || 'en';
-  $DB::single=$DB::single=1;
   if(scalar keys %txt == 0){
     while(<DATA>){
       chomp;
@@ -716,12 +715,14 @@ sub markgaab{
       (
         $t =~ s!\[\[(\w+)(?:\|(.*))?\]\]!(defined $opt->{_v}{$1}) ? $opt->{_v}{$1} : ''!ge or
         $t =~ s!(\{\{([^|]*?)(?:\|([^{}]*?))?}})!
+         my @t0 = ($1,$2,$3);
+         print join(" # ", @t0), "\n";
         call_macro(
-          (defined $1) ? $1 : '',
-          (defined $2) ? $2 : '',
+          ((defined $1) ? $1 : ''),
+          ((defined $2) ? $2 : ''),
           $opt,
           $baseurl,
-          split(/\|/,((defined $3)?$3:''))
+          ((defined $3) ? split(/\|/, $3) : [])
         )!esg or
         $t =~ s!\[([^]]*?)\]\(([^)]*?)\)!make_a_from_md($1, $2, $baseurl)!eg or
         $t =~ s!\[([^]]*?)\]!make_a($1, $baseurl)!esg #or
@@ -899,21 +900,31 @@ sub listmacro{
 {
 my %abbr;
 sub term{
-# {{@|abbr=DNA|text=deoxyribonucleic acid|dfn=1}}
+  # {{@|abbr=DNA|text=deoxyribonucleic acid}} -> <abbr title="deoxyribonucleic acid">DNA</abbr>
+  # {{@|abbr=DNA|text=deoxyribonucleic acid|dfn=1}} -> <dfn><abbr title="deoxyribonucleic acid">DNA</abbr></dfn>
+  # {{@|DNA}} -> <abbr>DNA</abbr>
+  # {{@||DNA}} -> <dfn>DNA</dfn>
   my($p) = @_;
   my $par = readpars($p, qw/abbr text dfn list/);
   my $out;
-  ($par->{list}) and print Dumper abbr();
+  if($par->{list}){
+    $out = qq!\n<ul class="abbrlist">\n!;
+    foreach my $t (sort keys %abbr){
+      $out .= "<li> <abbr>$t</abbr>: $abbr{$t}</li>\n";
+    }
+    $out .= "</ul>";
+    return($out);
+  }
   if($par->{abbr}){
-    my $ab = (defined $par->{text}) ? qq!<abbr title="$par->{text}">$par->{abbr}</abbr>! : qq!<abbr>$par->{abbr}</abbr>!;
-    ($par->{dfn}) and $out = qq!<dfn>$ab</dfn>!;
+    my $ab = ($par->{text}) ? qq!<abbr title="$par->{text}">$par->{abbr}</abbr>! : qq!<abbr>$par->{abbr}</abbr>!;
+    $out = ($par->{dfn}) ? qq!<dfn>$ab</dfn>! : $ab;
     $abbr{$par->{abbr}} = $par->{text};
   }else{
-    $out = sprintf('<dfn>%s</dfn>', (defined $par->{text})?$par->{text}:'');
+    $out = ($par->{text}) ? '<dfn>' . $par->{text} . '</dfn>' : '';
   }
   return($out);
 }
-sub abbr{
+sub abbr{ # return abbr list
   my($t) = @_;
   my $o;
   unless(defined $t){
@@ -970,7 +981,7 @@ smaller|larger| # relative kw
 
 sub call_macro{
   my($fulltext, $macroname, $opt, $baseurl, @f) = @_;
-# macroname: "macroname" or "add-in package name:macroname". e.g. "{{x|abc}}", "{{mypackage:x|abc}}"
+  # macroname: "macroname" or "add-in package name:macroname". e.g. "{{x|abc}}", "{{mypackage:x|abc}}"
   my(@class, @id);
   $macroname=~s/\.([^.#]+)/push(@id,    $1); ''/ge;
   $macroname=~s/\#([^.#]+)/push(@class, $1); ''/ge;
@@ -989,7 +1000,7 @@ sub call_macro{
   ($macroname=~/^r$/i)       and return('&#x7d;'); # }
   ($macroname=~m{^[!-/:-@\[-~]$}) and (not defined $f[0]) and 
     return('&#x'.unpack('H*',$macroname).';'); # char -> ascii code
-  ($macroname=~/^\@$/)        and return(term(\@f));
+  ($macroname=~/^\@$/)       and return(term(\@f));
   ($macroname=~/^date$/i)    and return(date(\@f, 'd', $opt->{_v}));
   ($macroname=~/^time$/i)    and return(date(\@f, 't', $opt->{_v}));
   ($macroname=~/^dt$/i)      and return(date(\@f, 'dt', $opt->{_v}));
