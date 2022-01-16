@@ -151,13 +151,14 @@ use Time::Piece;
 #use Module::Load qw( load );
 #load('YAML::Tiny');
 
-our %MACROS;
-our $QUIET;
-our %VARS;
 our $ENVNAME;
-#our %ID; # list of ID assigned to tags in the target html
 our %EXT;
 our $LANG;
+our $QUIET;
+our %MACROS;
+our %VARS;
+our %REF;
+our($MI, $MO);
 our(@INDIR, @INFILE, $OUTFILE);
 our($TEMPLATE, $TEMPLATEDIR);
 my(@libs, @libpaths, $scriptname, $version, $debug);
@@ -211,9 +212,11 @@ sub init{
   binmode STDOUT,':utf8';
   my  @libs;
   my  @libpaths;
-  $QUIET      = 0; # 1: suppress most of messages
+#  ($MI, $MO)  = ("\x00", "\x01");
+  ($MI, $MO)  = ("<<<", ">>>");
   $ENVNAME    = "_";
   $LANG       = 'en';
+  $QUIET      = 0; # 1: suppress most of messages
   $scriptname = basename($0);
   $version    = "ver. 1.0alpha rel. 20220114";
 }
@@ -590,6 +593,21 @@ sub to_html{
   map{$htmlout .= "\n" . join("\n", $_->{open}||'', $_->{txt}||'', $_->{close}||'')} @html;
   $htmlout .= "\n";
 
+  #dereference
+  {
+    my $seq=0;
+    $htmlout=~s!${MI}nfig=t(.*?)${MO}!
+      my $id = $1;
+      print "1=$id\n";
+      if(defined $REF{fig}{$id}{id}){
+        $REF{fig}{$id}{id};
+      }else{
+        $seq++;
+        $REF{fig}{$id}{id}=$seq;
+      }
+    !ge;
+  }
+print STDERR Dumper %REF;
   # template?
   if(defined $sectdata_depth[0][-1]{val}{template}){ # template mode
     $TEMPLATE = $sectdata_depth[0][-1]{val}{template};
@@ -756,7 +774,7 @@ sub markgaab{
     $r .= $t;
   } # foreach $t # for each paragraph
 
-  $r=~s/\x00i=(\d+)\x01/$save[$1]/ge;
+  $r=~s/${MI}i=(\d+)${MO}/$save[$1]/ge;
   if($cssfile){
     open(my $fho, '>', $cssfile) or die "Cannot modify $cssfile";
     print {$fho} css($CSS);
@@ -1077,13 +1095,13 @@ sub save_quote{ # pre, code, cite ...
     ($opts{cite}) or $opts{cite} = 'http://example.com';
     return(<<"EOD");
 <blockquote cite="$opts{cite}">
-\x00i=$i\x01
+${MI}i=$i${MO}
 </blockquote>
 EOD
   }else{ # pre, code
     my($ltag, $rtag) = ($cmd eq 'code')?('<pre><code>','</code></pre>')
                       :($cmd eq 'pre') ?('<pre>',      '</pre>') : ('', '');
-    return("$ltag\n\x00i=$i\x01\n$rtag");
+    return("$ltag\n${MI}i=$i${MO}\n$rtag");
   }
 }
 }
@@ -1128,11 +1146,15 @@ sub make_a{
     #my $temp_id = ($id) ? $id : "image_temp_n${img_no}";
     my $class = join(' ', @classes); ($class) and $class = qq{ class="$class"};
     my $img_id = (not defined $id)           ? ''
-                :($id eq '' or $id=~/auto/i) ? ($img_no++, "Fig. \x00nfig=t${img_no}\x01:")
+                :($id eq '' or $id=~/auto/i) ? ($img_no++, $id=$img_no, "Fig. ${MI}nfig=t${id}${MO}:")
                 :($id=~/^0$/)                ? ''
                 :($id=~/^(\d+\w*)/)          ? "Fig. $1:" : '';
     my $img_id2 = $img_id;
-    $img_id2=~s/[^\w\x00-\x01]//g;
+    if(defined $id){
+      (exists $REF{fig}{$id} and $text) and mes(txt('did',,{id=>$id}), {q=>1,err=>1});
+      $REF{fig}{$id}{desc} = $text||undef;
+    }
+    $img_id2=~s/[^\w${MI}${MO}]//g;
     $img_id2 = ($img_id2) ? qq! id="${img_id2}"! : '';
     $text = "${img_id} $text";
     if($prefix eq '!!'){
@@ -1690,12 +1712,13 @@ __DATA__
 !conv!Conv {{from}} -> {{to}}!変換 {{from}} -> {{to}}!
 !dci!Dir {{d}} is chosen as input!
 !dco!Dir {{d}} is chosen as output!
+!did!Duplicated ID:{{id}}!ID:{{ID}}が重複しています!
 !din!Data will be read from STDIN!
 !elnf!{{d}} for extra library not found!{{d}}が見たらず、エキストラライブラリに登録できません!
 !Error!error!エラー!
+|fail|failed|失敗|
 !fci!File {{f}} is chosen as input!
 |fin|completed|終了|
-|fail|failed|失敗|
 !fnf!File not found!ファイルが見つかりません!
 !ftf!Found {{t}} as template file!
 !if!input file:!入力ファイル：!
