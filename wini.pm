@@ -151,31 +151,17 @@ use Time::Piece;
 #use Module::Load qw( load );
 #load('YAML::Tiny');
 
-no warnings;
-*Data::Dumper::qquote = sub { return encode "utf8", shift } ;
-$Data::Dumper::Useperl = 1 ;
-use warnings;
-my  @libs;
-my  @libpaths;
 our %MACROS;
-our $QUIET = 0; # 1: suppress most of messages
-
+our $QUIET;
 our %VARS;
-our $ENVNAME="_";
+our $ENVNAME;
 #our %ID; # list of ID assigned to tags in the target html
 our %EXT;
-our $LANG='en';
+our $LANG;
 our(@INDIR, @INFILE, $OUTFILE);
 our($TEMPLATE, $TEMPLATEDIR);
-my $scriptname = basename($0);
-my $version    = "ver. 1.0alpha rel. 20220114";
+my(@libs, @libpaths, $scriptname, $version, $debug);
 my @save;
-#my %ref; # $ref{image}{imageID} = 1; keys of %$ref: qw/image table formula citation math ref/
-my $debug;
-
-binmode STDIN, ':utf8';
-binmode STDERR,':utf8';
-binmode STDOUT,':utf8';
 
 # barrier-free color codes: https://jfly.uni-koeln.de/html/manuals/pdf/color_blind.pdf
 our ($red, $green, $blue, $magenta, $purple) 
@@ -215,8 +201,26 @@ my $CSS = {
 
 __PACKAGE__->stand_alone() if !caller() || caller() eq 'PAR';
 
+sub init{
+  no warnings;
+  *Data::Dumper::qquote = sub { return encode "utf8", shift } ;
+  $Data::Dumper::Useperl = 1 ;
+  use warnings;
+  binmode STDIN, ':utf8';
+  binmode STDERR,':utf8';
+  binmode STDOUT,':utf8';
+  my  @libs;
+  my  @libpaths;
+  $QUIET      = 0; # 1: suppress most of messages
+  $ENVNAME    = "_";
+  $LANG       = 'en';
+  $scriptname = basename($0);
+  $version    = "ver. 1.0alpha rel. 20220114";
+}
+
 # Following function is executed when this script is called as stand-alone script
 sub stand_alone{
+  init();
   my(@input, $output, $fhi, $title, $cssfile, $test, $whole, @cssflameworks);
   GetOptions(
     "h|help"         => sub {help()},
@@ -735,7 +739,7 @@ sub markgaab{
           ((defined $3) ? split(/\|/, $3) : [])
         )!esg or
         $t =~ s!\[([^]]*?)\]\(([^)]*?)\)!make_a_from_md($1, $2, $baseurl)!eg or
-        $t =~ s!\[([^]]*?)\]!make_a($1, $baseurl)!esg #or
+        $t =~ s!\[([^]]*?)\]!make_a($1, $baseurl)."\n"!esg #or
       ) or last; # no subst need, then escape inner loop
     } # loop while subst needed
 
@@ -1113,27 +1117,32 @@ sub make_a{
   # options
   my $style            = ($opts=~/</) ? "float: left;" : ($opts=~/>/) ? "float: right;" : '';
   ($style) and $style  = qq{ style="$style"};
-  my $id               = $opts=~/#([-\w]+)/;
-  my @classes          = $opts=~/\.([-\w]+)/g;  $opts=~s/[.#][-\w]+//g;
+  my($id)              = $opts=~/#([-\w]+)/;
+  my @classes          = $opts=~/\.([-\w]+)/g;
   my($width,$height)   = ($opts=~/(\d+)x(\d+)/)?($1,$2):(0,0);
   my $imgopt           = ($width>0)?qq{ width="$width"}:'';
   $height and $imgopt .= qq{ height="$height"};
   my $target           = ($opts=~/@@/)?'_blank':($opts=~/@(\w+)/)?($1):'_self';
-
   if($prefix=~/[!?]/){ # img, figure
-    $img_no++;
-    ($id) or $id = "image${img_no}";
+    #$img_no++;
+    #my $temp_id = ($id) ? $id : "image_temp_n${img_no}";
     my $class = join(' ', @classes); ($class) and $class = qq{ class="$class"};
-#    push(@{$ID{image}}, $ref{image}{$id} = $img_no);
- #   push(@{$ID{image}}, $img_no);
+    my $img_id = (not defined $id)           ? ''
+                :($id eq '' or $id=~/auto/i) ? ($img_no++, "Fig. \x00nfig=t${img_no}\x01:")
+                :($id=~/^0$/)                ? ''
+                :($id=~/^(\d+\w*)/)          ? "Fig. $1:" : '';
+    my $img_id2 = $img_id;
+    $img_id2=~s/[^\w\x00-\x01]//g;
+    $img_id2 = ($img_id2) ? qq! id="${img_id2}"! : '';
+    $text = "${img_id} $text";
     if($prefix eq '!!'){
-      return(qq!<figure$style><img src="$url" alt="$id" id="$id"$class$imgopt><figcaption>$text</figcaption></figure>!);
+      return(qq!<figure$style><img src="$url" alt="$text"${img_id2}$class$imgopt><figcaption>$text</figcaption></figure>!);
     }elsif($prefix eq '??'){
-      return(qq!<figure$style><a href="$url" target="$target"><img src="$url" alt="$id" id="$id"$class$imgopt></a><figcaption>$text</figcaption></figure>!);
+      return(qq!<figure$style><a href="$url" target="$target"><img src="$url" alt="${img_id}"${img_id2}$class$imgopt></a><figcaption>$text</figcaption></figure>!);
     }elsif($prefix eq '?'){
-      return(qq!<a href="$url" target="$target"><img src="$url" alt="$text" id="$id"$class$style$imgopt></a>!);      
+      return(qq!<a href="$url" target="$target"><img src="$url" alt="$text"${img_id2}$class$style$imgopt></a>!);
     }else{ # "!"
-      return(qq!<img src="$url" alt="$text" id="$id"$class$style$imgopt>!);
+      return(qq!<img src="$url" alt="$text"${img_id2}$class$style$imgopt>!);
     }
   }elsif($url=~/^[\d_]+$/){
     return(qq!<a href="$baseurl?aid=$url" target="$target">$text</a>!);
@@ -1141,6 +1150,15 @@ sub make_a{
     return(qq!<a href="$url" target="$target">$text</a>!);
   }
 }
+}
+
+sub strdump{
+  my($x) = @_;
+  my @x = split(//,$x);
+  my $o ='';
+  $o .= join('', map { sprintf("%4s " , (/[\x00- ]/?' ':$_))} @x) . "\n";
+  $o .= join('', map { sprintf("%04x ",              ord $_)} @x) . "\n";
+  return($o);
 }
 
 sub ruby{

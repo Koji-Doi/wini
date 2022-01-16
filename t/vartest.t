@@ -5,10 +5,9 @@ use strict;
 use warnings;
 use Test::More;
 
-use lib '/home/koji/perl';
-use mysystem;
 use lib '.';
 use wini;
+init();
 
 {
   my($o, undef) = to_html(<<'EOC');
@@ -48,8 +47,6 @@ EOC
   $o=~s/[\n\r]*//g;
 
 my $p = <<EOC;
-
-
 <p>
 Value of variable 'a' should be 1, is 1.
 Value of variable 'b' should be 2, is 2.
