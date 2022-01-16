@@ -605,6 +605,7 @@ sub to_html{
         $seq++;
         $REF{fig}{$id}{id}=$seq;
       }
+      "repl.$REF{fig}{$id}{id}.";
     !ge;
   }
 print STDERR Dumper %REF;
