@@ -601,13 +601,13 @@ sub to_html{
     $htmlout=~s!${MI}nfig=t(.*?)${MO}!
       my $id = $1;
       print "1=$id\n";
-      if(defined $REF{fig}{$id}{id}){
+      if(defined $REF{$id}{id}){
 #        $REF{fig}{$id}{id};
       }else{
         $seq++;
-        $REF{fig}{$id}{id}=$seq;
+        $REF{$id}{id}=$seq;
       }
-      "repl.$REF{fig}{$id}{id}.";
+      "repl.$REF{$id}{id}.";
     !ge;
   }
 
@@ -1116,8 +1116,8 @@ sub reftext{
   if($par->{type} eq 'fig'){
     $DB::single=$DB::single=1;
     1;
-    if(exists $REF{fig}{$par->{id}}){
-      return($REF{fig}{$par->{id}}{id});
+    if(exists $REF{$par->{id}}){
+      return($REF{$par->{id}}{id});
     }else{
       return(undef);
     }
@@ -1163,14 +1163,16 @@ sub make_a{
     #$img_no++;
     #my $temp_id = ($id) ? $id : "image_temp_n${img_no}";
     my $class = join(' ', @classes); ($class) and $class = qq{ class="$class"};
-    my $temp_id = (not defined $id)            ? ++$img_no
-                :($id eq '' or $id=~/^auto$/i) ? (print("---$text auto-$img_no.\n"),++$img_no) #, "Fig. ${MI}nfig=t${id}${MO}:")
-                :($id=~/^0$/)                  ? ++$img_no
-                :($id=~/^(\w+)/)               ? $1 : ++$img_no;
-    ($id=~/^auto$/) and $id="fig${temp_id}";
-    (exists $REF{fig}{$temp_id} and $text) and mes(txt('did',,{id=>$temp_id}), {q=>1,err=>1});
-    print "id=${id} temp_id=${temp_id}.\n";
-    $REF{fig}{$id} = {desc => ($text||undef), id=>$temp_id};
+    my $temp_id = (not defined $id)  ? ''
+                 :($id=~/^auto$/i)   ? (print("---$text auto-$img_no.\n"),++$img_no) #, "Fig. ${MI}nfig=t${id}${MO}:")
+                 :($id=~/^0$/)       ? ++$img_no
+                 :($id=~/^(\w+)/)    ? $1 : '';
+    if($temp_id ne ''){
+      ($id=~/^auto$/) and $id="fig${temp_id}";
+      (exists $REF{$temp_id} and $text) and mes(txt('did',,{id=>$temp_id}), {q=>1,err=>1});
+      print "id=${id} temp_id=${temp_id}.\n";
+      $REF{$id} = {type=>'fig', temp_id=>$temp_id, desc => ($text||undef)};
+    }
     my $img_id = ($temp_id) ? qq! id="fig${MI}${temp_id}${MO}"! : ''; # ID for <img ...>
     $text = "${MI}${temp_id}${MO} $text";
     if($prefix eq '!!'){
