@@ -594,13 +594,15 @@ sub to_html{
   $htmlout .= "\n";
 
   #dereference
+  print STDERR "\n***REF=",Dumper %REF;
+
   {
     my $seq=0;
     $htmlout=~s!${MI}nfig=t(.*?)${MO}!
       my $id = $1;
       print "1=$id\n";
       if(defined $REF{fig}{$id}{id}){
-        $REF{fig}{$id}{id};
+#        $REF{fig}{$id}{id};
       }else{
         $seq++;
         $REF{fig}{$id}{id}=$seq;
@@ -608,7 +610,7 @@ sub to_html{
       "repl.$REF{fig}{$id}{id}.";
     !ge;
   }
-print STDERR Dumper %REF;
+
   # template?
   if(defined $sectdata_depth[0][-1]{val}{template}){ # template mode
     $TEMPLATE = $sectdata_depth[0][-1]{val}{template};
@@ -1034,6 +1036,7 @@ sub call_macro{
   ($macroname=~m{^[!-/:-@\[-~]$}) and (not defined $f[0]) and 
     return('&#x'.unpack('H*',$macroname).';'); # char -> ascii code
   ($macroname=~/^\@$/)       and return(term(\@f));
+  ($macroname=~/^ref$/i)     and return(reftext(\@f));
   ($macroname=~/^date$/i)    and return(date(\@f, 'd', $opt->{_v}));
   ($macroname=~/^time$/i)    and return(date(\@f, 't', $opt->{_v}));
   ($macroname=~/^dt$/i)      and return(date(\@f, 'dt', $opt->{_v}));
@@ -1104,12 +1107,25 @@ EOD
                       :($cmd eq 'pre') ?('<pre>',      '</pre>') : ('', '');
     return("$ltag\n${MI}i=$i${MO}\n$rtag");
   }
-}
+} # sub save_quote
+} # env save_quote
+
+sub reftext{
+  # {{ref|fig|fig_a}}
+  my $par = readpars($_[0], qw/type id/);
+  if($par->{type} eq 'fig'){
+    $DB::single=$DB::single=1;
+    1;
+    if(exists $REF{fig}{$par->{id}}){
+      return($REF{fig}{$par->{id}}{id});
+    }else{
+      return(undef);
+    }
+  }
 }
 
-# [xxxx] -> <a href="www">...</a>
 {
-my $img_no=0;
+my $img_no;
 sub make_a_from_md{
   my($t, $url, $baseurl) = @_;
   return(qq!<a href="$url">$t</a>!);
@@ -1124,6 +1140,7 @@ sub make_a{
 # [http://example.com|@@ text] # link with window specification
 # [#goat text]  # link within page
 
+  $img_no or $img_no=0;
   my($t, $baseurl)=@_;
   my($prefix, $url0, $text)          = $t=~m{([!?#]*)"(\S+)"\s+(.*)}s;
   ($url0) or ($prefix, $url0, $text) = $t=~m{([!?#]*)([^\s"]+)(?:\s+(.*))?}s;
@@ -1146,26 +1163,24 @@ sub make_a{
     #$img_no++;
     #my $temp_id = ($id) ? $id : "image_temp_n${img_no}";
     my $class = join(' ', @classes); ($class) and $class = qq{ class="$class"};
-    my $img_id = (not defined $id)           ? ''
-                :($id eq '' or $id=~/auto/i) ? ($img_no++, $id=$img_no, "Fig. ${MI}nfig=t${id}${MO}:")
-                :($id=~/^0$/)                ? ''
-                :($id=~/^(\d+\w*)/)          ? "Fig. $1:" : '';
-    my $img_id2 = $img_id;
-    if(defined $id){
-      (exists $REF{fig}{$id} and $text) and mes(txt('did',,{id=>$id}), {q=>1,err=>1});
-      $REF{fig}{$id}{desc} = $text||undef;
-    }
-    $img_id2=~s/[^\w${MI}${MO}]//g;
-    $img_id2 = ($img_id2) ? qq! id="${img_id2}"! : '';
-    $text = "${img_id} $text";
+    my $temp_id = (not defined $id)            ? ++$img_no
+                :($id eq '' or $id=~/^auto$/i) ? (print("---$text auto-$img_no.\n"),++$img_no) #, "Fig. ${MI}nfig=t${id}${MO}:")
+                :($id=~/^0$/)                  ? ++$img_no
+                :($id=~/^(\w+)/)               ? $1 : ++$img_no;
+    ($id=~/^auto$/) and $id="fig${temp_id}";
+    (exists $REF{fig}{$temp_id} and $text) and mes(txt('did',,{id=>$temp_id}), {q=>1,err=>1});
+    print "id=${id} temp_id=${temp_id}.\n";
+    $REF{fig}{$id} = {desc => ($text||undef), id=>$temp_id};
+    my $img_id = ($temp_id) ? qq! id="fig${MI}${temp_id}${MO}"! : ''; # ID for <img ...>
+    $text = "${MI}${temp_id}${MO} $text";
     if($prefix eq '!!'){
-      return(qq!<figure$style><img src="$url" alt="$text"${img_id2}$class$imgopt><figcaption>$text</figcaption></figure>!);
+      return(qq!<figure$style><img src="$url" alt="$text"${img_id}$class$imgopt><figcaption>$text</figcaption></figure>!);
     }elsif($prefix eq '??'){
-      return(qq!<figure$style><a href="$url" target="$target"><img src="$url" alt="${img_id}"${img_id2}$class$imgopt></a><figcaption>$text</figcaption></figure>!);
+      return(qq!<figure$style><a href="$url" target="$target"><img src="$url" alt="${temp_id}"${img_id}$class$imgopt></a><figcaption>$text</figcaption></figure>!);
     }elsif($prefix eq '?'){
-      return(qq!<a href="$url" target="$target"><img src="$url" alt="$text"${img_id2}$class$style$imgopt></a>!);
+      return(qq!<a href="$url" target="$target"><img src="$url" alt="$text"${img_id}$class$style$imgopt></a>!);
     }else{ # "!"
-      return(qq!<img src="$url" alt="$text"${img_id2}$class$style$imgopt>!);
+      return(qq!<img src="$url" alt="$text"${img_id}$class$style$imgopt>!);
     }
   }elsif($url=~/^[\d_]+$/){
     return(qq!<a href="$baseurl?aid=$url" target="$target">$text</a>!);
