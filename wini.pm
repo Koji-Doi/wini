@@ -132,8 +132,8 @@ Show version.
 Show this help.
 
 =back
-
 =cut
+
 package Text::Markup::Wini;
 #use Text::Wini;
 use 5.8.1;
@@ -163,6 +163,7 @@ our(@INDIR, @INFILE, $OUTFILE);
 our($TEMPLATE, $TEMPLATEDIR);
 my(@libs, @libpaths, $scriptname, $version, $debug);
 my @save;
+my $FORCE;
 
 # barrier-free color codes: https://jfly.uni-koeln.de/html/manuals/pdf/color_blind.pdf
 our ($red, $green, $blue, $magenta, $purple) 
@@ -241,6 +242,7 @@ sub stand_alone{
     "cssflamework:s" => \@cssflameworks,
     "template=s"     => \$TEMPLATE,
     "templatedir=s"  => \$TEMPLATEDIR,
+    "force"          => \$FORCE,
     "quiet"          => \$QUIET
   );
   foreach my $i (@libpaths){
@@ -249,7 +251,7 @@ sub stand_alone{
   }
   foreach my $lib (@libs){ # 'form', etc.
     my $r = eval{load($lib)};
-    mes((defined $r) ? txt('ll',, {lib=>$lib}) : txt('llf',, {lib=>$lib}));
+    mes((defined $r) ? txt('ll',undef, {lib=>$lib}) : txt('llf',, {lib=>$lib}));
   }
 
   (defined $cssflameworks[0]) and ($cssflameworks[0] eq '') and $cssflameworks[0]='https://unpkg.com/mvp.css'; # 'https://newcss.net/new.min.css';
@@ -594,7 +596,7 @@ sub to_html{
   $htmlout .= "\n";
 
   #dereference
-  print STDERR "\n***REF=",Dumper %REF;
+  print STDERR "\n<<<<REF=",Dumper %REF, ">>>>\n";
 
   {
     my $seq=0;
@@ -605,11 +607,12 @@ sub to_html{
 #        $REF{fig}{$id}{id};
       }else{
         $seq++;
-        $REF{$id}{id}=$seq;
+        $REF{$id}{disp_id}=$seq;
       }
-      "repl.$REF{$id}{id}.";
+      "repl.$REF{$id}{disp_id}.";
     !ge;
   }
+  print STDERR "\nAfter deref\n<<<<REF=",Dumper %REF, ">>>>\n";
 
   # template?
   if(defined $sectdata_depth[0][-1]{val}{template}){ # template mode
@@ -1111,17 +1114,19 @@ EOD
 } # env save_quote
 
 sub reftext{
-  # {{ref|fig|fig_a}}
-  my $par = readpars($_[0], qw/type id/);
-  if($par->{type} eq 'fig'){
+  # {{ref|fig_a}}
+  my $par = readpars($_[0], qw/id type/);
+  my($id, $type) = map {$par->{$_}} qw/id type/;
     $DB::single=$DB::single=1;
     1;
-    if(exists $REF{$par->{id}}){
-      return($REF{$par->{id}}{id});
+    if(exists $REF{$id}){
+      my $out = $MI . (
+        ($type eq 'fig') ? "nfig=t$id" : ''
+      ) . $MO;
+      return($out);
     }else{
       return(undef);
     }
-  }
 }
 
 {
@@ -1170,11 +1175,11 @@ sub make_a{
     if($temp_id ne ''){
       ($id=~/^auto$/) and $id="fig${temp_id}";
       (exists $REF{$temp_id} and $text) and mes(txt('did',,{id=>$temp_id}), {q=>1,err=>1});
-      print "id=${id} temp_id=${temp_id}.\n";
+      $text = txt('fig', undef, {f=>"${MI}nfig=t${temp_id}${MO}"}) . " $text";
       $REF{$id} = {type=>'fig', temp_id=>$temp_id, desc => ($text||undef)};
     }
-    my $img_id = ($temp_id) ? qq! id="fig${MI}${temp_id}${MO}"! : ''; # ID for <img ...>
-    $text = txt('fig', undef, {f=>"${MI}${temp_id}${MO}"}) . " $text";
+    my $img_id = ($temp_id) ? qq! id="fig${MI}nfig=t${temp_id}${MO}"! : ''; # ID for <img ...>
+      print STDERR "id=${id} temp_id=${temp_id}.\n";
     if($prefix eq '!!'){
       return(qq!<figure$style><img src="$url" alt="$text"${img_id}$class$imgopt><figcaption>$text</figcaption></figure>!);
     }elsif($prefix eq '??'){
