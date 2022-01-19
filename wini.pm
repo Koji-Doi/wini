@@ -1174,7 +1174,7 @@ sub make_a{
       $REF{$id} = {type=>'fig', temp_id=>$temp_id, desc => ($text||undef)};
     }
     my $img_id = ($temp_id) ? qq! id="fig${MI}${temp_id}${MO}"! : ''; # ID for <img ...>
-    $text = "${MI}${temp_id}${MO} $text";
+    $text = txt('fig', undef, {f=>"${MI}${temp_id}${MO}"}) . " $text";
     if($prefix eq '!!'){
       return(qq!<figure$style><img src="$url" alt="$text"${img_id}$class$imgopt><figcaption>$text</figcaption></figure>!);
     }elsif($prefix eq '??'){
@@ -1736,6 +1736,7 @@ __DATA__
 !Error!error!エラー!
 |fail|failed|失敗|
 !fci!File {{f}} is chosen as input!
+!fig!Fig. {{f}}!図{{f}}!
 |fin|completed|終了|
 !fnf!File not found!ファイルが見つかりません!
 !ftf!Found {{t}} as template file!
