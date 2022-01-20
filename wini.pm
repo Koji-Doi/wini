@@ -246,12 +246,12 @@ sub stand_alone{
     "quiet"          => \$QUIET
   );
   foreach my $i (@libpaths){
-    mes(txt('ttap',, {path=>$i}), {ln=>__LINE__});
-    (-d $i) ? push(@INC, $i) : mes(txt('elnf',, {d=>$i}), {warn=>1});
+    mes(txt('ttap', undef, {path=>$i}), {ln=>__LINE__});
+    (-d $i) ? push(@INC, $i) : mes(txt('elnf', undef, {d=>$i}), {warn=>1});
   }
   foreach my $lib (@libs){ # 'form', etc.
     my $r = eval{load($lib)};
-    mes((defined $r) ? txt('ll',undef, {lib=>$lib}) : txt('llf',, {lib=>$lib}));
+    mes((defined $r) ? txt('ll', undef, {lib=>$lib}) : txt('llf',, {lib=>$lib}));
   }
 
   (defined $cssflameworks[0]) and ($cssflameworks[0] eq '') and $cssflameworks[0]='https://unpkg.com/mvp.css'; # 'https://newcss.net/new.min.css';
@@ -276,10 +276,10 @@ sub stand_alone{
     # 1. multiple infile -> multiple outfile (1:1)
     for(my $i=0; $i<=$#$inf; $i++){
       if($inf->[$i] eq ''){
-        mes(txt('conv',, {from=>'STDIN', to=>$outf->[$i]}), {q=>1});
+        mes(txt('conv', undef, {from=>'STDIN', to=>$outf->[$i]}), {q=>1});
         $fhi=*STDIN;
       }else{
-        mes(txt('conv',, {from=>$inf->[$i], to=>$outf->[$i]}), {q=>1});
+        mes(txt('conv', undef, {from=>$inf->[$i], to=>$outf->[$i]}), {q=>1});
         open($fhi, '<:utf8', $inf->[$i]);
       }
       open(my $fho, '>:utf8', $outf->[$i]);
@@ -301,7 +301,7 @@ sub stand_alone{
     map {
       my $fhi;
       ($_ eq '') ? $fhi=*STDIN : (
-         open($fhi, '<:utf8', $_) or die txt('cno',,{f=>$_}) || mes(txt('ou',,{f=>$_}), {q=>1})
+         open($fhi, '<:utf8', $_) or die txt('cno', undef, {f=>$_}) || mes(txt('ou', undef, {f=>$_}), {q=>1})
       );
       while(<$fhi>){
         s/[\n\r]*$//; s/\x{FEFF}//; # remove BOM if exists
@@ -651,7 +651,7 @@ sub to_html{
           }
         }
 #        mes(txt('cft', )"Cannot find template '$TEMPLATE' in '" . join(q{', '}, @testdirs) . "'.", {err=>1});
-        mes(txt('cft',, {t=>$TEMPLATE, d=>join(q{', '}, @testdirs)}), {err=>1});
+        mes(txt('cft', undef, {t=>$TEMPLATE, d=>join(q{', '}, @testdirs)}), {err=>1});
 
       }  # L1
     }
@@ -1125,7 +1125,8 @@ sub reftext{
       ) . $MO;
       return($out);
     }else{
-      return(undef);
+      mes('undefined ref type for '. ($id||''));
+      return($id);
     }
 }
 
@@ -1174,11 +1175,12 @@ sub make_a{
                  :($id=~/^(\w+)/)    ? $1 : '';
     if($temp_id ne ''){
       ($id=~/^auto$/) and $id="fig${temp_id}";
-      (exists $REF{$temp_id} and $text) and mes(txt('did',,{id=>$temp_id}), {q=>1,err=>1});
-      $text = txt('fig', undef, {f=>"${MI}nfig=t${temp_id}${MO}"}) . " $text";
+      (exists $REF{$temp_id} and $text) and mes(txt('did', undef, {id=>$temp_id}), {q=>1,err=>1});
+      $text = txt('fig', undef, {f=>reftext($temp_id)}) . " $text";
       $REF{$id} = {type=>'fig', temp_id=>$temp_id, desc => ($text||undef)};
     }
-    my $img_id = ($temp_id) ? qq! id="fig${MI}nfig=t${temp_id}${MO}"! : ''; # ID for <img ...>
+#    my $img_id = ($temp_id) ? qq! id="fig${MI}nfig=t${temp_id}${MO}"! : ''; # ID for <img ...>
+    my $img_id = ($temp_id) ? sprintf(' id="%s"', reftext($temp_id)) : ''; # ID for <img ...>
       print STDERR "id=${id} temp_id=${temp_id}.\n";
     if($prefix eq '!!'){
       return(qq!<figure$style><img src="$url" alt="$text"${img_id}$class$imgopt><figcaption>$text</figcaption></figure>!);
