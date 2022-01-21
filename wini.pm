@@ -603,7 +603,7 @@ sub to_html{
     $htmlout=~s!${MI}nfig=t(.*?)${MO}!
       my $id = $1;
       print "1=$id\n";
-      if(defined $REF{$id}{id}){
+      if(defined $REF{$id}{disp_id}){
 #        $REF{fig}{$id}{id};
       }else{
         $seq++;
@@ -753,7 +753,17 @@ sub markgaab{
         $ptype = 'header';
       } # endif header
       (
-        $t =~ s!\[\[(\w+)(?:\|(.*))?\]\]!(defined $opt->{_v}{$1}) ? $opt->{_v}{$1} : ''!ge or
+       $t =~ s!\[\[(\w+)(?:\|(.*))?\]\]!(defined $opt->{_v}{$1}) ? $opt->{_v}{$1} : ''!ge or
+#        $t =~ s!(\{\{([^|]*?)(?:\|([^{}]*?))?}})!
+#        call_macro(
+#          ((defined $1) ? $1 : ''),
+#          ((defined $2) ? $2 : ''),
+#          $opt,
+#          $baseurl,
+#          ((defined $3) ? split(/\|/, $3) : [])
+#        )!esg or
+        $t =~ s!\[([^]]*?)\]\(([^)]*?)\)!make_a_from_md($1, $2, $baseurl)!eg or
+        $t =~ s!\[([^]]*?)\]!make_a($1, $baseurl)."\n"!esg or
         $t =~ s!(\{\{([^|]*?)(?:\|([^{}]*?))?}})!
         call_macro(
           ((defined $1) ? $1 : ''),
@@ -761,9 +771,8 @@ sub markgaab{
           $opt,
           $baseurl,
           ((defined $3) ? split(/\|/, $3) : [])
-        )!esg or
-        $t =~ s!\[([^]]*?)\]\(([^)]*?)\)!make_a_from_md($1, $2, $baseurl)!eg or
-        $t =~ s!\[([^]]*?)\]!make_a($1, $baseurl)."\n"!esg #or
+        )!esg #or
+       
       ) or last; # no subst need, then escape inner loop
     } # loop while subst needed
 
@@ -1039,7 +1048,7 @@ sub call_macro{
   ($macroname=~m{^[!-/:-@\[-~]$}) and (not defined $f[0]) and 
     return('&#x'.unpack('H*',$macroname).';'); # char -> ascii code
   ($macroname=~/^\@$/)       and return(term(\@f));
-  ($macroname=~/^ref$/i)     and return(reftext(\@f));
+  ($macroname=~/^(rr|ref)$/i)     and return(reftext(\@f));
   ($macroname=~/^date$/i)    and return(date(\@f, 'd', $opt->{_v}));
   ($macroname=~/^time$/i)    and return(date(\@f, 't', $opt->{_v}));
   ($macroname=~/^dt$/i)      and return(date(\@f, 'dt', $opt->{_v}));
@@ -1118,7 +1127,9 @@ sub reftext{
   my $par = readpars($_[0], qw/id type/);
   my($id, $type) = map {$par->{$_}} qw/id type/;
     $DB::single=$DB::single=1;
-    1;
+  1;
+  (exists $REF{$id}{type}) and $type = $REF{$id}{type};
+  print STDERR "id=id, type=$type. ###\n";
     if(exists $REF{$id}){
       my $out = $MI . (
         ($type eq 'fig') ? "nfig=t$id" : ''
