@@ -1048,7 +1048,7 @@ sub call_macro{
   ($macroname=~m{^[!-/:-@\[-~]$}) and (not defined $f[0]) and 
     return('&#x'.unpack('H*',$macroname).';'); # char -> ascii code
   ($macroname=~/^\@$/)       and return(term(\@f));
-  ($macroname=~/^(rr|ref)$/i)     and return(reftext(\@f));
+  ($macroname=~/^(rr|ref)$/i)     and return(reftext(@f));
   ($macroname=~/^date$/i)    and return(date(\@f, 'd', $opt->{_v}));
   ($macroname=~/^time$/i)    and return(date(\@f, 't', $opt->{_v}));
   ($macroname=~/^dt$/i)      and return(date(\@f, 'dt', $opt->{_v}));
@@ -1123,22 +1123,27 @@ EOD
 } # env save_quote
 
 sub reftext{
-  # {{ref|fig_a}}
-  my $par = readpars($_[0], qw/id type/);
-  my($id, $type) = map {$par->{$_}} qw/id type/;
-    $DB::single=$DB::single=1;
-  1;
+  # reftext('id', 'ja', 'fig) -> "${MI}nfig=id${MO}"
+  my $par = readpars(\@_, qw/id lang type/);
+  my($id, $lang, $type) = map {$par->{$_}} qw/id lang type/;
   (exists $REF{$id}{type}) and $type = $REF{$id}{type};
-  print STDERR "id=id, type=$type. ###\n";
-    if(exists $REF{$id}){
-      my $out = $MI . (
-        ($type eq 'fig') ? "nfig=t$id" : ''
-      ) . $MO;
-      return($out);
-    }else{
-      mes('undefined ref type for '. ($id||''));
-      return($id);
+  print STDERR "id=$id, type=$type. ###\n";
+  if(ref $id eq 'ARRAY') {
+    $DB::single=$DB::single=1;
+  }
+print "REF: ",Dumper(%REF), " at ", __LINE__, "\n";
+  if(exists $REF{$id}) {
+    my $out = $MI . (
+                ($type eq 'fig') ? "nfig=t$id" : ''
+              ) . $MO;
+    return($out);
+  }else{
+    if(defined $type) {
+      $REF{$id} = {temp_id=>$id, type=>$type};
     }
+    mes('undefined ref type for '. ($id||''));
+    return("${MI}x=$id${MO}");
+  }
 }
 
 {
@@ -1176,23 +1181,22 @@ sub make_a{
   my $imgopt           = ($width>0)?qq{ width="$width"}:'';
   $height and $imgopt .= qq{ height="$height"};
   my $target           = ($opts=~/@@/)?'_blank':($opts=~/@(\w+)/)?($1):'_self';
+  my $img_id           = '';  # ID for <img ...>
   if($prefix=~/[!?]/){ # img, figure
-    #$img_no++;
-    #my $temp_id = ($id) ? $id : "image_temp_n${img_no}";
     my $class = join(' ', @classes); ($class) and $class = qq{ class="$class"};
     my $temp_id = (not defined $id)  ? ''
                  :($id=~/^auto$/i)   ? (print("---$text auto-$img_no.\n"),++$img_no) #, "Fig. ${MI}nfig=t${id}${MO}:")
                  :($id=~/^0$/)       ? ++$img_no
                  :($id=~/^(\w+)/)    ? $1 : '';
     if($temp_id ne ''){
-      ($id=~/^auto$/) and $id="fig${temp_id}";
+      ($id=~/^auto$/) and $id="fig${temp_id}_auto";
       (exists $REF{$temp_id} and $text) and mes(txt('did', undef, {id=>$temp_id}), {q=>1,err=>1});
-      $text = txt('fig', undef, {f=>reftext($temp_id)}) . " $text";
-      $REF{$id} = {type=>'fig', temp_id=>$temp_id, desc => ($text||undef)};
+      my $reftext = reftext($temp_id, undef, 'fig');
+      $text       = txt('fig', undef, {f=>$reftext}) . " $text";
+      $REF{$id}   = {type=>'fig', temp_id=>$temp_id, desc => ($text||undef)};
+      $img_id     = " id=$reftext"; # ID for <img ...>
     }
-#    my $img_id = ($temp_id) ? qq! id="fig${MI}nfig=t${temp_id}${MO}"! : ''; # ID for <img ...>
-    my $img_id = ($temp_id) ? sprintf(' id="%s"', reftext($temp_id)) : ''; # ID for <img ...>
-      print STDERR "id=${id} temp_id=${temp_id}.\n";
+      print STDERR "id=${id} temp_id=${temp_id}. img_id=${img_id}. TEXT=$text.RRRRRRRRRRRRRRRRRRRRRRRRRRR\n";
     if($prefix eq '!!'){
       return(qq!<figure$style><img src="$url" alt="$text"${img_id}$class$imgopt><figcaption>$text</figcaption></figure>!);
     }elsif($prefix eq '??'){
