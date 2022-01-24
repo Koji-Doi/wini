@@ -123,6 +123,10 @@ Set text for <title>. Effective only when --whole option is set.
 
 Suppress additional message output
 
+=item B<--force>
+
+Ignore errors and continue process.
+
 =item B<--version>
 
 Show version.
@@ -358,7 +362,7 @@ sub mes{ # display guide, warning etc. to STDERR
   }
   ($QUIET==0) and (exists $o->{ln}) and $x = "$x [wini.pm line $o->{ln}]";
   if(exists $o->{err}){
-    die("$ind$x\n");
+    (($FORCE) and print STDERR "$ind$x\n") or die "$ind$x\n";
   }elsif($o->{warn}){
     warn("$ind$x\n");
   }else{
@@ -417,13 +421,13 @@ sub winifiles{
     (not -e $in1) and mes(txt('fnf').": ". join(" / ", @in1x), {err=>1});
     if(not defined $in1){
     }elsif(-d $in1){
-      mes("Dir '$in1' is chosen as input", {q=>1});
+      mes(txt('dci', {d=>$in1}), {q=>1});
       $indir = $in1;
       $indir=~s{/$}{};
     }elsif(not -f $in1){ # non-existing entry, x/=dir x.wini=file
       ($in1=~m{/$}) ? ($indir = $in1) : push(@infile, $in1);
     }else{ # existing normal file
-      mes("File '$in1' is chosen as input", {q=>1});
+      mes(txt('fci', {f=>$in1}), {q=>1});
       push(@infile, $in1);
     }
   }
@@ -438,7 +442,7 @@ sub winifiles{
     }
 
   }elsif(-d $out){
-    mes("Directory '$out' is chosen as output", {q=>1});
+    mes(txt('dco', {d=>$out}), {q=>1});
     $outdir = $out;
     ($outdir=~m{^/}) or $outdir = cwd()."/$outdir";
   }elsif(-f $out){
@@ -594,26 +598,7 @@ sub to_html{
   ($depth!=0) and $html[-1]{close} = ("\n" . ('</section>' x $depth));
   map{$htmlout .= "\n" . join("\n", $_->{open}||'', $_->{txt}||'', $_->{close}||'')} @html;
   $htmlout .= "\n";
-
-  #dereference
-  print STDERR "\n<<<<REF=",Dumper %REF, ">>>>\n";
-
-  {
-    my $seq=0;
-    $htmlout=~s!${MI}nfig=t(.*?)${MO}!
-      my $id = $1;
-      print "1=$id\n";
-      if(defined $REF{$id}{disp_id}){
-#        $REF{fig}{$id}{id};
-      }else{
-        $seq++;
-        $REF{$id}{disp_id}=$seq;
-      }
-      "repl.$REF{$id}{disp_id}.";
-    !ge;
-  }
-  print STDERR "\nAfter deref\n<<<<REF=",Dumper %REF, ">>>>\n";
-
+  
   # template?
   if(defined $sectdata_depth[0][-1]{val}{template}){ # template mode
     $TEMPLATE = $sectdata_depth[0][-1]{val}{template};
@@ -643,11 +628,11 @@ sub to_html{
         foreach my $d (@testdirs){
           my $t = "$d/$TEMPLATE";
           if(-f $t){
-            mes("Found $t as template file", {q=>1});
+            mes(txt('ftf', {t=>$t}), {q=>1});
             $template = $t;
             last L1;
           }else{
-            mes("Searched $t, but not found", {q=>1});
+            mes(txt('snf', {t=>$t}), {q=>1});
           }
         }
 #        mes(txt('cft', )"Cannot find template '$TEMPLATE' in '" . join(q{', '}, @testdirs) . "'.", {err=>1});
@@ -656,7 +641,6 @@ sub to_html{
       }  # L1
     }
     open(my $fhi, '<:utf8', $template);
-    mes("Opened '$template' as template file", {q=>1});
     my $tmpltxt = join('', <$fhi>);
     $tmpltxt=~s!\[\[(.*?)]]!
       if(exists $maintxt{$1}){
@@ -753,15 +737,7 @@ sub markgaab{
         $ptype = 'header';
       } # endif header
       (
-       $t =~ s!\[\[(\w+)(?:\|(.*))?\]\]!(defined $opt->{_v}{$1}) ? $opt->{_v}{$1} : ''!ge or
-#        $t =~ s!(\{\{([^|]*?)(?:\|([^{}]*?))?}})!
-#        call_macro(
-#          ((defined $1) ? $1 : ''),
-#          ((defined $2) ? $2 : ''),
-#          $opt,
-#          $baseurl,
-#          ((defined $3) ? split(/\|/, $3) : [])
-#        )!esg or
+        $t =~ s!\[\[(\w+)(?:\|(.*))?\]\]!(defined $opt->{_v}{$1}) ? $opt->{_v}{$1} : ''!ge or
         $t =~ s!\[([^]]*?)\]\(([^)]*?)\)!make_a_from_md($1, $2, $baseurl)!eg or
         $t =~ s!\[([^]]*?)\]!make_a($1, $baseurl)."\n"!esg or
         $t =~ s!(\{\{([^|]*?)(?:\|([^{}]*?))?}})!
@@ -772,7 +748,6 @@ sub markgaab{
           $baseurl,
           ((defined $3) ? split(/\|/, $3) : [])
         )!esg #or
-       
       ) or last; # no subst need, then escape inner loop
     } # loop while subst needed
 
@@ -799,6 +774,28 @@ sub markgaab{
   #(defined $section) and $r.="</section>\n";
   #(defined $opt->{whole}) and $r = whole_html($r, $title, $opt);
   ($opt->{table}) or $r=~s/[\s\n\r]*$//;
+    #dereference
+#  print STDERR "\n<<<<REF=",Dumper %REF, ">>>>\n";
+
+  {
+    my $seq=0;
+    $r=~s!${MI}nfig=t(.*?)${MO}!
+      my $id = $1;
+      if(defined $REF{$id}{disp_id}){
+#        $REF{fig}{$id}{id};
+      }else{
+        if($id=~/^\d+$/){
+          $REF{$id}{disp_id} = $id;
+        }else{
+          $seq++;
+          $REF{$id}{disp_id}=$seq;
+        }
+      }
+      "repl.$REF{$id}{disp_id}.";
+    !ge;
+  }
+#  print STDERR "\nAfter deref\n<<<<REF=",Dumper %REF, ">>>>\n";
+
   return($r, $opt);
 } # sub wini
 
@@ -1048,13 +1045,13 @@ sub call_macro{
   ($macroname=~m{^[!-/:-@\[-~]$}) and (not defined $f[0]) and 
     return('&#x'.unpack('H*',$macroname).';'); # char -> ascii code
   ($macroname=~/^\@$/)       and return(term(\@f));
-  ($macroname=~/^(rr|ref)$/i)     and return(reftext(@f));
+  ($macroname=~/^(rr|ref)$/i)     and return(reftext(@f[0,2,1])); #{{ref|id|fig|lang}}
   ($macroname=~/^date$/i)    and return(date(\@f, 'd', $opt->{_v}));
   ($macroname=~/^time$/i)    and return(date(\@f, 't', $opt->{_v}));
   ($macroname=~/^dt$/i)      and return(date(\@f, 'dt', $opt->{_v}));
   ($macroname=~/^calc$/i)    and return(ev(\@f, $opt->{_v}));
   ($macroname=~/^va$/i)      and return(
-    (defined $opt->{_v}{$f[0]}) ? $opt->{_v}{$f[0]} : (mes("Variable '$f[0]' not defined", {warn=>1}), '')
+    (defined $opt->{_v}{$f[0]}) ? $opt->{_v}{$f[0]} : (mes(txt('vnd', {v=>$f[0]}), {warn=>1}), '')
   );
   ($macroname=~/^envname$/i) and return($ENVNAME);
   ($macroname=~/^([oun]l)$/) and return(listmacro($1, \@f));
@@ -1068,7 +1065,7 @@ sub call_macro{
 
   ($macroname=~m!([-_/*]+[-_/* ]*)!) and return(symmacro($1, $f[0]));
 
-  mes("Macro named '$macroname' not found.", {warn=>1});
+  mes("Macro named '$macroname' not found.");
   my $r = sprintf(qq#\\{\\{%s}}<!-- Macro named '$macroname' not found! -->#, join('|', $macroname, @f));
   return($r);
 }
@@ -1127,11 +1124,6 @@ sub reftext{
   my $par = readpars(\@_, qw/id lang type/);
   my($id, $lang, $type) = map {$par->{$_}} qw/id lang type/;
   (exists $REF{$id}{type}) and $type = $REF{$id}{type};
-  print STDERR "id=$id, type=$type. ###\n";
-  if(ref $id eq 'ARRAY') {
-    $DB::single=$DB::single=1;
-  }
-print "REF: ",Dumper(%REF), " at ", __LINE__, "\n";
   if(exists $REF{$id}) {
     my $out = $MI . (
                 ($type eq 'fig') ? "nfig=t$id" : ''
@@ -1146,8 +1138,6 @@ print "REF: ",Dumper(%REF), " at ", __LINE__, "\n";
   }
 }
 
-{
-my $img_no;
 sub make_a_from_md{
   my($t, $url, $baseurl) = @_;
   return(qq!<a href="$url">$t</a>!);
@@ -1162,7 +1152,7 @@ sub make_a{
 # [http://example.com|@@ text] # link with window specification
 # [#goat text]  # link within page
 
-  $img_no or $img_no=0;
+#  $img_no or $img_no=0;
   my($t, $baseurl)=@_;
   my($prefix, $url0, $text)          = $t=~m{([!?#]*)"(\S+)"\s+(.*)}s;
   ($url0) or ($prefix, $url0, $text) = $t=~m{([!?#]*)([^\s"]+)(?:\s+(.*))?}s;
@@ -1184,19 +1174,15 @@ sub make_a{
   my $img_id           = '';  # ID for <img ...>
   if($prefix=~/[!?]/){ # img, figure
     my $class = join(' ', @classes); ($class) and $class = qq{ class="$class"};
-    my $temp_id = (not defined $id)  ? ''
-                 :($id=~/^auto$/i)   ? (print("---$text auto-$img_no.\n"),++$img_no) #, "Fig. ${MI}nfig=t${id}${MO}:")
-                 :($id=~/^0$/)       ? ++$img_no
-                 :($id=~/^(\w+)/)    ? $1 : '';
-    if($temp_id ne ''){
-      ($id=~/^auto$/) and $id="fig${temp_id}_auto";
+    my $temp_id = '';
+    if(defined $id){
+      ($temp_id) = $id=~/^(\w+)/;
       (exists $REF{$temp_id} and $text) and mes(txt('did', undef, {id=>$temp_id}), {q=>1,err=>1});
       my $reftext = reftext($temp_id, undef, 'fig');
       $text       = txt('fig', undef, {f=>$reftext}) . " $text";
       $REF{$id}   = {type=>'fig', temp_id=>$temp_id, desc => ($text||undef)};
-      $img_id     = " id=$reftext"; # ID for <img ...>
+      $img_id     = qq! id="$reftext"!; # ID for <img ...>
     }
-      print STDERR "id=${id} temp_id=${temp_id}. img_id=${img_id}. TEXT=$text.RRRRRRRRRRRRRRRRRRRRRRRRRRR\n";
     if($prefix eq '!!'){
       return(qq!<figure$style><img src="$url" alt="$text"${img_id}$class$imgopt><figcaption>$text</figcaption></figure>!);
     }elsif($prefix eq '??'){
@@ -1211,7 +1197,6 @@ sub make_a{
   }else{
     return(qq!<a href="$url" target="$target">$text</a>!);
   }
-}
 }
 
 sub strdump{
@@ -1747,29 +1732,30 @@ sub array{
 1;
 
 __DATA__
-!cft!Cannot find template {{t}} in {{d}}!
+!cft!Cannot find template {{t}} in {{d}}!テンプレートファイル{{t}}はディレクトリ{{d}}内に見つかりません!
 !cno!Could not open {{f}}!{{f}}を開けません!
 !conv!Conv {{from}} -> {{to}}!変換 {{from}} -> {{to}}!
-!dci!Dir {{d}} is chosen as input!
-!dco!Dir {{d}} is chosen as output!
+!dci!Dir {{d}} is chosen as input!ディレクトリ{{d}}が入力元です!
+!dco!Dir {{d}} is chosen as output!ディレクトリ{{d}}が出力先です!
 !did!Duplicated ID:{{id}}!ID:{{ID}}が重複しています!
-!din!Data will be read from STDIN!
+!din!Data will be read from STDIN!データは標準入力から読み込みます!
 !elnf!{{d}} for extra library not found!{{d}}が見たらず、エキストラライブラリに登録できません!
 !Error!error!エラー!
 |fail|failed|失敗|
-!fci!File {{f}} is chosen as input!
+!fci!File {{f}} is chosen as input!ファイル{{f}}が入力元ファイルです!
 !fig!Fig. {{f}}!図{{f}}!
 |fin|completed|終了|
 !fnf!File not found!ファイルが見つかりません!
-!ftf!Found {{t}} as template file!
+!ftf!Found {{t}} as template file!テンプレートファイル{{t}}が見つかりました
 !if!input file:!入力ファイル：!
 |ll|loaded library: {{lib}}|ライブラリロード完了： {{lib}}|
 |llf|failed to load library '{{lib}}'|ライブラリロード失敗： {{lib}}|
+!mnf!Macro {{m}} not found!マクロ「{{m}}」が見つかりません!
 !Message!Message!メッセージ!
 !mt!{{mestype}} from wini.pm: !wini.pmより{{mestype}}：!
-!opf!open {{f}} in utf8!{{f}}をutf-8ファイルとして開きます!
-!ou!open {{f}} in utf8!ファイル{{f}}をutf8で開きます!
-!rout!Result will be output to STDOUT!
-!snf!Searched {{t}}, but not found!
+!opf!File {{f}} is opened in utf8!{{f}}をutf-8ファイルとして開きます!
+!rout!Result will be output to STDOUT!結果は標準入力に出力されます!
+!snf!Searched {{t}}, but not found!{{t}}の内部を検索しましたが見つかりません!
 |ttap|trying to add {{path}} into library directory|{{path}}のライブラリディレクトリへの追加を試みます|  
+!vnd!Variable '{{v}}' not defined!変数{{v}}が定義されていません!
 !Warning!Warning!警告!
