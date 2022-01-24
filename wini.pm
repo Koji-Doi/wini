@@ -427,7 +427,7 @@ sub winifiles{
     }elsif(not -f $in1){ # non-existing entry, x/=dir x.wini=file
       ($in1=~m{/$}) ? ($indir = $in1) : push(@infile, $in1);
     }else{ # existing normal file
-      mes(txt('fci', {f=>$in1}), {q=>1});
+      mes(txt('fci',undef, {f=>$in1}), {q=>1});
       push(@infile, $in1);
     }
   }
@@ -1065,7 +1065,7 @@ sub call_macro{
 
   ($macroname=~m!([-_/*]+[-_/* ]*)!) and return(symmacro($1, $f[0]));
 
-  mes("Macro named '$macroname' not found.");
+  mes(txt('mnf', undef, {m=>$macroname}));
   my $r = sprintf(qq#\\{\\{%s}}<!-- Macro named '$macroname' not found! -->#, join('|', $macroname, @f));
   return($r);
 }
@@ -1133,7 +1133,7 @@ sub reftext{
     if(defined $type) {
       $REF{$id} = {temp_id=>$id, type=>$type};
     }
-    mes('undefined ref type for '. ($id||''));
+    mes(txt('uref', undef) . ($id) ? " '$id'" : '');
     return("${MI}x=$id${MO}");
   }
 }
@@ -1750,12 +1750,13 @@ __DATA__
 !if!input file:!入力ファイル：!
 |ll|loaded library: {{lib}}|ライブラリロード完了： {{lib}}|
 |llf|failed to load library '{{lib}}'|ライブラリロード失敗： {{lib}}|
-!mnf!Macro {{m}} not found!マクロ「{{m}}」が見つかりません!
+!mnf!Cannot find Macro {{m}}!マクロ「{{m}}」が見つかりません!
 !Message!Message!メッセージ!
 !mt!{{mestype}} from wini.pm: !wini.pmより{{mestype}}：!
 !opf!File {{f}} is opened in utf8!{{f}}をutf-8ファイルとして開きます!
-!rout!Result will be output to STDOUT!結果は標準入力に出力されます!
+!rout!Result will be output to STDOUT!結果は標準出力に出力されます!
 !snf!Searched {{t}}, but not found!{{t}}の内部を検索しましたが見つかりません!
-|ttap|trying to add {{path}} into library directory|{{path}}のライブラリディレクトリへの追加を試みます|  
+|ttap|trying to add {{path}} into library directory|{{path}}のライブラリディレクトリへの追加を試みます|
+!uref!undefind label!未定義のラベル!
 !vnd!Variable '{{v}}' not defined!変数{{v}}が定義されていません!
 !Warning!Warning!警告!
