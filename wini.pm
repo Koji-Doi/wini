@@ -791,7 +791,7 @@ sub markgaab{
           $REF{$id}{disp_id}=$seq;
         }
       }
-      "repl.$REF{$id}{disp_id}.";
+      txt('fig', undef, {f=>$REF{$id}{disp_id}});
     !ge;
   }
 #  print STDERR "\nAfter deref\n<<<<REF=",Dumper %REF, ">>>>\n";
@@ -1179,7 +1179,8 @@ sub make_a{
       ($temp_id) = $id=~/^(\w+)/;
       (exists $REF{$temp_id} and $text) and mes(txt('did', undef, {id=>$temp_id}), {q=>1,err=>1});
       my $reftext = reftext($temp_id, undef, 'fig');
-      $text       = txt('fig', undef, {f=>$reftext}) . " $text";
+#      $text       = txt('fig', undef, {f=>$reftext}) . " $text";
+      $text       = "$reftext $text";
       $REF{$id}   = {type=>'fig', temp_id=>$temp_id, desc => ($text||undef)};
       $img_id     = qq! id="$reftext"!; # ID for <img ...>
     }
