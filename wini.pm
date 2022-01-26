@@ -152,11 +152,11 @@ use Getopt::Long qw(:config no_ignore_case auto_abbrev);
 use Encode;
 use Cwd;
 use Time::Piece;
-#use Module::Load qw( load );
+use Module::Load qw( load );
 #load('YAML::Tiny');
 
 our $ENVNAME;
-our %EXT;
+#our %EXT;
 our $LANG;
 our $QUIET;
 our %MACROS;
@@ -173,7 +173,7 @@ my $FORCE;
 our ($red, $green, $blue, $magenta, $purple) 
   = map {sprintf('rgb(%s) /* %s */', @$_)} 
   (['219,94,0', 'red'], ['0,158,115', 'green'], ['0,114,178', 'blue'], ['218,0,250', 'magenta'], ['204,121,167', 'purple']);
-my $CSS = {
+our $CSS = {
   'ol, ul, dl' => {'padding-left'     => '1em'},
   'table, figure, img' 
 	       => {'margin'           => '1em',
@@ -215,8 +215,6 @@ sub init{
   binmode STDIN, ':utf8';
   binmode STDERR,':utf8';
   binmode STDOUT,':utf8';
-  my  @libs;
-  my  @libpaths;
 #  ($MI, $MO)  = ("\x00", "\x01");
   ($MI, $MO)  = ("<<<", ">>>");
   $ENVNAME    = "_";
@@ -255,7 +253,7 @@ sub stand_alone{
   }
   foreach my $lib (@libs){ # 'form', etc.
     my $r = eval{load($lib)};
-    mes((defined $r) ? txt('ll', undef, {lib=>$lib}) : txt('llf',, {lib=>$lib}));
+    mes((defined $r) ? txt('ll', undef, {lib=>$lib}) : txt('llf', undef, {lib=>$lib}));
   }
 
   (defined $cssflameworks[0]) and ($cssflameworks[0] eq '') and $cssflameworks[0]='https://unpkg.com/mvp.css'; # 'https://newcss.net/new.min.css';
@@ -794,7 +792,7 @@ sub markgaab{
       txt('fig', undef, {f=>$REF{$id}{disp_id}});
     !ge;
   }
-#  print STDERR "\nAfter deref\n<<<<REF=",Dumper %REF, ">>>>\n";
+  print STDERR "\nAfter deref\n<<<<REF=",Dumper %REF, ">>>>\n";
 
   return($r, $opt);
 } # sub wini
@@ -1176,13 +1174,15 @@ sub make_a{
     my $class = join(' ', @classes); ($class) and $class = qq{ class="$class"};
     my $temp_id = '';
     if(defined $id){
-      ($temp_id) = $id=~/^(\w+)/;
-      (exists $REF{$temp_id} and $text) and mes(txt('did', undef, {id=>$temp_id}), {q=>1,err=>1});
+      ($temp_id)  = $id=~/^(\w+)/;
+      my $img_id0 = $temp_id;
+      $img_id0=~s{^(\d)}{fig$1};
+      (exists $REF{$img_id0} and $text) and mes(txt('did', undef, {id=>$temp_id}), {q=>1,err=>1});
       my $reftext = reftext($temp_id, undef, 'fig');
 #      $text       = txt('fig', undef, {f=>$reftext}) . " $text";
       $text       = "$reftext $text";
       $REF{$id}   = {type=>'fig', temp_id=>$temp_id, desc => ($text||undef)};
-      $img_id     = qq! id="$reftext"!; # ID for <img ...>
+      $img_id     = qq! id="${img_id0}"!; # ID for <img ...>
     }
     if($prefix eq '!!'){
       return(qq!<figure$style><img src="$url" alt="$text"${img_id}$class$imgopt><figcaption>$text</figcaption></figure>!);
