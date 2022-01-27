@@ -792,7 +792,7 @@ sub markgaab{
       txt('fig', undef, {f=>$REF{$id}{disp_id}});
     !ge;
   }
-  print STDERR "\nAfter deref\n<<<<REF=",Dumper %REF, ">>>>\n";
+#  print STDERR "\nAfter deref\n<<<<REF=",Dumper %REF, ">>>>\n";
 
   return($r, $opt);
 } # sub wini
@@ -1040,6 +1040,8 @@ sub call_macro{
   ($macroname=~/^l$/i)       and return('&#x7b;'); # {
   ($macroname=~/^bar$/i )    and return('&#x7c;'); # |
   ($macroname=~/^r$/i)       and return('&#x7d;'); # }
+  ($macroname=~/^([=-]+[>v^]+|[<v^]+[=-]+)/i)
+                             and return(arrow($macroname, \@f));
   ($macroname=~m{^[!-/:-@\[-~]$}) and (not defined $f[0]) and 
     return('&#x'.unpack('H*',$macroname).';'); # char -> ascii code
   ($macroname=~/^\@$/)       and return(term(\@f));
@@ -1134,6 +1136,79 @@ sub reftext{
     mes(txt('uref', undef) . ($id) ? " '$id'" : '');
     return("${MI}x=$id${MO}");
   }
+}
+
+sub arrow{
+  my($cmd, @f) = @_;
+  my $x=<<'EOD';
+l:
+  n: 'larr'
+  r:
+  u:
+  d:
+  ru:
+  rd:
+u:
+  n:
+  r:
+  u:
+  d:
+  ru:
+  rd:
+d:
+  n:
+  r:
+  u:
+  d:
+  ru:
+  rd:
+lu:
+  n:
+  r:
+  u:
+  d:
+  ru:
+  rd:
+ld:
+  n:
+  r:
+  u:
+  d:
+  ru:
+  rd:
+n:
+  r: 'rarr'
+  u:
+  d:
+  ru:
+  rd:
+EOD
+  my($kk, %val);
+  foreach my $k (split(/\n/, $x)){
+    my($indent, $k, $v) = $k=~/^(\s*)(\w+)\s*:\s*(.*)/;
+    if($indent eq ''){
+      $kk=$k;
+    }else{
+      $val{$kk}{$k} = $v;
+    }
+  }
+print STDERR "test: ",Dumper(%val);
+my $v=ylml($x);
+print STDERR "ylml: ",Dumper($v);
+  my($l, $m, $r) = $cmd=~/([^-]*)(-+)([^-]*)/;
+  my $left  = ($l=~/(?=<)(?=^)/)  ? "lu"
+             :($l=~/(?=<)(?=v)/i) ? "ld"
+             :($l=~/</)           ? "l"
+             :($l=~/\^/)          ? "u"
+             :($l=~/v/i)          ? "d" : "n";
+  my $right = ($r=~/(?=>)(?=^)/i) ? "ru"
+             :($r=~/(?=>)(?=v)/i) ? "rd"
+             :($r=~/>/)           ? "r"
+             :($r=~/\^/)          ? "u"
+             :($r=~/v/i)          ? "d" : "n";
+  print STDERR "left=$left, right=$right.\n";
+  ($left)  and return('&larr;');
+  ($right) and return('&rarr;');
 }
 
 sub make_a_from_md{
@@ -1567,7 +1642,7 @@ sub table{
 my %vars;
 my $avail_yamltiny;
 
-sub ylml{
+sub ylml{ #ylml: yaml-like markup language
   my($x, $opt) = @_;
   my $val = $opt->{_v};
   if($opt and $avail_yamltiny){
@@ -1575,9 +1650,11 @@ sub ylml{
     $val     = ($yaml->read_string($x))[0][0];
   }else{
     foreach my $line (split(/\s*\n\s*/, $x)){
-      if(my($k,$v) = $line=~/^\s*([^: ]+):\s*(.*)\s*$/){
-        ($v eq '') and next;
-        if($v=~/^\[(.*)\]$/){ # array
+      if(my($s,$k,$v) = $line=~/^(\s*)([^: ]+):\s*(.*)\s*$/){
+        #($v eq '') and next;
+        if($v eq ''){
+          
+        }elsif($v=~/^\[(.*)\]$/){ # array
           $val->{$k} = [map {s/^(["'])(.*)\1$/$2/; $_} split(/\s*,\s*/, $1)];
         }elsif(my($v2) = $v=~/^\{(.*)\}$/){ # hash
           foreach my $token (split(/\s*,\s*/, $v2)){
