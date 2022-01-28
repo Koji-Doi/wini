@@ -1066,7 +1066,7 @@ sub call_macro{
   ($macroname=~m!([-_/*]+[-_/* ]*)!) and return(symmacro($1, $f[0]));
 
   mes(txt('mnf', undef, {m=>$macroname}));
-  my $r = sprintf(qq#\\{\\{%s}}<!-- Macro named '$macroname' not found! -->#, join('|', $macroname, @f));
+  my $r = sprintf(qq#\\{\\{%s}}<!-- Macro '$macroname' not defined! -->#, join('|', $macroname, @f));
   return($r);
 }
 
@@ -1140,14 +1140,45 @@ sub reftext{
 
 sub arrow{
   my($cmd, @f) = @_;
+
+=begin c
+⇐	8656	21D0	&lArr;	LEFTWARDS DOUBLE ARROW
+⇑	8657	21D1	&uArr;	UPWARDS DOUBLE ARROW
+⇒	8658	21D2	&rArr;	RIGHTWARDS DOUBLE ARROW
+⇓	8659	21D3	&dArr;	DOWNWARDS DOUBLE ARROW
+⇔	8660	21D4	&hArr;	LEFT RIGHT DOUBLE ARROW
+⇕	8661	21D5	 	UP DOWN DOUBLE ARROW
+⇖	8662	21D6	 	NORTH WEST DOUBLE ARROW
+⇗	8663	21D7	 	NORTH EAST DOUBLE ARROW
+⇘	8664	21D8	 	SOUTH EAST DOUBLE ARROW
+⇙	8665	21D9	 
+
+↰	8624	21B0	 	UPWARDS ARROW WITH TIP LEFTWARDS
+↱	8625	21B1	 	UPWARDS ARROW WITH TIP RIGHTWARDS
+↲	8626	21B2	 	DOWNWARDS ARROW WITH TIP LEFTWARDS
+↳	8627	21B3	 	DOWNWARDS ARROW WITH TIP RIGHTWARDS
+↴	8628	21B4	 	RIGHTWARDS ARROW WITH CORNER DOWNWARDS
+↵	8629	21B5	&crarr;	DOWNWARDS ARROW WITH CORNER LEFTWARDS
+
+←	8592	2190	&larr;	LEFTWARDS ARROW
+↑	8593	2191	&uarr;	UPWARDS ARROW
+→	8594	2192	&rarr;	RIGHTWARDS ARROW
+↓	8595	2193	&darr;	DOWNWARDS ARROW
+↔	8596	2194	&harr;	LEFT RIGHT ARROW
+↕	8597	2195	 	UP DOWN ARROW
+↖	8598	2196	 	NORTH WEST ARROW
+↗	8599	2197	 	NORTH EAST ARROW
+↘	8600	2198	 	SOUTH EAST ARROW
+↙	8601	2199	 	SOUTH WEST ARROW
+=end c
+=cut
+
   my $x=<<'EOD';
 l:
   n: larr
   r: harr
-  u: 
-  d: 
-  ru:
-  rd:
+  u: #11023^
+  d: #8628<
 r:
   u: #8628^
   d: #8628
@@ -1156,36 +1187,21 @@ u:
   l: lsh
   r: rsh
   d: varr
-  lu:
-  lf:
-  ru:
-  rd:
 d:
   n: darr
   l: ldsh
   r: rdsh
   u:
-  d:
-  ru:
-  rd:
 lu:
   n: nwarr
-  r:
-  u:
-  d:
-  ru:
-  rd:
 ld:
   n: swarr
-  r:
-  u:
-  d:
-  ru:
-  rd:
 n:
   r: rarr
   u: uarr
   d: darr
+  lu: #8598
+  ld: #8601
   ru: nearr
   rd: searr
 EOD
@@ -1212,10 +1228,19 @@ EOD
              :($r=~/\^/)               ? "u"
              :($r=~/v/i)               ? "d" : "n";
   my $v = $val{$left}{$right};
-  $v and $v = '&'.$v.';';
-  ($m eq '=') and $v=~s/arr;/Arr;/;
-  print STDERR "left=$left, right=$right. m=$m. v=$v\n";
-  return($v);
+  my ($lr, $ud);
+  if(defined $v){
+    $v=~/(.*)<$/  and ($v, $lr) = ($1, 1);
+    $v=~/(.*)\^$/ and ($v, $ud) = ($1, 1);
+    ($m eq '=')   and $v = ($v eq 'larr') ? 'lA~s/arr$/Arr/;
+    $v            and $v = '&'.$v.';';
+    print STDERR "left=$left, right=$right. m=$m. v=$v\n";
+    return($v);
+  }else{
+    mes(txt('mnf', undef, {m=>$cmd}));
+    my $r = "\\{\\{${cmd}}}<!-- Macro '${cmd}' not defined! -->";
+    return($r);
+  }
   #($left)  and return('&larr;');
   #($right) and return('&rarr;');
 }
