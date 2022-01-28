@@ -1142,46 +1142,52 @@ sub arrow{
   my($cmd, @f) = @_;
   my $x=<<'EOD';
 l:
-  n: 'larr'
-  r:
-  u:
-  d:
+  n: larr
+  r: harr
+  u: 
+  d: 
   ru:
   rd:
+r:
+  u: #8628^
+  d: #8628
 u:
-  n:
-  r:
-  u:
-  d:
+  n: uarr
+  l: lsh
+  r: rsh
+  d: varr
+  lu:
+  lf:
   ru:
   rd:
 d:
-  n:
-  r:
+  n: darr
+  l: ldsh
+  r: rdsh
   u:
   d:
   ru:
   rd:
 lu:
-  n:
+  n: nwarr
   r:
   u:
   d:
   ru:
   rd:
 ld:
-  n:
+  n: swarr
   r:
   u:
   d:
   ru:
   rd:
 n:
-  r: 'rarr'
-  u:
-  d:
-  ru:
-  rd:
+  r: rarr
+  u: uarr
+  d: darr
+  ru: nearr
+  rd: searr
 EOD
   my($kk, %val);
   foreach my $k (split(/\n/, $x)){
@@ -1192,23 +1198,26 @@ EOD
       $val{$kk}{$k} = $v;
     }
   }
-print STDERR "test: ",Dumper(%val);
-my $v=ylml($x);
-print STDERR "ylml: ",Dumper($v);
-  my($l, $m, $r) = $cmd=~/([^-]*)(-+)([^-]*)/;
-  my $left  = ($l=~/(?=<)(?=^)/)  ? "lu"
-             :($l=~/(?=<)(?=v)/i) ? "ld"
-             :($l=~/</)           ? "l"
-             :($l=~/\^/)          ? "u"
-             :($l=~/v/i)          ? "d" : "n";
-  my $right = ($r=~/(?=>)(?=^)/i) ? "ru"
-             :($r=~/(?=>)(?=v)/i) ? "rd"
-             :($r=~/>/)           ? "r"
-             :($r=~/\^/)          ? "u"
-             :($r=~/v/i)          ? "d" : "n";
-  print STDERR "left=$left, right=$right.\n";
-  ($left)  and return('&larr;');
-  ($right) and return('&rarr;');
+#my $v=ylml($x);
+#print STDERR "ylml: ",Dumper($v);
+  my($l, $m, $r) = $cmd=~/([^-]*)([-=]+)([^-]*)/;
+  my $left  = ($l=~/(?=.*<)(?=.*\^)/)  ? "lu"
+             :($l=~/(?=.*<)(?=.*v)/i)  ? "ld"
+             :($l=~/</)                ? "l"
+             :($l=~/\^/)               ? "u"
+             :($l=~/v/i)               ? "d" : "n";
+  my $right = ($r=~/(?=.*>)(?=.*\^)/i) ? "ru"
+             :($r=~/(?=.*>)(?=.*v)/i)  ? "rd"
+             :($r=~/>/)                ? "r"
+             :($r=~/\^/)               ? "u"
+             :($r=~/v/i)               ? "d" : "n";
+  my $v = $val{$left}{$right};
+  $v and $v = '&'.$v.';';
+  ($m eq '=') and $v=~s/arr;/Arr;/;
+  print STDERR "left=$left, right=$right. m=$m. v=$v\n";
+  return($v);
+  #($left)  and return('&larr;');
+  #($right) and return('&rarr;');
 }
 
 sub make_a_from_md{
