@@ -41,7 +41,7 @@ use wini;
 {
   my($o, undef) = markgaab('{{hyhyhy|www}}');
   $o=~s/[\n\r]*//g;
-  is $o, q#<p>\{\{hyhyhy|www}}<!-- Macro named 'hyhyhy' not found! --></p>#;
+  is $o, q#<p>\{\{hyhyhy|www}}<!-- Cannot find Macro 'hyhyhy' --></p>#;
 }
 
 {
