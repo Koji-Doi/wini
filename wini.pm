@@ -356,7 +356,7 @@ sub mes{ # display guide, warning etc. to STDERR
   if((not exists $o->{q}) and $QUIET==0){
     my $i = 1; my @subs;
     while ( my($pack, $file, $line, $subname, $hasargs, $wantarray, $evaltext, $is_require) = caller( $i++) ){push(@subs, "$line\[$subname]")}
-    $mes = txt('mt', undef, {mestype=>txt($mestype)}), join(' <- ', @subs);
+    $mes = txt('mt', undef, {mestype=>txt($mestype)}) . join(' <- ', @subs);
     print STDERR "$mes\n";
     $ind='  ';
   }
@@ -1665,8 +1665,7 @@ sub date{
   my $p = readpars($x, qw/lang dow date/);
   my $lang = $v->{lang} || '';
   (defined $p->{lang}) and $lang = $p->{lang};
-  my $form = ($lang eq 'ja') ? "%Y年%m月%d日" . (($p->{dow})?'（%a）':'')
-    : (($p->{dow})?'%a. ':'') . "%Y-%m-%d";
+  my $form = txt(($p->{dow})?'datedow':'date', $lang); 
   my $t;
   if($p->{date}){
     my @n = split("[-/.]", $p->{date});
@@ -1799,6 +1798,8 @@ __DATA__
 !cft!Cannot find template {{t}} in {{d}}!テンプレートファイル{{t}}はディレクトリ{{d}}内に見つかりません!
 !cno!Could not open {{f}}!{{f}}を開けません!
 !conv!Conv {{from}} -> {{to}}!変換 {{from}} -> {{to}}!
+!date!%Y-%m-%d!Y年%m月%d日!
+!datedow!%a. %Y-%m-%d!Y年%m月%d日 (%a)!
 !dci!Dir {{d}} is chosen as input!ディレクトリ{{d}}が入力元です!
 !dco!Dir {{d}} is chosen as output!ディレクトリ{{d}}が出力先です!
 !did!Duplicated ID:{{id}}!ID:{{ID}}が重複しています!
