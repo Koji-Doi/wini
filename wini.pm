@@ -1660,17 +1660,22 @@ sub ylml{ #ylml: yaml-like markup language
 sub date{
   my($x, $type, $v) = @_;
   # $type: 'd', 't', 'dt'
-  # $x->[0]: 2021-12-17
+  # $x->[0]: 2021-12-17 or 2021-12-17T21:22:23
   # $v->{lang}: ja or en
-  my $p = readpars($x, qw/lang dow date/);
+  my $p = readpars($x, qw/date dow lang/);
   my $lang = $v->{lang} || '';
+  my @days = split(/\s+/, txt('date_days', $lang));
   (defined $p->{lang}) and $lang = $p->{lang};
   my $form = txt(($p->{dow})?'datedow':'date', $lang); 
   my $t;
   if($p->{date}){
-    my @n = split("[-/.]", $p->{date});
-    eval{ $t = Time::Piece->strptime("$n[0]-$n[1]-$n[2]", "%Y-%m-%d") };
-    $@ and mes("Invalid date format: $p->{date}", {err=>1});
+    my @n = split("[-/.T]", $p->{date});
+    if($p->{date}=~/\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d/){
+      $t = Time::Piece->strptime($p->{date}, "%Y-%m-%dT%H-%M-%S");
+    }else{
+      eval{ $t = Time::Piece->strptime("$n[0]-$n[1]-$n[2]", "%Y-%m-%d") };
+      $@ and mes("Invalid date format: $p->{date}", {err=>1});
+    }
   }else{
     $t = localtime;
   }
@@ -1798,8 +1803,8 @@ __DATA__
 !cft!Cannot find template {{t}} in {{d}}!テンプレートファイル{{t}}はディレクトリ{{d}}内に見つかりません!
 !cno!Could not open {{f}}!{{f}}を開けません!
 !conv!Conv {{from}} -> {{to}}!変換 {{from}} -> {{to}}!
-!date!%Y-%m-%d!Y年%m月%d日!
-!datedow!%a. %Y-%m-%d!Y年%m月%d日 (%a)!
+!date!%Y-%m-%d!%Y年%m月%d日!
+!datedow!%a. %Y-%m-%d!%Y年%m月%d日 (%a)!
 !dci!Dir {{d}} is chosen as input!ディレクトリ{{d}}が入力元です!
 !dco!Dir {{d}} is chosen as output!ディレクトリ{{d}}が出力先です!
 !did!Duplicated ID:{{id}}!ID:{{ID}}が重複しています!
