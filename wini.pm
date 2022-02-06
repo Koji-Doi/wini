@@ -142,6 +142,8 @@ package Text::Markup::Wini;
 #use Text::Wini;
 use 5.8.1;
 use strict;
+use POSIX qw/locale_h/;
+use locale;
 use utf8;
 use Data::Dumper;
 use File::Basename;
@@ -208,6 +210,8 @@ our $CSS = {
 __PACKAGE__->stand_alone() if !caller() || caller() eq 'PAR';
 
 sub init{
+  setlocale(LC_ALL, 'C');
+  setlocale(LC_TIME, 'C');
   no warnings;
   *Data::Dumper::qquote = sub { return encode "utf8", shift } ;
   $Data::Dumper::Useperl = 1 ;
@@ -331,7 +335,8 @@ sub txt{ # multilingual text from text id
       my($id, $en, $ja) = split($sp, substr($_,1));
       $txt{$id} = {en=>$en, ja=>$ja};
     }
-  } 
+  }
+  (defined $txt{$id}) or mes(txt('ut'). ": '$id'", {warn=>1});
   my $t = $txt{$id}{$lang} || $txt{$id}{en} || '';
   $t=~s/\{\{(.*?)}}/
 #   (defined $par->{$id}{$lang}) ? $par->{$id}{$lang}
@@ -360,7 +365,7 @@ sub mes{ # display guide, warning etc. to STDERR
     print STDERR "$mes\n";
     $ind='  ';
   }
-  ($QUIET==0) and (exists $o->{ln}) and $x = "$x [wini.pm line $o->{ln}]";
+  ($QUIET==0) and (exists $o->{ln}) and $x = sprintf("$x at %d[wini.pm]", $o->{ln});
   if(exists $o->{err}){
     (($FORCE) and print STDERR "$ind$x\n") or die "$ind$x\n";
   }elsif($o->{warn}){
@@ -1048,10 +1053,8 @@ sub call_macro{
   ($macroname=~m{^[!-/:-@\[-~]$}) and (not defined $f[0]) and 
     return('&#x'.unpack('H*',$macroname).';'); # char -> ascii code
   ($macroname=~/^\@$/)       and return(term(\@f));
-  ($macroname=~/^(rr|ref)$/i)     and return(reftext(@f[0,2,1])); #{{ref|id|fig|lang}}
-  ($macroname=~/^date$/i)    and return(date(\@f, 'd', $opt->{_v}));
-  ($macroname=~/^time$/i)    and return(date(\@f, 't', $opt->{_v}));
-  ($macroname=~/^dt$/i)      and return(date(\@f, 'dt', $opt->{_v}));
+  ($macroname=~/^(rr|ref)$/i)       and return(reftext(@f[0,2,1])); #{{ref|id|fig|lang}}
+  ($macroname=~/^(date|time|dt)$/i) and return(date([@f, "type=$1"],  $opt->{_v}));
   ($macroname=~/^calc$/i)    and return(ev(\@f, $opt->{_v}));
   ($macroname=~/^va$/i)      and return(
     (defined $opt->{_v}{$f[0]}) ? $opt->{_v}{$f[0]} : (mes(txt('vnd', {v=>$f[0]}), {warn=>1}), '')
@@ -1658,35 +1661,38 @@ sub ylml{ #ylml: yaml-like markup language
 } # sub ylml
 
 sub date{
-  my($x, $type, $v) = @_;
-  # $type: 'd', 't', 'dt'
+  my($x, $v) = @_;
+  # %v: from environment
+  # $x: array reference containing parameters from '{{date|...}}'
   # $x->[0]: 2021-12-17 or 2021-12-17T21:22:23
+  # $x->[3]: output data type: 'd', 't', 'dt'
   # $v->{lang}: ja or en
-  my $p = readpars($x, qw/date dow lang/);
-  my $lang = $v->{lang} || '';
+  my $p = readpars($x, qw/date weekday trad lang type/);
+  my $type = $p->{type} || 'date';
+  my $lang = $p->{lang} || $v->{lang} || '';
+  my $lc0  = setlocale(LC_ALL, txt('LOCALE', $lang));
   my @days = split(/\s+/, txt('date_days', $lang));
-  (defined $p->{lang}) and $lang = $p->{lang};
-  my $form = txt(($p->{dow})?'datedow':'date', $lang); 
+  my $form0= $p->{type}.(('', qw/dow trad dowtrad/)[($p->{weekday}>0)+($p->{trad}>0)*2]);
+  my $form = txt($form0, $lang);
+#  my $form = ($p->{type} eq 'd')  ? txt(($p->{weekday})?'datedow':'date', $lang)
+#           : ($p->{type} eq 't')  ? txt(($p->{weekday})?'timedow':'time', $lang)
+#           : ($p->{type} eq 'dt') ? txt(($p->{weekday})?'datetimedow':'datetime', $lang) : '%Y-%m-%d';
   my $t;
-  if($p->{date}){
-    my @n = split("[-/.T]", $p->{date});
-    if($p->{date}=~/\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d/){
-      $t = Time::Piece->strptime($p->{date}, "%Y-%m-%dT%H-%M-%S");
-    }else{
-      eval{ $t = Time::Piece->strptime("$n[0]-$n[1]-$n[2]", "%Y-%m-%d") };
-      $@ and mes("Invalid date format: $p->{date}", {err=>1});
-    }
+  ($p->{date}) or $p->{date} = localtime->datetime;
+  my @n = split("[-/.T]", $p->{date});
+  if($p->{date}=~/\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d/){
+    $t = Time::Piece->strptime($p->{date}, "%Y-%m-%dT%H:%M:%S");
   }else{
-    $t = localtime;
+    eval{ $t = Time::Piece->strptime("$n[0]-$n[1]-$n[2]", "%Y-%m-%d") };
+      $@ and mes("Invalid date format: $p->{date}", {err=>1, ln=>__LINE__});
   }
-  my $res;
-  if(defined $form){
-    $res = $t->strftime($form);
-  }else{
-    $res = $t->cdate();
-    $res =~s/\d\d:\d\d:\d\d //; # remove hms
-    ($p->{dow}) or $res =~s/^\w+ //; # remove weekday name
+  
+  if(($type eq 'd' or $type eq 'dt') and $p->{weekday}){ # weekday name
+    my $wd = $t->day(@days); # Sun, Mon, ...
+    $form=~s/%a/$wd/g;
   }
+  my $res = $t->strftime($form);
+  setlocale(LC_TIME, $lc0);
   return(decode('utf-8', $res));
 }
 
@@ -1800,13 +1806,21 @@ sub array{
 1;
 
 __DATA__
+!LOCALE!en_US.utf8!ja_JP.utf8!
 !cft!Cannot find template {{t}} in {{d}}!テンプレートファイル{{t}}はディレクトリ{{d}}内に見つかりません!
 !cno!Could not open {{f}}!{{f}}を開けません!
 !conv!Conv {{from}} -> {{to}}!変換 {{from}} -> {{to}}!
 !date!%Y-%m-%d!%Y年%m月%d日!
+!date_days!Sun Mon Tue Wed Thu Fri Sat!日 月 火 水 木 金 土!
 !datedow!%a. %Y-%m-%d!%Y年%m月%d日 (%a)!
-!dci!Dir {{d}} is chosen as input!ディレクトリ{{d}}が入力元です!
-!dco!Dir {{d}} is chosen as output!ディレクトリ{{d}}が出力先です!
+!datetrad!%b %d, %Y!%EY(%Y年)%m月%d日!
+!datedowtrad!%a. %b %d, %Y!%EY(%Y年)%m月%d日 (%a)!
+!dt!%Y-%m-%dT%H:%M:%S!%Y年%m月%d日 %H時%M分%S秒!
+!dtdow!%a. %Y-%m-%dT%H:%M:%S!%Y年%m月%d日 (%a) %H時%M分%S秒!
+!dttrad!%b %d, %Y %H:%M:%S!%EY(%Y年)%m月%d日 %H時%M分%S秒!
+!dtdowtrad!%a. %b %d, %Y %H:%M:%S!%EY(%Y年)%m月%d日 (%a) %H時%M分%S秒!
+!dci!Input: Dir {{d}}!入力元ディレクトリ: {{d}}!
+!dco!Output: Dir {{d}}!出力先ディレクトリ: {{d}}!
 !did!Duplicated ID:{{id}}!ID:{{ID}}が重複しています!
 !din!Data will be read from STDIN!データは標準入力から読み込みます!
 !elnf!{{d}} for extra library not found!{{d}}が見たらず、エキストラライブラリに登録できません!
@@ -1826,7 +1840,11 @@ __DATA__
 !opf!File {{f}} is opened in utf8!{{f}}をutf-8ファイルとして開きます!
 !rout!Result will be output to STDOUT!結果は標準出力に出力されます!
 !snf!Searched {{t}}, but not found!{{t}}の内部を検索しましたが見つかりません!
+!time!%H:%M:%S!%H時%M分%S秒!
+!timetrad!%H:%M:%S!%H時%M分%S秒!
+!timedowtrad!%H:%M:%S!%H時%M分%S秒!
 |ttap|trying to add {{path}} into library directory|{{path}}のライブラリディレクトリへの追加を試みます|
-!uref!undefind label!未定義のラベル!
+|ut|undefined text|未定義のテキスト|
+!uref!undefined label!未定義のラベル!
 !vnd!Variable '{{v}}' not defined!変数{{v}}が定義されていません!
 !Warning!Warning!警告!
