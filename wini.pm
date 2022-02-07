@@ -667,7 +667,7 @@ sub parse{ # for CPAN
   my ($file, $encoding, $opts) = @_;
 #  my $md = Text::Wini->new(@{ $opts || [] });
   $encoding = $encoding || 'utf8';
-  open my $fh, $file, ":encoding($encoding)";
+  open my $fh, "<:encoding($encoding)", $file;
   local $/;
   my $src = join('', <$fh>);
   my $html = to_html($src);
@@ -1198,7 +1198,7 @@ sub arrow{
   $x=~/^[\dA-F]{4}$/ and $x = "\&#x$x;";
   return($x);
 }
-}
+} # env arrow
 
 sub make_a_from_md{
   my($t, $url, $baseurl) = @_;
@@ -1214,7 +1214,6 @@ sub make_a{
 # [http://example.com|@@ text] # link with window specification
 # [#goat text]  # link within page
 
-#  $img_no or $img_no=0;
   my($t, $baseurl)=@_;
   my($prefix, $url0, $text)          = $t=~m{([!?#]*)"(\S+)"\s+(.*)}s;
   ($url0) or ($prefix, $url0, $text) = $t=~m{([!?#]*)([^\s"]+)(?:\s+(.*))?}s;
@@ -1262,7 +1261,7 @@ sub make_a{
   }else{
     return(qq!<a href="$url" target="$target">$text</a>!);
   }
-}
+} # sub make_a
 
 sub strdump{
   my($x) = @_;
@@ -1281,10 +1280,10 @@ sub ruby{
 }
 
 {
-my $table_no;
+#my $table_no;
 sub table{
   my($in, $footnotes)=@_;
-  (defined $table_no) or $table_no=1;
+#  (defined $table_no) or $table_no=1;
   my $ln=0;
   my @winiitem;
   my @htmlitem;
@@ -1320,11 +1319,13 @@ sub table{
         push(@{$htmlitem[0][0]{copt}{class}}, $1);
       }
       while($o=~/#([-\w]+)/g){
-        $htmlitem[0][0]{copt}{id}[0] = $1;
+        my($temp_id) = $1;
+        $temp_id=~s{^(\d+)$}{tbl$1}; # #1 -> #tbl1
+# todo: set $REF like figure Ids.
+        $htmlitem[0][0]{copt}{id}[0] = $temp_id;
       }
     } # if defined $o
 
-    #push(@{$ID{table}}, $htmlitem[0][0]{copt}{id}[0]);
     if(defined $o){
       while($o=~/\&([lrcjsebtm]+)/g){
         my $h = {qw/l left r right c center j justify s start e end/}->{$1};
@@ -1674,9 +1675,6 @@ sub date{
   my @days = split(/\s+/, txt('date_days', $lang));
   my $form0= $p->{type}.(('', qw/dow trad dowtrad/)[($p->{weekday}>0)+($p->{trad}>0)*2]);
   my $form = txt($form0, $lang);
-#  my $form = ($p->{type} eq 'd')  ? txt(($p->{weekday})?'datedow':'date', $lang)
-#           : ($p->{type} eq 't')  ? txt(($p->{weekday})?'timedow':'time', $lang)
-#           : ($p->{type} eq 'dt') ? txt(($p->{weekday})?'datetimedow':'datetime', $lang) : '%Y-%m-%d';
   my $t;
   ($p->{date}) or $p->{date} = localtime->datetime;
   my @n = split("[-/.T]", $p->{date});
