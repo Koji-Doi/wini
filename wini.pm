@@ -1235,22 +1235,22 @@ sub make_a{
   my $img_id           = '';  # ID for <img ...>
   if($prefix=~/[!?]/){ # img, figure
     my $class = join(' ', @classes); ($class) and $class = qq{ class="$class"};
-    my $temp_id = '';
+    #my $temp_id = '';
     if(defined $id){
-      ($temp_id)  = $id=~/^(\w+)/;
-      my $img_id0 = $temp_id;
-      $img_id0=~s{^(\d)}{fig$1};
-      (exists $REF{$img_id0} and $text) and mes(txt('did', undef, {id=>$temp_id}), {q=>1,err=>1});
-      my $reftext = reftext($temp_id, undef, 'fig');
+      #($temp_id)  = $id=~/^(\w+)/; # $temp_id: "xxx"
+      my $img_id0 = $id; # temp_id;
+      $img_id0=~s{^(\d)}{fig$1}; # img_id0: "fig111"
+      (exists $REF{$img_id0} and $text) and mes(txt('did', undef, {id=>$id}), {q=>1,err=>1});
+      my $reftext = reftext($id, undef, 'fig');
 #      $text       = txt('fig', undef, {f=>$reftext}) . " $text";
       $text       = "$reftext $text";
-      $REF{$id}   = {type=>'fig', temp_id=>$temp_id, desc => ($text||undef)};
+      $REF{$id}   = {type=>'fig', desc => ($text||undef)};
       $img_id     = qq! id="${img_id0}"!; # ID for <img ...>
     }
     if($prefix eq '!!'){
       return(qq!<figure$style><img src="$url" alt="$text"${img_id}$class$imgopt><figcaption>$text</figcaption></figure>!);
     }elsif($prefix eq '??'){
-      return(qq!<figure$style><a href="$url" target="$target"><img src="$url" alt="${temp_id}"${img_id}$class$imgopt></a><figcaption>$text</figcaption></figure>!);
+      return(qq!<figure$style><a href="$url" target="$target"><img src="$url" alt="${id}"${img_id}$class$imgopt></a><figcaption>$text</figcaption></figure>!);
     }elsif($prefix eq '?'){
       return(qq!<a href="$url" target="$target"><img src="$url" alt="$text"${img_id}$class$style$imgopt></a>!);
     }else{ # "!"
@@ -1320,8 +1320,11 @@ sub table{
       }
       while($o=~/#([-\w]+)/g){
         my($temp_id) = $1;
-        $temp_id=~s{^(\d+)$}{tbl$1}; # #1 -> #tbl1
+        my $tbl_id0  = $temp_id;
+        $tbl_id0=~s{^(\d+)$}{tbl$1}; # #1 -> #tbl1
 # todo: set $REF like figure Ids.
+        # (exists $REF{$tbbl_id0} and
+        #my $reftext = reftext($
         $htmlitem[0][0]{copt}{id}[0] = $temp_id;
       }
     } # if defined $o
@@ -1346,7 +1349,7 @@ sub table{
     $caption=~s/[\s\n\r]+$//;
   ''&emg; # end of caption & table setting
 
-  ($htmlitem[0][0]{copt}{id}[0]) or $htmlitem[0][0]{copt}{id}[0] = sprintf("winitable%d", $table_no++);
+#  ($htmlitem[0][0]{copt}{id}[0]) or $htmlitem[0][0]{copt}{id}[0] = sprintf("winitable%d", $table_no++);
   my @lines = split(/\n/, $in);
   my $macro = '';
   my %tablemacros;
@@ -1612,7 +1615,8 @@ sub table{
     #  : ($outtxt .= $outtxt0);
   } # foreach $rn
   $outtxt .= "</tbody>\n";
-  if((defined $footnotes[0]) or (defined $footnotes->{$table_no} and scalar @{$footnotes->{$table_no}} > 0) or $footnotetext){
+#  if((defined $footnotes[0]) or (defined $footnotes->{$table_no} and scalar @{$footnotes->{$table_no}} > 0) or $footnotetext){
+   if(defined $footnotes[0]){
     $outtxt .= (defined $htmlitem[0][0]{copt}{fborder})?qq{<tfoot style="border: solid $htmlitem[0][0]{copt}{fborder}px;">\n}:"<tfoot>\n";
     #my $colspan = scalar @{$htmlitem[-1]} -1;
     $outtxt .= sprintf(qq!<tr><td colspan="%d">!, $#{$htmlitem[1]});
