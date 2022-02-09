@@ -7,7 +7,7 @@ use Test::More;
 use File::Temp qw(tempdir);
 use File::Path qw(remove_tree);
 use lib '.';
-use wini;
+use Wini;
 
 my $indir  = tempdir('wini_inXXXX');
 my $outdir = tempdir('wini_outXXXX');

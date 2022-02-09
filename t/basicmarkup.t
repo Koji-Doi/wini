@@ -6,7 +6,7 @@ use warnings;
 use Test::More;
 
 use lib '.';
-use wini;
+use Wini;
 
 {
   my($o, undef) = markgaab('{{b|abc}}');

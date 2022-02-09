@@ -6,7 +6,7 @@ use warnings;
 use Test::More;
 
 use lib '.';
-use wini;
+use Wini;
 
 # prepare test wini file
 my @out;
