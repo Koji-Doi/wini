@@ -1,11 +1,11 @@
 #!/usr/bin/env perl
 =head1 NAME
 
-Text::Markup::wini.pm - WIki markup ni NIta nanika (Japanese: "Something like wiki markup")
+Text::Markup::Wini.pm - WIki markup ni NIta nanika (Japanese: "Something like wiki markup")
 
 =head1 SYNOPSIS
 
- use wini;
+ use Wini;
 
  my($htmltext) = wini(<<'EOT');
  ! Large header
@@ -42,7 +42,7 @@ Text::Markup::wini.pm - WIki markup ni NIta nanika (Japanese: "Something like wi
 
 =head1 DESCRIPTION
 
-The script file wini.pm is a perl module supporting WINI markup, which is a simple markup language to build HTML5 texts. This script can also be used as a stand-alone perl script. Users easily can get HTML5 documents from WINI source texts, by using wini.pm as a filter command.
+The script file Wini.pm is a perl module supporting WINI markup, which is a simple markup language to build HTML5 texts. This script can also be used as a stand-alone perl script. Users easily can get HTML5 documents from WINI source texts, by using Wini.pm as a filter command.
 
 The text presented here is just a brief description.
 
@@ -53,15 +53,15 @@ Please refer to the homepage for details.
 =head2 As module
 
 Put this script file in the directory listed in @INC. If you are not clear about what @INC is, please try 'perldoc perlvar'.
-Add 'use wini;' in the begining of your script to use functions of wini.pm.  
+Add 'use Wini;' in the begining of your script to use functions of Wini.pm.  
 
 =head2 As stand-alone script
 
-Put this script file in the directory listed in your PATH. The script file name can be renamed as 'wini' instead of 'wini.pm'. Do 'chmod a+x wini.pm'. It might be required to do 'hash' ('rehash' in zsh) to make your shell recognize wini.pm as a valid command name.
+Put this script file in the directory listed in your PATH. The script file name can be renamed as 'wini' instead of 'Wini.pm'. Do 'chmod a+x Wini.pm'. It might be required to do 'hash' ('rehash' in zsh) to make your shell recognize Wini.pm as a valid command name.
 
 If you succeed the install, you can use this script as follows:
 
- $ wini.pm < input.wini > output.html
+ $ Wini.pm < input.wini > output.html
 
 See section 'Options' to find out detail about advanced usage.
 
@@ -87,13 +87,13 @@ Today many people try to build and maintain blogs, wikipedia-like sites, etc. Th
 
 =item B<-i> I<INPUT>
 
-Set input file name to INPUT. If the file named 'INPUT' does not exists, wini.pm looks for 'INPUT.wini'. If -i is not set, wini.pm takes data from standard input.
+Set input file name to INPUT. If the file named 'INPUT' does not exists, Wini.pm looks for 'INPUT.wini'. If -i is not set, Wini.pm takes data from standard input.
 
 =item B<-o> I<OUTPUT>
 
-Set output file name. If both -o and -i are omitted, wini.pm outputs HTML-translated text to standard output.
+Set output file name. If both -o and -i are omitted, Wini.pm outputs HTML-translated text to standard output.
 If -o is omitted and the input file name is 'input.wini', the output file will be 'input.wini.html'.
-Users can specify the output directory rather than the file. If -o value ends with 'output/', output file will be output/input.wini.html. if 'output/' does not exist, wini.pm will create it.
+Users can specify the output directory rather than the file. If -o value ends with 'output/', output file will be output/input.wini.html. if 'output/' does not exist, Wini.pm will create it.
 
 =item B<--whole>
 
@@ -234,7 +234,7 @@ sub stand_alone{
   my(@input, $output, $fhi, $title, $cssfile, $test, $whole, @cssflameworks);
   GetOptions(
     "h|help"         => sub {help()},
-    "v|version"      => sub {print STDERR "wini.pm $version\n"; exit()},
+    "v|version"      => sub {print STDERR "Wini.pm $version\n"; exit()},
     "i=s"            => \@input,
     "o=s"            => \$output,
     "title=s"        => \$title,
@@ -365,7 +365,7 @@ sub mes{ # display guide, warning etc. to STDERR
     print STDERR "$mes\n";
     $ind='  ';
   }
-  ($QUIET==0) and (exists $o->{ln}) and $x = sprintf("$x at %d[wini.pm]", $o->{ln});
+  ($QUIET==0) and (exists $o->{ln}) and $x = sprintf("$x at %d[Wini.pm]", $o->{ln});
   if(exists $o->{err}){
     (($FORCE) and print STDERR "$ind$x\n") or die "$ind$x\n";
   }elsif($o->{warn}){
@@ -1329,6 +1329,8 @@ sub table{
         (exists $REF{$tbl_id0}) and mes(txt('did', undef, {id=>$tbl_id0}), {q=>1,err=>1});
         $htmlitem[0][0]{copt}{id}[0] = $tbl_id0;
         $tbl_id = sprintf(qq{ id="%s"}, reftext($tbl_id0, undef, 'tbl')); # for table->caption tag
+$DB::single=$DB::single=1;
+1;
       }
     } # if defined $o
 
@@ -1841,7 +1843,7 @@ __DATA__
 |llf|failed to load library '{{lib}}'|ライブラリロード失敗： {{lib}}|
 !mnf!Cannot find Macro '{{m}}'!マクロ「{{m}}」が見つかりません!
 !Message!Message!メッセージ!
-!mt!{{mestype}} from wini.pm: !wini.pmより{{mestype}}：!
+!mt!{{mestype}} from Wini.pm: !Wini.pmより{{mestype}}：!
 !opf!File {{f}} is opened in utf8!{{f}}をutf-8ファイルとして開きます!
 !rout!Result will be output to STDOUT!結果は標準出力に出力されます!
 !snf!Searched {{t}}, but not found!{{t}}の内部を検索しましたが見つかりません!
