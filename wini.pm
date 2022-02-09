@@ -1130,9 +1130,12 @@ sub reftext{
   my($id, $lang, $type) = map {$par->{$_}} qw/id lang type/;
   (exists $REF{$id}{type}) and $type = $REF{$id}{type};
   if(exists $REF{$id}) {
-    my $out = $MI . (
-                ($type eq 'fig') ? "nfig=t$id" : ''
-              ) . $MO;
+#    my $out = $MI . (
+#                 ($type eq 'ref') ? "nref=t$id"
+#                 ($type eq 'fig') ? "nfig=t$id"
+#                :($type eq 'tbl') ? "ntbl=t$id" : ''
+    #              ) . $MO;
+    my $out = "${MI}n${type}=t${id}${MO}";
     return($out);
   }else{
     if(defined $type) {
@@ -1290,6 +1293,7 @@ sub table{
   my $caption;
   my $footnotetext;
   my @footnotes; # footnotes in cells
+  my $tbl_id;
 
   push(@{$htmlitem[0][0]{copt}{class}}, 'winitable');
 
@@ -1319,13 +1323,12 @@ sub table{
         push(@{$htmlitem[0][0]{copt}{class}}, $1);
       }
       while($o=~/#([-\w]+)/g){
-        my($temp_id) = $1;
-        my $tbl_id0  = $temp_id;
+        my($tbl_id0) = $1;
         $tbl_id0=~s{^(\d+)$}{tbl$1}; # #1 -> #tbl1
 # todo: set $REF like figure Ids.
-        # (exists $REF{$tbbl_id0} and
-        #my $reftext = reftext($
-        $htmlitem[0][0]{copt}{id}[0] = $temp_id;
+        (exists $REF{$tbl_id0}) and mes(txt('did', undef, {id=>$tbl_id0}), {q=>1,err=>1});
+        $htmlitem[0][0]{copt}{id}[0] = $tbl_id0;
+        $tbl_id = sprintf(qq{ id="%s"}, reftext($tbl_id0, undef, 'tbl')); # for table->caption tag
       }
     } # if defined $o
 
@@ -1535,7 +1538,7 @@ sub table{
   (defined $htmlitem[0][0]{copt}{border}) and $outtxt .= sprintf("border: solid %dpx; ", $htmlitem[0][0]{copt}{border});
 
   $outtxt .= qq{">\n}; # end of style
-  (defined $caption) and $outtxt .= "<caption>$caption</caption>\n";
+  (defined $caption) and $outtxt .= "<caption${tbl_id}>$caption</caption>\n";
   $outtxt .= (defined $htmlitem[0][0]{copt}{bborder})?qq{<tbody style="border:solid $htmlitem[0][0]{copt}{bborder}px;">\n}:"<tbody>\n";
 
   for(my $rn=1; $rn<=$#htmlitem; $rn++){
