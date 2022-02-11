@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<style>
+.b-b               {
+                    background-color: rgb(0,114,178) /* blue */;
+                   }
+.b-b100            {
+                    background-color: #000;
+                   }
+.b-b25             {
+                    background-color: #CCC;
+                   }
+.b-b50             {
+                    background-color: #888;
+                   }
+.b-b75             {
+                    background-color: #444;
+                   }
+.b-g               {
+                    background-color: rgb(0,158,115) /* green */;
+                   }
+.b-m               {
+                    background-color: rgb(218,0,250) /* magenta */;
+                   }
+.b-p               {
+                    background-color: rgb(204,121,167) /* purple */;
+                   }
+.b-r               {
+                    background-color: rgb(219,94,0) /* red */;
+                   }
+.b-w               {
+                    background-color: white;
+                   }
+.f-b               {
+                    border-color: black;
+                    color: rgb(0,114,178) /* blue */;
+                   }
+.f-b100            {
+                    color: #000;
+                    border-color: black;
+                   }
+.f-b25             {
+                    border-color: black;
+                    color: #CCC;
+                   }
+.f-b50             {
+                    color: #888;
+                    border-color: black;
+                   }
+.f-b75             {
+                    color: #444;
+                    border-color: black;
+                   }
+.f-g               {
+                    color: rgb(0,158,115) /* green */;
+                    border-color: black;
+                   }
+.f-m               {
+                    border-color: black;
+                    color: rgb(218,0,250) /* magenta */;
+                   }
+.f-p               {
+                    color: rgb(204,121,167) /* purple */;
+                    border-color: black;
+                   }
+.f-r               {
+                    border-color: black;
+                    color: rgb(219,94,0) /* red */;
+                   }
+.f-w               {
+                    border-color: black;
+                    color: white;
+                   }
+.tategaki          {
+                    text-orientation: mixed;
+                    writing-mode: vertical-rl;
+                    -ms-writing-mode: tb-rl;
+                    -webkit-text-orientation: mixed;
+                   }
+.tatetate          {
+                    -webkit-text-orientation: upright;
+                    -ms-writing-mode: tb-rl;
+                    writing-mode: vertical-rl;
+                    text-orientation: upright;
+                   }
+.yokoyoko          {
+                    writing-mode: vertical-rl;
+                    text-orientation: sideways;
+                    -webkit-text-orientation: sideways;
+                    -ms-writing-mode: tb-rl;
+                   }
+ol, ul, dl         {
+                    padding-left: 1em;
+                   }
+table, figure, img {
+                    border-collapse: collapse;
+                    margin: 1em;
+                   }
+tfoot, figcaption  {
+                    font-size: smaller;
+                   }
+</style>
+
+<title>wini page</title>
+</head>
+<body>
+
+</body>
+</html>
