@@ -1293,7 +1293,7 @@ sub table{
   my $caption;
   my $footnotetext;
   my @footnotes; # footnotes in cells
-  my $tbl_id;
+  #my $tbl_id;
 
   push(@{$htmlitem[0][0]{copt}{class}}, 'winitable');
 
@@ -1328,7 +1328,7 @@ sub table{
 # todo: set $REF like figure Ids.
         (exists $REF{$tbl_id0}) and mes(txt('did', undef, {id=>$tbl_id0}), {q=>1,err=>1});
         $htmlitem[0][0]{copt}{id}[0] = $tbl_id0;
-        $tbl_id = sprintf(qq{ id="%s"}, reftext($tbl_id0, undef, 'tbl')); # for table->caption tag
+        #$tbl_id = sprintf(qq{ id="%s"}, $tbl_id0); # reftext($tbl_id0, undef, 'tbl')); # for table->caption tag
 $DB::single=$DB::single=1;
 1;
       }
@@ -1540,7 +1540,7 @@ $DB::single=$DB::single=1;
   (defined $htmlitem[0][0]{copt}{border}) and $outtxt .= sprintf("border: solid %dpx; ", $htmlitem[0][0]{copt}{border});
 
   $outtxt .= qq{">\n}; # end of style
-  (defined $caption) and $outtxt .= "<caption${tbl_id}>$caption</caption>\n";
+  (defined $caption) and $outtxt .= "<caption>$caption</caption>\n";
   $outtxt .= (defined $htmlitem[0][0]{copt}{bborder})?qq{<tbody style="border:solid $htmlitem[0][0]{copt}{bborder}px;">\n}:"<tbody>\n";
 
   for(my $rn=1; $rn<=$#htmlitem; $rn++){
