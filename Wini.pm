@@ -767,7 +767,7 @@ sub markgaab{
           : $t=~m{<!doctype}is                                                           ? $t
           : "<p${myclass}>\n$t</p>$cr$cr";
 
-    $r .= $t;
+    $r .= "\n$t";
   } # foreach $t # for each paragraph
 
   $r=~s/${MI}i=(\d+)${MO}/$save[$1]/ge;
@@ -1293,7 +1293,7 @@ sub table{
   my $caption;
   my $footnotetext;
   my @footnotes; # footnotes in cells
-  #my $tbl_id;
+  my $tbl_id;
 
   push(@{$htmlitem[0][0]{copt}{class}}, 'winitable');
 
@@ -1328,9 +1328,7 @@ sub table{
 # todo: set $REF like figure Ids.
         (exists $REF{$tbl_id0}) and mes(txt('did', undef, {id=>$tbl_id0}), {q=>1,err=>1});
         $htmlitem[0][0]{copt}{id}[0] = $tbl_id0;
-        #$tbl_id = sprintf(qq{ id="%s"}, $tbl_id0); # reftext($tbl_id0, undef, 'tbl')); # for table->caption tag
-$DB::single=$DB::single=1;
-1;
+        $tbl_id = sprintf(qq{ id="%s"}, $tbl_id0); # reftext($tbl_id0, undef, 'tbl')); # for table->caption tag
       }
     } # if defined $o
 
@@ -1531,7 +1529,7 @@ $DB::single=$DB::single=1;
         or $htmlitem[0][0]{copt}{style}{width}[0] = sprintf("%drem", ((sort map{$_ or 0} @rowlen)[-1])*2);
 
   # make html
-  my $outtxt = sprintf(qq!\n<table id="%s" class="%s"!, $htmlitem[0][0]{copt}{id}[0], join(' ', sort @{$htmlitem[0][0]{copt}{class}}));
+  my $outtxt = sprintf(qq!\n<table${tbl_id} class="%s"!, join(' ', sort @{$htmlitem[0][0]{copt}{class}}));
   (defined $htmlitem[0][0]{copt}{border}) and $outtxt .= ' border="1"';
   $outtxt .= q{ style="border-collapse: collapse; };
   foreach my $k (qw/text-align vertical-align color background-color float/){
