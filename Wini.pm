@@ -167,7 +167,7 @@ our %REF;
 our($MI, $MO);
 our(@INDIR, @INFILE, $OUTFILE);
 our($TEMPLATE, $TEMPLATEDIR);
-my(@libs, @libpaths, $scriptname, $version, $debug);
+my(@libs, @libpaths, $SCRIPTNAME, $VERSION, $debug);
 my @save;
 my $FORCE;
 
@@ -224,8 +224,8 @@ sub init{
   $ENVNAME    = "_";
   $LANG       = 'en';
   $QUIET      = 0; # 1: suppress most of messages
-  $scriptname = basename($0);
-  $version    = "ver. 1.0alpha rel. 20220114";
+  $SCRIPTNAME = basename($0);
+  $VERSION    = "ver. 1.0alpha rel. 20220114";
 }
 
 # Following function is executed when this script is called as stand-alone script
@@ -234,7 +234,7 @@ sub stand_alone{
   my(@input, $output, $fhi, $title, $cssfile, $test, $whole, @cssflameworks);
   GetOptions(
     "h|help"         => sub {help()},
-    "v|version"      => sub {print STDERR "Wini.pm $version\n"; exit()},
+    "v|version"      => sub {print STDERR "Wini.pm $VERSION\n"; exit()},
     "i=s"            => \@input,
     "o=s"            => \$output,
     "title=s"        => \$title,
@@ -357,16 +357,16 @@ sub mes{ # display guide, warning etc. to STDERR
   chomp $x;
   my $mes;
   my $ind='';
-  my $mestype = (exists $o->{err})  ? 'Error' 
-              : (exists $o->{warn}) ? 'Warning' : 'Message';
+  my($mestype, $col) = (exists $o->{err})  ? ('Error',   "\e[37m\e[41m")
+                     : (exists $o->{warn}) ? ('Warning', "\e[31m\e[47m") : ('Message', "\e[0m");
   if((not exists $o->{q}) and $QUIET==0){
     my $i = 1; my @subs;
     while ( my($pack, $file, $line, $subname, $hasargs, $wantarray, $evaltext, $is_require) = caller( $i++) ){push(@subs, "$line\[$subname]")}
-    $mes = txt('mt', undef, {mestype=>txt($mestype)}) . join(' <- ', @subs);
-    print STDERR "$mes\n";
+    $mes = txt('mt', undef, {col=>$col, reset=>"\e[0m", mestype=>txt($mestype)}) . join(' <- ', @subs);
+    print STDERR "${col}$mes\e[0m\n";
     $ind='  ';
   }
-  ($QUIET==0) and (exists $o->{ln}) and $x = sprintf("$x at %d[Wini.pm]", $o->{ln});
+  ($QUIET==0) and (exists $o->{ln}) and $x = sprintf("${x} at %d [Wini.pm] ", $o->{ln});
   if(exists $o->{err}){
     (($FORCE) and print STDERR "$ind$x\n") or die "$ind$x\n";
   }elsif($o->{warn}){
@@ -692,6 +692,7 @@ sub markgaab{
   my $para  = (defined $opt->{para}) ? $opt->{para} : 'p'; # p or br or none;
   my $title = $opt->{title} || 'WINI page';
   (defined $footnote_cnt) or $footnote_cnt->{'_'}{'*'} = 0;
+  my $lang  = $opt->{_v}{lang} || $LANG || 'en';
 
   # verbatim
   $t0 =~ s/\%%%\n(.*?)\n%%%$/         &save_quote('',     $1)/esmg;
@@ -799,13 +800,13 @@ sub markgaab{
           $REF{$id}{disp_id}=$seq;
         }
       }
-      txt('fig', undef, {n=>$REF{$id}{disp_id}});
+      txt($type, $lang, {n=>$REF{$id}{disp_id}});
     !ge;
   }
 #  print STDERR "\nAfter deref\n<<<<REF=",Dumper %REF, ">>>>\n";
 
   return($r, $opt);
-} # sub wini
+} # sub markgaab
 
 sub whole_html{
   my($x, $title, $opt) = @_;
@@ -1073,7 +1074,7 @@ sub call_macro{
 
   ($macroname=~m!([-_/*]+[-_/* ]*)!) and return(symmacro($1, $f[0]));
 
-  my $errmes = mes(txt('mnf', undef, {m=>$macroname}));
+  my $errmes = mes(txt('mnf', undef, {m=>$macroname}), {warn=>1});
   return(sprintf(qq#\\{\\{%s}}<!-- $errmes -->#, join('|', $macroname, @f)));
 }
 
@@ -1680,7 +1681,7 @@ sub date{
     $t = Time::Piece->strptime($p->{date}, "%Y-%m-%dT%H:%M:%S");
   }else{
     eval{ $t = Time::Piece->strptime("$n[0]-$n[1]-$n[2]", "%Y-%m-%d") };
-      $@ and mes("Invalid date format: $p->{date}", {err=>1, ln=>__LINE__});
+      $@ and mes("Invalid date format: '$p->{date}'", {err=>1, ln=>__LINE__});
   }
   
   if(($type eq 'd' or $type eq 'dt') and $p->{weekday}){ # weekday name
@@ -1832,7 +1833,7 @@ __DATA__
 |llf|failed to load library '{{lib}}'|ライブラリロード失敗： {{lib}}|
 !mnf!Cannot find Macro '{{m}}'!マクロ「{{m}}」が見つかりません!
 !Message!Message!メッセージ!
-!mt!{{mestype}} from Wini.pm: !Wini.pmより{{mestype}}：!
+!mt!{{col}}{{mestype}}{{reset}} from Wini.pm: !{{reset}}Wini.pmより {{col}}{{mestype}}{{reset}}：!
 !opf!File {{f}} is opened in utf8!{{f}}をutf-8ファイルとして開きます!
 !rout!Result will be output to STDOUT!結果は標準出力に出力されます!
 !snf!Searched {{t}}, but not found!{{t}}の内部を検索しましたが見つかりません!
