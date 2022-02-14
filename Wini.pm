@@ -318,6 +318,7 @@ sub stand_alone{
     my($htmlout) = to_html($winitxt, {indir=>$ind, dir=>getcwd(), whole=>$whole, cssfile=>$cssfile, title=>$title, cssflameworks=>\@cssflameworks});
     print {$fho} $htmlout;
   }
+  print STDERR "dump for ref: ", Dumper %REF;
 } # sub stand_alone
 
 {
@@ -785,8 +786,9 @@ sub markgaab{
 
   {
     my $seq=0;
-    $r=~s!${MI}nfig=t(.*?)${MO}!
-      my $id = $1;
+    $r=~s!${MI}n(\w+)=t(.*?)${MO}!
+      my($type, $id) = ($1, $2);
+    print STDERR "type=$type, id=$id.\n";
       if(defined $REF{$id}{disp_id}){
 #        $REF{fig}{$id}{id};
       }else{
@@ -797,7 +799,7 @@ sub markgaab{
           $REF{$id}{disp_id}=$seq;
         }
       }
-      txt('fig', undef, {f=>$REF{$id}{disp_id}});
+      txt('fig', undef, {n=>$REF{$id}{disp_id}});
     !ge;
   }
 #  print STDERR "\nAfter deref\n<<<<REF=",Dumper %REF, ">>>>\n";
@@ -1053,7 +1055,7 @@ sub call_macro{
   ($macroname=~m{^[!-/:-@\[-~]$}) and (not defined $f[0]) and 
     return('&#x'.unpack('H*',$macroname).';'); # char -> ascii code
   ($macroname=~/^\@$/)       and return(term(\@f));
-  ($macroname=~/^(rr|ref)$/i)       and return(reftext(@f[0,2,1])); #{{ref|id|fig|lang}}
+  ($macroname=~/^(rr|ref)$/i)       and return(reftxt(@f)); #{{ref|id|fig}}
   ($macroname=~/^(date|time|dt)$/i) and return(date([@f, "type=$1"],  $opt->{_v}));
   ($macroname=~/^calc$/i)    and return(ev(\@f, $opt->{_v}));
   ($macroname=~/^va$/i)      and return(
@@ -1124,22 +1126,17 @@ EOD
 } # sub save_quote
 } # env save_quote
 
-sub reftext{
-  # reftext('id', 'ja', 'fig) -> "${MI}nfig=id${MO}"
-  my $par = readpars(\@_, qw/id lang type/);
+sub reftxt{
+  # reftxt('id', 'fig') -> "${MI}nfig=id${MO}"
+  my $par = readpars(\@_, qw/id type/);
   my($id, $lang, $type) = map {$par->{$_}} qw/id lang type/;
-  (exists $REF{$id}{type}) and $type = $REF{$id}{type};
   if(exists $REF{$id}) {
-#    my $out = $MI . (
-#                 ($type eq 'ref') ? "nref=t$id"
-#                 ($type eq 'fig') ? "nfig=t$id"
-#                :($type eq 'tbl') ? "ntbl=t$id" : ''
-    #              ) . $MO;
+    (exists $REF{$id}{type}) and $type = $REF{$id}{type};
     my $out = "${MI}n${type}=t${id}${MO}";
     return($out);
   }else{
     if(defined $type) {
-      $REF{$id} = {temp_id=>$id, type=>$type};
+      $REF{$id} = {type=>$type};
     }
     mes(txt('uref', undef) . ($id) ? " '$id'" : '');
     return("${MI}x=$id${MO}");
@@ -1238,16 +1235,13 @@ sub make_a{
   my $img_id           = '';  # ID for <img ...>
   if($prefix=~/[!?]/){ # img, figure
     my $class = join(' ', @classes); ($class) and $class = qq{ class="$class"};
-    #my $temp_id = '';
     if(defined $id){
-      #($temp_id)  = $id=~/^(\w+)/; # $temp_id: "xxx"
       my $img_id0 = $id; # temp_id;
       $img_id0=~s{^(\d)}{fig$1}; # img_id0: "fig111"
       (exists $REF{$img_id0} and $text) and mes(txt('did', undef, {id=>$id}), {q=>1,err=>1});
-      my $reftext = reftext($id, undef, 'fig');
-#      $text       = txt('fig', undef, {f=>$reftext}) . " $text";
-      $text       = "$reftext $text";
-      $REF{$id}   = {type=>'fig', desc => ($text||undef)};
+      my $reftxt = reftxt($id, 'fig');
+      $text       = "$reftxt $text";
+#      $REF{$id}   = {type=>'fig', desc => ($text||undef)};
       $img_id     = qq! id="${img_id0}"!; # ID for <img ...>
     }
     if($prefix eq '!!'){
@@ -1288,20 +1282,16 @@ sub table{
   my($in, $footnotes)=@_;
 #  (defined $table_no) or $table_no=1;
   my $ln=0;
-  my @winiitem;
-  my @htmlitem;
-  my $caption;
-  my $footnotetext;
+  my(@winiitem, @htmlitem, $caption, $footnotetext, $tbl_id);
   my @footnotes; # footnotes in cells
-  my $tbl_id;
 
   push(@{$htmlitem[0][0]{copt}{class}}, 'winitable');
 
   #get caption & table setting - remove '^|-' lines from $in
   $in =~ s&(^\|-([^-].*$))\n&
-    my $caption0=$2;
-    $caption0=~s/\|\s*$//;
-    my($c, $o) = split(/ \|(?= |$)/, $caption0, 2); # $caption=~s{[| ]*$}{};
+    $caption=$2;
+    $caption=~s/\|\s*$//;
+    my($c, $o) = split(/ \|(?= |$)/, $caption, 2); # $caption=~s{[| ]*$}{};
     if(defined $o){
       while($o =~ /([^=\s]+)="([^"]*)"/g){
         my($k,$v) = ($1,$2);
@@ -1327,8 +1317,9 @@ sub table{
         $tbl_id0=~s{^(\d+)$}{tbl$1}; # #1 -> #tbl1
 # todo: set $REF like figure Ids.
         (exists $REF{$tbl_id0}) and mes(txt('did', undef, {id=>$tbl_id0}), {q=>1,err=>1});
+        ($tbl_id0=~/\S/) and $caption = reftxt($tbl_id0, 'tbl') . " $caption";
         $htmlitem[0][0]{copt}{id}[0] = $tbl_id0;
-        $tbl_id = sprintf(qq{ id="%s"}, $tbl_id0); # reftext($tbl_id0, undef, 'tbl')); # for table->caption tag
+        $tbl_id = sprintf(qq{ id="%s"}, $tbl_id0); # reftxt($tbl_id0, undef, 'tbl')); # for table->caption tag
       }
     } # if defined $o
 
@@ -1832,7 +1823,7 @@ __DATA__
 !Error!error!エラー!
 |fail|failed|失敗|
 !fci!File {{f}} is chosen as input!ファイル{{f}}が入力元ファイルです!
-!fig!Fig. {{f}}!図{{f}}!
+!fig!Fig. {{n}}!図{{n}}!
 |fin|completed|終了|
 !fnf!File not found!ファイルが見つかりません!
 !ftf!Found {{t}} as template file!テンプレートファイル{{t}}が見つかりました
@@ -1845,6 +1836,7 @@ __DATA__
 !opf!File {{f}} is opened in utf8!{{f}}をutf-8ファイルとして開きます!
 !rout!Result will be output to STDOUT!結果は標準出力に出力されます!
 !snf!Searched {{t}}, but not found!{{t}}の内部を検索しましたが見つかりません!
+!tbl!Table {{n}}!表{{n}}!
 !time!%H:%M:%S!%H時%M分%S秒!
 !timetrad!%H:%M:%S!%H時%M分%S秒!
 !timedowtrad!%H:%M:%S!%H時%M分%S秒!

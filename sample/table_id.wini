@@ -1,3 +1,7 @@
+===
+lang: 'jp'
+===
+
 |- | #id1 |
 | a | b |
 
@@ -12,3 +16,27 @@
 
 |- | #100 |
 | i | j |
+
+
+? in jp
+
+===
+lang: 'jp'
+===
+
+{{rr|id1|lang=ja}} = id1
+
+{{rr|id1|lang=en}} = id1
+
+? in en
+
+===
+lang: 'en'
+===
+
+{{rr|id2}} = id2
+
+{{rr|id1}} = id1
+
+
+

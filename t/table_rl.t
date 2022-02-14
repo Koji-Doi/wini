@@ -21,7 +21,7 @@ EOC
   $o=~s/[\n\r]*//g;
   $o=~s/\s{2,}/ /g;
   my $p = <<EOC;
-<table id="winitable1" class="winitable" border="1" style="border-collapse: collapse; border: solid 1px; ">
+<table class="winitable" border="1" style="border-collapse: collapse; border: solid 1px; ">
 <caption> table with &r and &&&l</caption>
 <tbody>
 <tr><th style="text-align:left;">aaaaaaaaa </th><th style="text-align:center;">bbbbbbbbbb </th><th>cccccccc </th></tr>
@@ -33,6 +33,8 @@ EOC
 EOC
   $p=~s/[\n\r]*//g;
   $p=~s/\s{2,}/ /g;
+  $o=~s{> *(\w+) *<}{">$1<"}ge;
+  $p=~s{> *(\w+) *<}{">$1<"}ge;
   is $o, $p;
 }
   

@@ -36,7 +36,7 @@ EOC
 <p>
 Table</p>
 
-<table id="winitable1" class="winitable" style="border-collapse: collapse; ">
+<table class="winitable" style="border-collapse: collapse; ">
 <caption> capt.</caption>
 <tbody>
 <tr><th>l1 </th><td>a1 </td><td>b1 </td></tr>
