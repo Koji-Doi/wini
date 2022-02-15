@@ -2,7 +2,7 @@
 lang: 'en'
 ===
 
-|- | #id1 |
+|- Here is a caption | #id1 |
 | a | b |
 
 |- | |

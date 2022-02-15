@@ -164,6 +164,7 @@ our $QUIET;
 our %MACROS;
 our %VARS;
 our %REF;
+our %REFCOUNT;
 our($MI, $MO);
 our(@INDIR, @INFILE, $OUTFILE);
 our($TEMPLATE, $TEMPLATEDIR);
@@ -319,6 +320,7 @@ sub stand_alone{
     print {$fho} $htmlout;
   }
   print STDERR "dump for ref: ", Dumper %REF;
+  print STDERR "dump for refcount: ", Dumper %REFCOUNT;
 } # sub stand_alone
 
 {
@@ -693,7 +695,7 @@ sub markgaab{
   my $title = $opt->{title} || 'WINI page';
   (defined $footnote_cnt) or $footnote_cnt->{'_'}{'*'} = 0;
   my $lang  = $opt->{_v}{lang} || $LANG || 'en';
-print STDERR ".... $lang, $t0.\n";
+
   # verbatim
   $t0 =~ s/\%%%\n(.*?)\n%%%$/         &save_quote('',     $1)/esmg;
   # pre, code, citation, ...
@@ -746,8 +748,8 @@ print STDERR ".... $lang, $t0.\n";
       } # endif header
       (
         $t =~ s!\[\[(\w+)(?:\|(.*))?\]\]!(defined $opt->{_v}{$1}) ? $opt->{_v}{$1} : ''!ge or
-        $t =~ s!\[([^]]*?)\]\(([^)]*?)\)!make_a_from_md($1, $2, $baseurl)!eg or
-        $t =~ s!\[([^]]*?)\]!make_a($1, $baseurl)."\n"!esg or
+        $t =~ s!\[([^]]*?)\]\(([^)]*?)\)!anchor_from_md($1, $2, $baseurl)!eg or
+        $t =~ s!\[([^]]*?)\]!anchor($1, $baseurl, $lang)."\n"!esg or
         $t =~ s!(\{\{([^|]*?)(?:\|([^{}]*?))?}})!
         call_macro(
           ((defined $1) ? $1 : ''),
@@ -794,11 +796,11 @@ print STDERR ".... $lang, $t0.\n";
       if(defined $REF{$id}{disp_id}){
 #        $REF{fig}{$id}{id};
       }else{
-        if($id=~/^\d+$/){
-          $REF{$id}{disp_id} = $id;
+        if($id=~/^tbl(\d+)$/){
+          $REF{$id}{disp_id} = $1;
         }else{
-          $seq++;
-          $REF{$id}{disp_id}=$seq;
+          (defined $REFCOUNT{$type}) ? $REFCOUNT{$type}++ : ( $REFCOUNT{$type} = 1);
+          $REF{$id}{disp_id} = $REFCOUNT{$type};
         }
       }
       txt($type, $lang, {n=>$REF{$id}{disp_id}});
@@ -1130,21 +1132,20 @@ EOD
 
 sub reftxt{
   # reftxt('id', 'fig') -> "${MI}nfig=id${MO}"
-  my $par        = readpars(\@_, qw/id lang/);
-  my($id, $lang) = map {$par->{$_}} qw/id lang/;
-  my $type       = $REF{$id}{type};
+  my $par        = readpars(\@_, qw/id type lang/);
+  my($id, $type, $lang) = map {$par->{$_}} qw/id type lang/;
+  ($lang) or $lang = 'en';
+#  my $type       = $REF{$id}{type};
   my $lang1      = ($lang eq '') ? '' : "${MI}l${lang}";
-  my   $out      = "${MI}n${type}${lang1}${MI}t${id}${MO}";
+  my   $out      = ($type) ? "${MI}n${type}${lang1}${MI}t${id}${MO}" : "${MI}x=$id${MO}";
   if(exists $REF{$id}) {
-    (exists $REF{$id}{type}) and $type = $REF{$id}{type};
-    return($out);
-  }else{
-    if(defined $type) {
-      $REF{$id} = {type=>$type};
-    }
-    #mes(txt('uref', undef) . ($id) ? " '$id'" : '');
-    return("${MI}x=$id${MO}");
+    txt(mes('did', {id=>$id}), {err=>1});
   }
+  if(defined $type) {
+    $REF{$id} = {type=>$type};
+
+  }
+  return($out);
 }
 
 
@@ -1204,12 +1205,12 @@ sub arrow{
 }
 } # env arrow
 
-sub make_a_from_md{
+sub anchor_from_md{
   my($t, $url, $baseurl) = @_;
   return(qq!<a href="$url">$t</a>!);
 }
 
-sub make_a{
+sub anchor{
 # [! image.png text]
 # [!"image.png" text]
 # [!!image.png|#x text] # figure
@@ -1218,7 +1219,8 @@ sub make_a{
 # [http://example.com|@@ text] # link with window specification
 # [#goat text]  # link within page
 
-  my($t, $baseurl)=@_;
+  my($t, $baseurl, $lang) = @_;
+  ($lang) or $lang = 'en';
   my($prefix, $url0, $text)          = $t=~m{([!?#]*)"(\S+)"\s+(.*)}s;
   ($url0) or ($prefix, $url0, $text) = $t=~m{([!?#]*)([^\s"]+)(?:\s+(.*))?}s;
   my($url, $opts) = (split(/\|/, $url0, 2), '', '');
@@ -1243,7 +1245,7 @@ sub make_a{
       my $img_id0 = $id; # temp_id;
       $img_id0=~s{^(\d)}{fig$1}; # img_id0: "fig111"
       (exists $REF{$img_id0} and $text) and mes(txt('did', undef, {id=>$id}), {q=>1,err=>1});
-      my $reftxt = reftxt($id, 'fig');
+      my $reftxt = reftxt($id, 'fig', $lang);
       $text       = "$reftxt $text";
 #      $REF{$id}   = {type=>'fig', desc => ($text||undef)};
       $img_id     = qq! id="${img_id0}"!; # ID for <img ...>
@@ -1262,7 +1264,7 @@ sub make_a{
   }else{
     return(qq!<a href="$url" target="$target">$text</a>!);
   }
-} # sub make_a
+} # sub anchor
 
 sub strdump{
   my($x) = @_;
@@ -1293,9 +1295,9 @@ sub table{
 
   #get caption & table setting - remove '^|-' lines from $in
   $in =~ s&(^\|-([^-].*$))\n&
-    $caption=$2;
-    $caption=~s/\|\s*$//;
-    my($c, $o) = split(/ \|(?= |$)/, $caption, 2); # $caption=~s{[| ]*$}{};
+    my $caption0 = $2;
+    $caption0=~s/\|\s*$//;
+    my($c, $o) = split(/ \|(?= |$)/, $caption0, 2); # $caption=~s{[| ]*$}{};
     if(defined $o){
       while($o =~ /([^=\s]+)="([^"]*)"/g){
         my($k,$v) = ($1,$2);
@@ -1321,7 +1323,7 @@ sub table{
         $tbl_id0=~s{^(\d+)$}{tbl$1}; # #1 -> #tbl1
 # todo: set $REF like figure Ids.
         (exists $REF{$tbl_id0}) and mes(txt('did', undef, {id=>$tbl_id0}), {q=>1,err=>1});
-        ($tbl_id0=~/\S/) and $caption = reftxt($tbl_id0, 'tbl') . " $caption";
+        ($tbl_id0=~/\S/) and $caption = reftxt($tbl_id0, 'tbl') . " $c";
         $htmlitem[0][0]{copt}{id}[0] = $tbl_id0;
         $tbl_id = sprintf(qq{ id="%s"}, $tbl_id0); # reftxt($tbl_id0, undef, 'tbl')); # for table->caption tag
       }
@@ -1343,7 +1345,7 @@ sub table{
         ($a=~/[~@=]/) and $htmlitem[0][0]{copt}{style}{'border-top'}    = $b1;
       }
     } # if defined $o
-    ($caption)=markgaab($c, {para=>'nb', nocr=>1});
+    ($caption)=markgaab($caption, {para=>'nb', nocr=>1});
     $caption=~s/[\s\n\r]+$//;
   ''&emg; # end of caption & table setting
 
