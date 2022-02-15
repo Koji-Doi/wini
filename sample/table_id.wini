@@ -1,5 +1,5 @@
 ===
-lang: 'jp'
+lang: 'en'
 ===
 
 |- | #id1 |
@@ -18,15 +18,27 @@ lang: 'jp'
 | i | j |
 
 
+Thi is main.
+
+{{rr|id1|lang=ja}} = id1 ja (mainsect: option ja in macro)
+
+{{rr|id1|lang=en}} = id1 en (mainsect: option en in macro)
+
+
 ? in jp
 
 ===
-lang: 'jp'
+lang: 'ja'
 ===
 
-{{rr|id1|lang=ja}} = id1
+This is sub.
 
-{{rr|id1|lang=en}} = id1
+{{rr|id1|lang=ja}} = id1 ja (subsect: option ja in macro)
+
+{{rr|id1|lang=en}} = id1 en (subsect: option en in macro)
+
+{{rr|id1}} = id1 ja from section val
+
 
 ? in en
 
@@ -34,9 +46,9 @@ lang: 'jp'
 lang: 'en'
 ===
 
-{{rr|id2}} = id2
+{{rr|id2}} = id2 en from section val
 
-{{rr|id1}} = id1
+{{rr|id1}} = id1 en from section val
 
 
 

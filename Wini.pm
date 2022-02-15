@@ -678,7 +678,7 @@ sub parse{ # for CPAN
 }
 
 sub markgaab{
-# wini($tagettext, {para=>'br', baseurl=>'http://example.com', nocr=>1});
+# wini($targettext, {para=>'br', baseurl=>'http://example.com', nocr=>1});
   # para: paragraph mode (br:set <br>, p: set <p>, nb: no separation
   # nocr: whether CRs are conserved in result text. 0(default): conserved, 1: not conserved
   # table: table-mode, where footnote macro is effective. $opt->{table} must be a table ID. Footnote texts are set to @{$opt->{footnote}}
@@ -693,7 +693,7 @@ sub markgaab{
   my $title = $opt->{title} || 'WINI page';
   (defined $footnote_cnt) or $footnote_cnt->{'_'}{'*'} = 0;
   my $lang  = $opt->{_v}{lang} || $LANG || 'en';
-
+print STDERR ".... $lang, $t0.\n";
   # verbatim
   $t0 =~ s/\%%%\n(.*?)\n%%%$/         &save_quote('',     $1)/esmg;
   # pre, code, citation, ...
@@ -787,8 +787,9 @@ sub markgaab{
 
   {
     my $seq=0;
-    $r=~s!${MI}n(\w+)=t(.*?)${MO}!
-      my($type, $id) = ($1, $2);
+    # ref tag: MInidMIljaMIt...
+    $r=~s!${MI}n(\w+)(?:${MI}l(.*))?${MI}t(.*?)${MO}!
+      my($type, $lang, $id) = ($1, $2, $3);
     print STDERR "type=$type, id=$id.\n";
       if(defined $REF{$id}{disp_id}){
 #        $REF{fig}{$id}{id};
@@ -1129,17 +1130,19 @@ EOD
 
 sub reftxt{
   # reftxt('id', 'fig') -> "${MI}nfig=id${MO}"
-  my $par = readpars(\@_, qw/id type/);
-  my($id, $lang, $type) = map {$par->{$_}} qw/id lang type/;
+  my $par        = readpars(\@_, qw/id lang/);
+  my($id, $lang) = map {$par->{$_}} qw/id lang/;
+  my $type       = $REF{$id}{type};
+  my $lang1      = ($lang eq '') ? '' : "${MI}l${lang}";
+  my   $out      = "${MI}n${type}${lang1}${MI}t${id}${MO}";
   if(exists $REF{$id}) {
     (exists $REF{$id}{type}) and $type = $REF{$id}{type};
-    my $out = "${MI}n${type}=t${id}${MO}";
     return($out);
   }else{
     if(defined $type) {
       $REF{$id} = {type=>$type};
     }
-    mes(txt('uref', undef) . ($id) ? " '$id'" : '');
+    #mes(txt('uref', undef) . ($id) ? " '$id'" : '');
     return("${MI}x=$id${MO}");
   }
 }
