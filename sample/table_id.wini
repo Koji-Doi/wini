@@ -5,7 +5,7 @@ lang: 'en'
 |- Here is a caption | #id1 |
 | a | b |
 
-|- | |
+|- | #2 |
 | c | d |
 
 |- | |
@@ -33,12 +33,16 @@ lang: 'ja'
 
 This is sub.
 
+|- Here is a caption, which shold be in Ja | #id3 |
+| a | b |
+
 {{rr|id1|lang=ja}} = id1 ja (subsect: option ja in macro)
 
 {{rr|id1|lang=en}} = id1 en (subsect: option en in macro)
 
 {{rr|id1}} = id1 ja from section val
 
+{{rr|id3}} = id3 ja from section val
 
 ? in en
 

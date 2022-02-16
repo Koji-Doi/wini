@@ -165,6 +165,7 @@ our %MACROS;
 our %VARS;
 our %REF;
 our %REFCOUNT;
+our %REFASSIGN;
 our($MI, $MO);
 our(@INDIR, @INFILE, $OUTFILE);
 our($TEMPLATE, $TEMPLATEDIR);
@@ -321,6 +322,7 @@ sub stand_alone{
   }
   print STDERR "dump for ref: ", Dumper %REF;
   print STDERR "dump for refcount: ", Dumper %REFCOUNT;
+  print STDERR "dump for refassign: ", Dumper %REFASSIGN;
 } # sub stand_alone
 
 {
@@ -355,16 +357,18 @@ sub mes{ # display guide, warning etc. to STDERR
 # $o->{err}: treat $x as error and die
 # $o->{warn}: treat $x as warning and use warn()
 # $o->{q}: do not show caller-related info
+# $o->{ln}: line number
 # $QUIET: show err or warn, but any others are omitted
   chomp $x;
   my $mes;
-  my $ind='';
+  my $ind = '';
   my($mestype, $col) = (exists $o->{err})  ? ('Error',   "\e[37m\e[41m")
                      : (exists $o->{warn}) ? ('Warning', "\e[31m\e[47m") : ('Message', "\e[0m");
+  my $ln = ($o->{ln}) ? ":$o->{ln}" : '';
   if((not exists $o->{q}) and $QUIET==0){
     my $i = 1; my @subs;
     while ( my($pack, $file, $line, $subname, $hasargs, $wantarray, $evaltext, $is_require) = caller( $i++) ){push(@subs, "$line\[$subname]")}
-    $mes = txt('mt', undef, {col=>$col, reset=>"\e[0m", mestype=>txt($mestype)}) . join(' <- ', @subs);
+    $mes = txt('mt', undef, {col=>$col, reset=>"\e[0m", mestype=>txt($mestype), ln=>$ln}) . join(' <- ', @subs);
     print STDERR "${col}$mes\e[0m\n";
     $ind='  ';
   }
@@ -787,20 +791,24 @@ sub markgaab{
     #dereference
 #  print STDERR "\n<<<<REF=",Dumper %REF, ">>>>\n";
 
-  {
+  if(0){ # cancel on trial 220217
     my $seq=0;
     # ref tag: MInidMIljaMIt...
     $r=~s!${MI}n(\w+)(?:${MI}l(.*))?${MI}t(.*?)${MO}!
       my($type, $lang, $id) = ($1, $2, $3);
-    print STDERR "type=$type, id=$id.\n";
       if(defined $REF{$id}{disp_id}){
 #        $REF{fig}{$id}{id};
       }else{
-        if($id=~/^tbl(\d+)$/){
-          $REF{$id}{disp_id} = $1;
+        if(my($id0)=$id=~/^tbl(\d+)$/){
+          $REF{$id}{disp_id} = $id0;
+          $REFASSIGN{$type}{$id0} = 1;
         }else{
           (defined $REFCOUNT{$type}) ? $REFCOUNT{$type}++ : ( $REFCOUNT{$type} = 1);
+          while(defined $REFASSIGN{$type}{$REFCOUNT{$type}}){
+            $REFCOUNT{$type}++;
+          }
           $REF{$id}{disp_id} = $REFCOUNT{$type};
+          $REFASSIGN{$type}{$REFCOUNT{$type}} = 1;
         }
       }
       txt($type, $lang, {n=>$REF{$id}{disp_id}});
@@ -1059,7 +1067,7 @@ sub call_macro{
   ($macroname=~m{^[!-/:-@\[-~]$}) and (not defined $f[0]) and 
     return('&#x'.unpack('H*',$macroname).';'); # char -> ascii code
   ($macroname=~/^\@$/)       and return(term(\@f));
-  ($macroname=~/^(rr|ref)$/i)       and return(reftxt(@f)); #{{ref|id|fig}}
+  ($macroname=~/^(rr|ref)$/i)       and return(reftxt(@f, 'dup=ok')); #{{ref|id|fig}}
   ($macroname=~/^(date|time|dt)$/i) and return(date([@f, "type=$1"],  $opt->{_v}));
   ($macroname=~/^calc$/i)    and return(ev(\@f, $opt->{_v}));
   ($macroname=~/^va$/i)      and return(
@@ -1133,18 +1141,14 @@ EOD
 sub reftxt{
   # reftxt('id', 'fig') -> "${MI}nfig=id${MO}"
   my $par        = readpars(\@_, qw/id type lang/);
-  my($id, $type, $lang) = map {$par->{$_}} qw/id type lang/;
-  ($lang) or $lang = 'en';
+  my($id, $type, $lang, $dup) = map {$par->{$_}} qw/id type lang dup/;
+#  ($lang) or $lang = 'en';
 #  my $type       = $REF{$id}{type};
-  my $lang1      = ($lang eq '') ? '' : "${MI}l${lang}";
-  my   $out      = ($type) ? "${MI}n${type}${lang1}${MI}t${id}${MO}" : "${MI}x=$id${MO}";
-  if(exists $REF{$id}) {
-    txt(mes('did', {id=>$id}), {err=>1});
-  }
-  if(defined $type) {
-    $REF{$id} = {type=>$type};
-
-  }
+  my $lang1 = ($lang eq '') ? '' : "${MI}l${lang}";
+  my $type1 = ($type eq '') ? '' : "${MI}n${type}";
+  my   $out = "${type1}${lang1}${MI}t${id}${MO}";
+  ($dup ne 'ok') and (exists $REF{$id}) and txt(mes('did', {id=>$id}), $lang, {err=>1});
+  (defined $type) and $REF{$id} = {type=>$type};
   return($out);
 }
 
@@ -1823,7 +1827,7 @@ __DATA__
 !dtdowtrad!%a. %b %d, %Y %H:%M:%S!%EY(%Y年)%m月%d日 (%a) %H時%M分%S秒!
 !dci!Input: Dir {{d}}!入力元ディレクトリ: {{d}}!
 !dco!Output: Dir {{d}}!出力先ディレクトリ: {{d}}!
-!did!Duplicated ID:{{id}}!ID:{{ID}}が重複しています!
+!did!Duplicated ID:{{id}}!ID:{{id}}が重複しています!
 !din!Data will be read from STDIN!データは標準入力から読み込みます!
 !elnf!{{d}} for extra library not found!{{d}}が見たらず、エキストラライブラリに登録できません!
 !Error!error!エラー!
@@ -1838,7 +1842,7 @@ __DATA__
 |llf|failed to load library '{{lib}}'|ライブラリロード失敗： {{lib}}|
 !mnf!Cannot find Macro '{{m}}'!マクロ「{{m}}」が見つかりません!
 !Message!Message!メッセージ!
-!mt!{{col}}{{mestype}}{{reset}} from Wini.pm: !{{reset}}Wini.pmより {{col}}{{mestype}}{{reset}}：!
+!mt!{{col}}{{mestype}}{{reset}} at line {{ln}}. !{{reset}}{{ln}}行目にて{{col}}{{mestype}}{{reset}}：!
 !opf!File {{f}} is opened in utf8!{{f}}をutf-8ファイルとして開きます!
 !rout!Result will be output to STDOUT!結果は標準出力に出力されます!
 !snf!Searched {{t}}, but not found!{{t}}の内部を検索しましたが見つかりません!
