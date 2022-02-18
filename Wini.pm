@@ -821,15 +821,14 @@ sub markgaab{
 
 sub deref{
   my($r) = @_;
-  return($r);
   my $seq=0;
   $r=~s!${MI}([^${MI}${MO}]+)(?:${MI}t=([^${MI}${MO}]+))(?:${MI}l=([^${MI}${MO}]+))${MO}!
     my($id, $type, $lang) = ($1, $2, $3);
     if(defined $REF{$id}{disp_id}){
     }else{
-      if(my($id0)=$id=~/^tbl(\d+)$/){
-        $REF{$id}{disp_id} = $id0;
-        $REFASSIGN{$type}{$id0} = 1;
+      if(my($type1, $id1)=$id=~/^(fig|tbl|bib)(\d+)$/){
+        $REF{$id}{disp_id} = $id1;
+        $REFASSIGN{$type}{$id1} = 1;
       }else{
         (defined $REFCOUNT{$type}) ? $REFCOUNT{$type}++ : ( $REFCOUNT{$type} = 1);
         while(defined $REFASSIGN{$type}{$REFCOUNT{$type}}){
@@ -841,6 +840,7 @@ sub deref{
     }
     txt($type, $lang, {n=>$REF{$id}{disp_id}});
   !ge;
+  return($r);
 }
 
 sub whole_html{
@@ -1260,7 +1260,7 @@ sub anchor{
   my $style            = ($opts=~/</) ? "float: left;" : ($opts=~/>/) ? "float: right;" : '';
   ($style) and $style  = qq{ style="$style"};
   my($id)              = $opts=~/#([-\w]+)/;
-  ($id=~/^\d+$/) and $id = "img$id";
+  ($id=~/^\d+$/) and $id = "fig$id";
   my @classes          = $opts=~/\.([-\w]+)/g;
   my($width,$height)   = ($opts=~/(\d+)x(\d+)/)?($1,$2):(0,0);
   my $imgopt           = ($width>0)?qq{ width="$width"}:'';
