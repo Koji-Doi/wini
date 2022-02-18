@@ -320,9 +320,9 @@ sub stand_alone{
     my($htmlout) = to_html($winitxt, {indir=>$ind, dir=>getcwd(), whole=>$whole, cssfile=>$cssfile, title=>$title, cssflameworks=>\@cssflameworks});
     print {$fho} $htmlout;
   }
-  print STDERR "dump for ref: ", Dumper %REF;
-  print STDERR "dump for refcount: ", Dumper %REFCOUNT;
-  print STDERR "dump for refassign: ", Dumper %REFASSIGN;
+#  print STDERR "dump for ref: ", Dumper %REF;
+#  print STDERR "dump for refcount: ", Dumper %REFCOUNT;
+#  print STDERR "dump for refassign: ", Dumper %REFASSIGN;
 } # sub stand_alone
 
 {
@@ -1853,7 +1853,7 @@ __DATA__
 !dci!Input: Dir {{d}}!入力元ディレクトリ: {{d}}!
 !dco!Output: Dir {{d}}!出力先ディレクトリ: {{d}}!
 !did!Duplicated ID:{{id}}!ID:{{id}}が重複しています!
-!din!Data will be read from STDIN!データは標準入力から読み込みます!
+!din!Input:   STDIN!入力元: 標準入力!
 !elnf!{{d}} for extra library not found!{{d}}が見たらず、エキストラライブラリに登録できません!
 !Error!error!エラー!
 |fail|failed|失敗|
@@ -1869,7 +1869,7 @@ __DATA__
 !Message!Message!メッセージ!
 !mt!{{col}}{{mestype}}{{reset}} at line {{ln}}. !{{reset}}{{ln}}行目にて{{col}}{{mestype}}{{reset}}：!
 !opf!File {{f}} is opened in utf8!{{f}}をutf-8ファイルとして開きます!
-!rout!Result will be output to STDOUT!結果は標準出力に出力されます!
+!rout!Output:　　 STDOUT!出力先: 標準出力!
 !snf!Searched {{t}}, but not found!{{t}}の内部を検索しましたが見つかりません!
 !tbl!Table {{n}}!表{{n}}!
 !time!%H:%M:%S!%H時%M分%S秒!
