@@ -1869,7 +1869,7 @@ __DATA__
 !Message!Message!メッセージ!
 !mt!{{col}}{{mestype}}{{reset}} at line {{ln}}. !{{reset}}{{ln}}行目にて{{col}}{{mestype}}{{reset}}：!
 !opf!File {{f}} is opened in utf8!{{f}}をutf-8ファイルとして開きます!
-!rout!Output:　　 STDOUT!出力先: 標準出力!
+!rout!Output:  STDOUT!出力先: 標準出力!
 !snf!Searched {{t}}, but not found!{{t}}の内部を検索しましたが見つかりません!
 !tbl!Table {{n}}!表{{n}}!
 !time!%H:%M:%S!%H時%M分%S秒!
