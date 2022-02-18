@@ -663,10 +663,10 @@ sub to_html{
       }
     !ge;
     (defined $opt->{whole}) and $tmpltxt = whole_html($htmlout, $opt->{title}, $opt);
-    return($tmpltxt);
+    return(deref($tmpltxt));
   }else{ # non-template
     (defined $opt->{whole}) and $htmlout = whole_html($htmlout, $opt->{title}, $opt);
-    return($htmlout, \@html);
+    return(deref($htmlout), \@html);
   }
 } # sub to_html
 
@@ -794,8 +794,8 @@ sub markgaab{
   if(0){ # cancel on trial 220217
     my $seq=0;
     # ref tag: MInidMIljaMIt...
-    $r=~s!${MI}n(\w+)(?:${MI}l(.*))?${MI}t(.*?)${MO}!
-      my($type, $lang, $id) = ($1, $2, $3);
+    $r=~s!${MI}([^${MI}${MO}]+)(?:${MI}t=([^${MI}${MO}]+))(?:${MI}l=([^${MI}${MO}]+))${MO}!
+      my($id, $type, $lang) = ($1, $2, $3);
       if(defined $REF{$id}{disp_id}){
 #        $REF{fig}{$id}{id};
       }else{
@@ -818,6 +818,30 @@ sub markgaab{
 
   return($r, $opt);
 } # sub markgaab
+
+sub deref{
+  my($r) = @_;
+  return($r);
+  my $seq=0;
+  $r=~s!${MI}([^${MI}${MO}]+)(?:${MI}t=([^${MI}${MO}]+))(?:${MI}l=([^${MI}${MO}]+))${MO}!
+    my($id, $type, $lang) = ($1, $2, $3);
+    if(defined $REF{$id}{disp_id}){
+    }else{
+      if(my($id0)=$id=~/^tbl(\d+)$/){
+        $REF{$id}{disp_id} = $id0;
+        $REFASSIGN{$type}{$id0} = 1;
+      }else{
+        (defined $REFCOUNT{$type}) ? $REFCOUNT{$type}++ : ( $REFCOUNT{$type} = 1);
+        while(defined $REFASSIGN{$type}{$REFCOUNT{$type}}){
+          $REFCOUNT{$type}++;
+        }
+        $REF{$id}{disp_id} = $REFCOUNT{$type};
+        $REFASSIGN{$type}{$REFCOUNT{$type}} = 1;
+      }
+    }
+    txt($type, $lang, {n=>$REF{$id}{disp_id}});
+  !ge;
+}
 
 sub whole_html{
   my($x, $title, $opt) = @_;
@@ -1139,19 +1163,18 @@ EOD
 } # env save_quote
 
 sub reftxt{
-  # reftxt('id', 'fig') -> "${MI}nfig=id${MO}"
+  # make temporal ref template, "${MI}id.*{MO}"
   my $par        = readpars(\@_, qw/id type lang/);
   my($id, $type, $lang, $dup) = map {$par->{$_}} qw/id type lang dup/;
 #  ($lang) or $lang = 'en';
 #  my $type       = $REF{$id}{type};
-  my $lang1 = ($lang eq '') ? '' : "${MI}l${lang}";
-  my $type1 = ($type eq '') ? '' : "${MI}n${type}";
-  my   $out = "${type1}${lang1}${MI}t${id}${MO}";
+  my $lang1 = ($lang eq '') ? '' : "${MI}l=${lang}";
+  my $type1 = ($type eq '') ? '' : "${MI}t=${type}";
+  my   $out = "${MI}${id}${type1}${lang1}${MO}";
   ($dup ne 'ok') and (exists $REF{$id}) and txt(mes('did', {id=>$id}), $lang, {err=>1});
   (defined $type) and $REF{$id} = {type=>$type};
   return($out);
 }
-
 
 {
 my %arrows;
@@ -1332,7 +1355,8 @@ sub table{
         $htmlitem[0][0]{copt}{id}[0] = $tbl_id0;
         $tbl_id = sprintf(qq{ id="%s"}, $tbl_id0); # reftxt($tbl_id0, undef, 'tbl')); # for table->caption tag
       }
-    } # if defined $o
+    }# if defined $o
+    ($caption) or $caption = $c;
 
     if(defined $o){
       while($o=~/\&([lrcjsebtm]+)/g){
