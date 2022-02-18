@@ -7,6 +7,7 @@ use Test::More;
 
 use lib '.';
 use Wini;
+init();
 
 sub std{
   my($x)=@_;

@@ -7,7 +7,7 @@ use Test::More;
 
 use lib '.';
 use Wini;
-
+init();
 {
   my($o, undef) = to_html(<<'EOC');
 ===

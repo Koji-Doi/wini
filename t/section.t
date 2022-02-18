@@ -7,6 +7,7 @@ use Test::More;
 
 use lib '.';
 use Wini;
+init();
 
 sub std{
   my($x)=@_;
@@ -17,7 +18,6 @@ sub std{
   $x=~s/> +/>/g;
   return($x);
 }
-
 
 {
   my($o, undef) = to_html(<<'EOC');
