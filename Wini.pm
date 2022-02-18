@@ -1237,6 +1237,7 @@ sub anchor{
   my $style            = ($opts=~/</) ? "float: left;" : ($opts=~/>/) ? "float: right;" : '';
   ($style) and $style  = qq{ style="$style"};
   my($id)              = $opts=~/#([-\w]+)/;
+  ($id=~/^\d+$/) and $id = "img$id";
   my @classes          = $opts=~/\.([-\w]+)/g;
   my($width,$height)   = ($opts=~/(\d+)x(\d+)/)?($1,$2):(0,0);
   my $imgopt           = ($width>0)?qq{ width="$width"}:'';
