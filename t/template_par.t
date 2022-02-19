@@ -1,12 +1,13 @@
 #!/usr/bin/perl
 
-package Text::Markup::Wini;
+#package Text::Markup::Wini;
 use strict;
 use warnings;
 use Test::More;
 
 use lib '.';
 use Wini;
+Text::Markup::Wini::init();
 
 # prepare test wini file
 my @out;

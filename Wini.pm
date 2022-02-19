@@ -166,6 +166,7 @@ our %VARS;
 our %REF;
 our %REFCOUNT;
 our %REFASSIGN;
+our %TXT;
 our($MI, $MO);
 our(@INDIR, @INFILE, $OUTFILE);
 our($TEMPLATE, $TEMPLATEDIR);
@@ -228,6 +229,12 @@ sub init{
   $QUIET      = 0; # 1: suppress most of messages
   $SCRIPTNAME = basename($0);
   $VERSION    = "ver. 1.0alpha rel. 20220114";
+  while(<Text::Markup::Wini::DATA>){
+    chomp;
+    my $sp = '\\' . substr($_, 0, 1);
+    my($id, $en, $ja) = split($sp, substr($_,1));
+    $TXT{$id} = {en=>$en, ja=>$ja};
+  }
 }
 
 # Following function is executed when this script is called as stand-alone script
@@ -325,32 +332,19 @@ sub stand_alone{
 #  print STDERR "dump for refassign: ", Dumper %REFASSIGN;
 } # sub stand_alone
 
-{
-  my %txt;
 sub txt{ # multilingual text from text id
   my($id, $lang, $par) = @_;
   #|fin|completed|終了|
   #id: 'fin', lang:'ja'
   #$par: hash reference for paragraph
   $lang = $lang || $LANG || 'en';
-  if(scalar keys %txt == 0){
-    while(<DATA>){
-      chomp;
-      my $sp = '\\' . substr($_, 0, 1);
-      my($id, $en, $ja) = split($sp, substr($_,1));
-      $txt{$id} = {en=>$en, ja=>$ja};
-    }
-  }
-  (defined $txt{$id}) or mes(txt('ut'). ": '$id'", {warn=>1});
-  my $t = $txt{$id}{$lang} || $txt{$id}{en} || '';
+  (defined $TXT{$id}) or mes(txt('ut'). ": '$id'", {warn=>1});
+  my $t = $TXT{$id}{$lang} || $TXT{$id}{en} || '';
   $t=~s/\{\{(.*?)}}/
-#   (defined $par->{$id}{$lang}) ? $par->{$id}{$lang}
-#  :(defined $par->{$id}{en})    ? $par->{$id}{en}
   (defined $par->{$1})        ? $par->{$1} : 'xxx'; 
   /ge;
   return($t);
-} # sub
-} # sub txt env
+} # sub txt
 
 sub mes{ # display guide, warning etc. to STDERR
   my($x, $o) = @_;
@@ -1837,6 +1831,7 @@ sub array{
 1;
 
 __DATA__
+" <- dummy quotation mark to cancel meddling cperl-mode auto indentation
 !LOCALE!en_US.utf8!ja_JP.utf8!
 !cft!Cannot find template {{t}} in {{d}}!テンプレートファイル{{t}}はディレクトリ{{d}}内に見つかりません!
 !cno!Could not open {{f}}!{{f}}を開けません!
@@ -1870,6 +1865,7 @@ __DATA__
 !mt!{{col}}{{mestype}}{{reset}} at line {{ln}}. !{{reset}}{{ln}}行目にて{{col}}{{mestype}}{{reset}}：!
 !opf!File {{f}} is opened in utf8!{{f}}をutf-8ファイルとして開きます!
 !rout!Output:  STDOUT!出力先: 標準出力!
+!secnames!part chapter section subsection!部 章 節 項!
 !snf!Searched {{t}}, but not found!{{t}}の内部を検索しましたが見つかりません!
 !tbl!Table {{n}}!表{{n}}!
 !time!%H:%M:%S!%H時%M分%S秒!
