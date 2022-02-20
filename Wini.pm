@@ -358,15 +358,19 @@ sub mes{ # display guide, warning etc. to STDERR
   my $ind = '';
   my($mestype, $col) = (exists $o->{err})  ? ('Error',   "\e[37m\e[41m")
                      : (exists $o->{warn}) ? ('Warning', "\e[31m\e[47m") : ('Message', "\e[0m");
-  my $ln = ($o->{ln}) ? ":$o->{ln}" : '';
+#  my $ln = ($o->{ln}) ? ":$o->{ln}" : '';
+  my($p, $f, $l) = caller();
+  my $ln  = (defined $o->{ln}) ? $o->{ln} : $l;
+  my $ln1 = '';
   if((not exists $o->{q}) and $QUIET==0){
+    ($ln) and $ln1 = " at line $ln";
     my $i = 1; my @subs;
     while ( my($pack, $file, $line, $subname, $hasargs, $wantarray, $evaltext, $is_require) = caller( $i++) ){push(@subs, "$line\[$subname]")}
     $mes = txt('mt', undef, {col=>$col, reset=>"\e[0m", mestype=>txt($mestype), ln=>$ln}) . join(' <- ', @subs);
     print STDERR "${col}$mes\e[0m\n";
     $ind='  ';
   }
-  ($QUIET==0) and (exists $o->{ln}) and $x = sprintf("${x} at %d [Wini.pm] ", $o->{ln});
+#  ($QUIET==0) and $x = sprintf("${x}${ln1} [Wini.pm] ", $o->{ln});
   if(exists $o->{err}){
     (($FORCE) and print STDERR "$ind$x\n") or die "$ind$x\n";
   }elsif($o->{warn}){
@@ -804,7 +808,7 @@ sub markgaab{
       }
       txt($type, $lang, {n=>$REF{$id}{disp_id}});
     !ge;
-  }
+  }#cancel
 #  print STDERR "\nAfter deref\n<<<<REF=",Dumper %REF, ">>>>\n";
 
   return($r, $opt);
@@ -813,8 +817,11 @@ sub markgaab{
 sub deref{
   my($r) = @_;
   my $seq=0;
-  $r=~s!${MI}([^${MI}${MO}]+)(?:${MI}t=([^${MI}${MO}]+))(?:${MI}l=([^${MI}${MO}]+))${MO}!
+  $r=~s!${MI}([^${MI}${MO}]+)(?:${MI}t=([^${MI}${MO}]+))?(?:${MI}l=([^${MI}${MO}]+))?${MO}!
     my($id, $type, $lang) = ($1, $2, $3);
+    if(not $type and not $REF{$id}){
+      mes(txt('idnd', '', {id=>$id}), {err=>1});
+    }
     if(defined $REF{$id}{disp_id}){
     }else{
       if(my($type1, $id1)=$id=~/^(fig|tbl|bib)(\d+)$/){
@@ -1853,7 +1860,8 @@ __DATA__
 !fig!Fig. {{n}}!図{{n}}!
 |fin|completed|終了|
 !fnf!File not found!ファイルが見つかりません!
-!ftf!Found {{t}} as template file!テンプレートファイル{{t}}が見つかりました
+!ftf!Found {{t}} as template file!テンプレートファイル{{t}}が見つかりました!
+!idnd!ID {{id}} not defined!ID '{{id}}'は定義されていません!
 !if!input file:!入力ファイル：!
 |ll|loaded library: {{lib}}|ライブラリロード完了： {{lib}}|
 |llf|failed to load library '{{lib}}'|ライブラリロード失敗： {{lib}}|
