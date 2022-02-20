@@ -621,7 +621,6 @@ sub to_html{
     my %maintxt;
     foreach my $html (@html){
       my($id, $txt) = ($html->{sect_id}, $html->{txt});
-      #$htmlout =~ s!\{\{v\|${id}}}!$txt!ge;
       $maintxt{$id} = $txt;
     }
 
@@ -642,9 +641,7 @@ sub to_html{
             mes(txt('snf', {t=>$t}), {q=>1});
           }
         }
-#        mes(txt('cft', )"Cannot find template '$TEMPLATE' in '" . join(q{', '}, @testdirs) . "'.", {err=>1});
         mes(txt('cft', undef, {t=>$TEMPLATE, d=>join(q{', '}, @testdirs)}), {err=>1});
-
       }  # L1
     }
     open(my $fhi, '<:utf8', $template);
