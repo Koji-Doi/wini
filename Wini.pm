@@ -823,6 +823,9 @@ sub deref{
       mes(txt('idnd', '', {id=>$id}), {err=>1});
     }
     if(defined $REF{$id}{disp_id}){
+      $type = $REF{$id}{type} || mes(txt('idnd', '', {id=>$id}), {err=>1});
+      $REFASSIGN{$type}{$id} = 1;
+      (defined $REFCOUNT{$type}) ? $REFCOUNT{$type}++ : ( $REFCOUNT{$type} = 1);
     }else{
       if(my($type1, $id1)=$id=~/^(fig|tbl|bib)(\d+)$/){
         $REF{$id}{disp_id} = $id1;
