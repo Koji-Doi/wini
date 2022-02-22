@@ -1083,30 +1083,31 @@ sub call_macro{
     return(span(\@f, $class_id));
 #    return(($class_id) ? qq!<span${class_id}>$f[0]</span>! : $f[0]);
   }
-  (defined $MACROS{$macroname}) and return($MACROS{$macroname}(@f));
-  ($macroname=~/^l$/i)       and return('&#x7b;'); # {
-  ($macroname=~/^bar$/i )    and return('&#x7c;'); # |
-  ($macroname=~/^r$/i)       and return('&#x7d;'); # }
+  (defined $MACROS{$macroname})   and return($MACROS{$macroname}(@f));
+  ($macroname=~/^l$/i)            and return('&#x7b;'); # {
+  ($macroname=~/^bar$/i )         and return('&#x7c;'); # |
+  ($macroname=~/^r$/i)            and return('&#x7d;'); # }
   ($macroname=~/^([=-]([fh*]*-)?+[>v^ud]+|[<v^ud]+[=-]([fh*]*-)?+)/i)
-                             and return(arrow($macroname, @f));
+                                  and return(arrow($macroname, @f));
   ($macroname=~m{^[!-/:-@\[-~]$}) and (not defined $f[0]) and 
     return('&#x'.unpack('H*',$macroname).';'); # char -> ascii code
-  ($macroname=~/^\@$/)       and return(term(\@f));
-  ($macroname=~/^(rr|ref)$/i)       and return(reftxt(@f, 'dup=ok')); #{{ref|id|fig}}
+  ($macroname=~/^\@$/)            and return(term(\@f));
+  ($macroname=~/^bib$/i)          and return(bib(@f));
+  ($macroname=~/^(rr|ref)$/i)     and return(reftxt(@f, 'dup=ok')); #{{ref|id|fig}}
   ($macroname=~/^(date|time|dt)$/i) and return(date([@f, "type=$1"],  $opt->{_v}));
-  ($macroname=~/^calc$/i)    and return(ev(\@f, $opt->{_v}));
-  ($macroname=~/^va$/i)      and return(
+  ($macroname=~/^calc$/i)         and return(ev(\@f, $opt->{_v}));
+  ($macroname=~/^va$/i)           and return(
     (defined $opt->{_v}{$f[0]}) ? $opt->{_v}{$f[0]} : (mes(txt('vnd', {v=>$f[0]}), {warn=>1}), '')
   );
-  ($macroname=~/^envname$/i) and return($ENVNAME);
-  ($macroname=~/^([oun]l)$/) and return(listmacro($1, \@f));
-  ($macroname=~/^[IBUS]$/)   and $_=lc($macroname), return("<$_${class_id}>$f[0]</$_>");
-  ($macroname eq 'i')        and return(qq!<span${class_id} style="font-style:italic;">$f[0]</span>!);
-  ($macroname eq 'b')        and return(qq!<span${class_id} style="font-weight:bold;">$f[0]</span>!);
-  ($macroname eq 'u')        and return(qq!<span${class_id} style="border-bottom: solid 1px;">$f[0]</span>!);
-  ($macroname eq 's')        and return(qq!<span${class_id} style="text-decoration: line-through;">$f[0]</span>!);
-  ($macroname=~/^ruby$/i)    and return(ruby(@f));
-  ($macroname=~/^v$/i)       and return(qq!<span class="tategaki">$f[0]</span>!);
+  ($macroname=~/^envname$/i)      and return($ENVNAME);
+  ($macroname=~/^([oun]l)$/i)     and return(listmacro($1, \@f));
+  ($macroname=~/^[IBUS]$/)        and $_=lc($macroname), return("<$_${class_id}>$f[0]</$_>");
+  ($macroname eq 'i')             and return(qq!<span${class_id} style="font-style:italic;">$f[0]</span>!);
+  ($macroname eq 'b')             and return(qq!<span${class_id} style="font-weight:bold;">$f[0]</span>!);
+  ($macroname eq 'u')             and return(qq!<span${class_id} style="border-bottom: solid 1px;">$f[0]</span>!);
+  ($macroname eq 's')             and return(qq!<span${class_id} style="text-decoration: line-through;">$f[0]</span>!);
+  ($macroname=~/^ruby$/i)         and return(ruby(@f));
+  ($macroname=~/^v$/i)            and return(qq!<span class="tategaki">$f[0]</span>!);
 
   ($macroname=~m!([-_/*]+[-_/* ]*)!) and return(symmacro($1, $f[0]));
 
@@ -1162,6 +1163,14 @@ EOD
   }
 } # sub save_quote
 } # env save_quote
+
+sub bib{
+  my($pars) = readpars(\@_, qw/id type au ye jo vo is pp title pu lang url doi form/);
+  my $id    = $pars->{id};
+  (exists $REF{$id}) and mes(txt('did', '', {id=>$id}), {err=>1});
+  my $x = reftxt("id=$id", "type=bib", ($pars->{lang}) ? "lang=$pars->{lang}" : undef);
+  return("x=$x");
+}
 
 sub reftxt{
   # make temporal ref template, "${MI}id.*{MO}"
