@@ -784,7 +784,6 @@ sub markgaab{
   #(defined $opt->{whole}) and $r = whole_html($r, $title, $opt);
   ($opt->{table}) or $r=~s/[\s\n\r]*$//;
     #dereference
-#  print STDERR "\n<<<<REF=",Dumper %REF, ">>>>\n";
 
   if(0){ # cancel on trial 220217
     my $seq=0;
@@ -809,7 +808,6 @@ sub markgaab{
       txt($type, $lang, {n=>$REF{$id}{disp_id}});
     !ge;
   }#cancel
-#  print STDERR "\nAfter deref\n<<<<REF=",Dumper %REF, ">>>>\n";
 
   return($r, $opt);
 } # sub markgaab
@@ -827,7 +825,7 @@ sub deref{
       $REFASSIGN{$type}{$id} = 1;
       (defined $REFCOUNT{$type}) ? $REFCOUNT{$type}++ : ( $REFCOUNT{$type} = 1);
     }else{
-      if(my($type1, $id1)=$id=~/^(fig|tbl|bib)(\d+)$/){
+      if(my($type1, $id1)=$id=~/^(fig|tbl|bib|h|s)(\d+)$/){
         $REF{$id}{disp_id} = $id1;
         $REFASSIGN{$type}{$id1} = 1;
       }else{
@@ -842,7 +840,7 @@ sub deref{
     txt($type, $lang, {n=>$REF{$id}{disp_id}});
   !ge;
   return($r);
-}
+} # sub deref
 
 sub whole_html{
   my($x, $title, $opt) = @_;
@@ -1169,7 +1167,7 @@ sub bib{
   my $id    = $pars->{id};
   (exists $REF{$id}) and mes(txt('did', '', {id=>$id}), {err=>1});
   my $x = reftxt("id=$id", "type=bib", ($pars->{lang}) ? "lang=$pars->{lang}" : undef);
-  return("x=$x");
+  return($x);
 }
 
 sub reftxt{
@@ -1849,6 +1847,7 @@ sub array{
 __DATA__
 " <- dummy quotation mark to cancel meddling cperl-mode auto indentation
 !LOCALE!en_US.utf8!ja_JP.utf8!
+!bib! [{{n}}] ! [{{n}}] !
 !cft!Cannot find template {{t}} in {{d}}!テンプレートファイル{{t}}はディレクトリ{{d}}内に見つかりません!
 !cno!Could not open {{f}}!{{f}}を開けません!
 !conv!Conv {{from}} -> {{to}}!変換 {{from}} -> {{to}}!
