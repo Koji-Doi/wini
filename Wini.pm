@@ -327,7 +327,7 @@ sub stand_alone{
     my($htmlout) = to_html($winitxt, {indir=>$ind, dir=>getcwd(), whole=>$whole, cssfile=>$cssfile, title=>$title, cssflameworks=>\@cssflameworks});
     print {$fho} $htmlout;
   }
-#  print STDERR "dump for ref: ", Dumper %REF;
+  print STDERR "dump for ref: ", Dumper %REF;
 #  print STDERR "dump for refcount: ", Dumper %REFCOUNT;
 #  print STDERR "dump for refassign: ", Dumper %REFASSIGN;
 } # sub stand_alone
@@ -780,35 +780,7 @@ sub markgaab{
     close $fho;
   }
   (defined $footnotes{'_'}[0]) and $r .= qq{<hr>\n<footer>\n<ul style="list-style:none;">\n} . join("\n", (map {"<li>$_</li>"}  @{$footnotes{'_'}})) . "\n</ul>\n</footer>\n";
-  #(defined $section) and $r.="</section>\n";
-  #(defined $opt->{whole}) and $r = whole_html($r, $title, $opt);
   ($opt->{table}) or $r=~s/[\s\n\r]*$//;
-    #dereference
-
-  if(0){ # cancel on trial 220217
-    my $seq=0;
-    # ref tag: MInidMIljaMIt...
-    $r=~s!${MI}([^${MI}${MO}]+)(?:${MI}t=([^${MI}${MO}]+))(?:${MI}l=([^${MI}${MO}]+))${MO}!
-      my($id, $type, $lang) = ($1, $2, $3);
-      if(defined $REF{$id}{disp_id}){
-#        $REF{fig}{$id}{id};
-      }else{
-        if(my($id0)=$id=~/^tbl(\d+)$/){
-          $REF{$id}{disp_id} = $id0;
-          $REFASSIGN{$type}{$id0} = 1;
-        }else{
-          (defined $REFCOUNT{$type}) ? $REFCOUNT{$type}++ : ( $REFCOUNT{$type} = 1);
-          while(defined $REFASSIGN{$type}{$REFCOUNT{$type}}){
-            $REFCOUNT{$type}++;
-          }
-          $REF{$id}{disp_id} = $REFCOUNT{$type};
-          $REFASSIGN{$type}{$REFCOUNT{$type}} = 1;
-        }
-      }
-      txt($type, $lang, {n=>$REF{$id}{disp_id}});
-    !ge;
-  }#cancel
-
   return($r, $opt);
 } # sub markgaab
 
@@ -994,7 +966,7 @@ sub term{
   my($p) = @_;
   my $par = readpars($p, qw/abbr text dfn list/);
   my $out;
-  if($par->{list}){
+  if($par->{list}[-1]){
     $out = qq!\n<ul class="abbrlist">\n!;
     foreach my $t (sort keys %abbr){
       $out .= "<li> <abbr>$t</abbr>: $abbr{$t}</li>\n";
@@ -1002,12 +974,12 @@ sub term{
     $out .= "</ul>";
     return($out);
   }
-  if($par->{abbr}){
-    my $ab = ($par->{text}) ? qq!<abbr title="$par->{text}">$par->{abbr}</abbr>! : qq!<abbr>$par->{abbr}</abbr>!;
-    $out = ($par->{dfn}) ? qq!<dfn>$ab</dfn>! : $ab;
-    $abbr{$par->{abbr}} = $par->{text};
+  if($par->{abbr}[0]){
+    my $ab = ($par->{text}[-1]) ? qq!<abbr title="$par->{text}[-1]">$par->{abbr}</abbr>! : qq!<abbr>$par->{abbr}[-1]</abbr>!;
+    $out = ($par->{dfn}[-1]) ? qq!<dfn>$ab</dfn>! : $ab;
+    $abbr{$par->{abbr}[-1]} = $par->{text}[-1];
   }else{
-    $out = ($par->{text}) ? '<dfn>' . $par->{text} . '</dfn>' : '';
+    $out = ($par->{text}[-1]) ? '<dfn>' . $par->{text}[-1] . '</dfn>' : '';
   }
   return($out);
 }
@@ -1092,6 +1064,7 @@ sub call_macro{
   ($macroname=~/^\@$/)            and return(term(\@f));
   ($macroname=~/^bib$/i)          and return(bib(@f));
   ($macroname=~/^(rr|ref)$/i)     and return(reftxt(@f, 'dup=ok')); #{{ref|id|fig}}
+  ($macroname=~/^biblist$/i)      and return(biblist());
   ($macroname=~/^(date|time|dt)$/i) and return(date([@f, "type=$1"],  $opt->{_v}));
   ($macroname=~/^calc$/i)         and return(ev(\@f, $opt->{_v}));
   ($macroname=~/^va$/i)           and return(
@@ -1120,14 +1093,14 @@ sub readpars{
 
   foreach my $x (@par0){
     if(my($k,$v) = $x=~/(\w+)\s*=\s*(.*)\s*/){
-      $pars{$k}=$v;
+      push(@{$pars{$k}}, $v);
     }else{
       push(@pars, $x);
     }
   }
 
   foreach my $k (@list){
-    (exists $pars{$k}) or $pars{$k} = shift(@pars);
+    (exists $pars{$k}) or push(@{$pars{$k}}, shift(@pars));
   }
   return(\%pars);
 }
@@ -1162,18 +1135,29 @@ EOD
 } # sub save_quote
 } # env save_quote
 
+sub biblist{
+  my $out = '';
+  foreach my $k (grep {exists $REF{$_}{type} and $REF{$_}{type} eq 'bib'} keys %REF){
+    $out .= "* $k\n";
+  }
+  return($out);
+}
+
 sub bib{
   my($pars) = readpars(\@_, qw/id type au ye jo vo is pp title pu lang url doi form/);
-  my $id    = $pars->{id};
+  my $id    = $pars->{id}[-1];
+  my $aus   = (defined $pars->{au}) ? join('; ', @{$pars->{au}}) : '';
+  my $au1   = (defined $pars->{au}) ? $pars->{au}[0] : '';
   (exists $REF{$id}) and mes(txt('did', '', {id=>$id}), {err=>1});
-  my $x = reftxt("id=$id", "type=bib", ($pars->{lang}) ? "lang=$pars->{lang}" : undef);
+  my $x = reftxt("id=$id", "type=bib", ($pars->{lang}[-1]) ? "lang=$pars->{lang}[-1]" : undef);
+  $REF{$id}{text} = sprintf("%s, %s", $au1, ($pars->{yr}[-1]||''));
   return($x);
 }
 
 sub reftxt{
   # make temporal ref template, "${MI}id.*{MO}"
   my $par        = readpars(\@_, qw/id type lang/);
-  my($id, $type, $lang, $dup) = map {$par->{$_}} qw/id type lang dup/;
+  my($id, $type, $lang, $dup) = map {$par->{$_}[-1]} qw/id type lang dup/;
 #  ($lang) or $lang = 'en';
 #  my $type       = $REF{$id}{type};
   my $lang1 = ($lang eq '') ? '' : "${MI}l=${lang}";
@@ -1846,49 +1830,49 @@ sub array{
 
 __DATA__
 " <- dummy quotation mark to cancel meddling cperl-mode auto indentation
-!LOCALE!en_US.utf8!ja_JP.utf8!
-!bib! [{{n}}] ! [{{n}}] !
-!cft!Cannot find template {{t}} in {{d}}!テンプレートファイル{{t}}はディレクトリ{{d}}内に見つかりません!
-!cno!Could not open {{f}}!{{f}}を開けません!
-!conv!Conv {{from}} -> {{to}}!変換 {{from}} -> {{to}}!
-!date!%Y-%m-%d!%Y年%m月%d日!
-!date_days!Sun Mon Tue Wed Thu Fri Sat!日 月 火 水 木 金 土!
-!datedow!%a. %Y-%m-%d!%Y年%m月%d日 (%a)!
-!datetrad!%b %d, %Y!%EY(%Y年)%m月%d日!
-!datedowtrad!%a. %b %d, %Y!%EY(%Y年)%m月%d日 (%a)!
-!dt!%Y-%m-%dT%H:%M:%S!%Y年%m月%d日 %H時%M分%S秒!
-!dtdow!%a. %Y-%m-%dT%H:%M:%S!%Y年%m月%d日 (%a) %H時%M分%S秒!
-!dttrad!%b %d, %Y %H:%M:%S!%EY(%Y年)%m月%d日 %H時%M分%S秒!
-!dtdowtrad!%a. %b %d, %Y %H:%M:%S!%EY(%Y年)%m月%d日 (%a) %H時%M分%S秒!
-!dci!Input: Dir {{d}}!入力元ディレクトリ: {{d}}!
-!dco!Output: Dir {{d}}!出力先ディレクトリ: {{d}}!
-!did!Duplicated ID:{{id}}!ID:{{id}}が重複しています!
-!din!Input:   STDIN!入力元: 標準入力!
-!elnf!{{d}} for extra library not found!{{d}}が見たらず、エキストラライブラリに登録できません!
-!Error!error!エラー!
+|LOCALE|en_US.utf8|ja_JP.utf8|
+|bib| [{{n}}] | [{{n}}] |
+|cft|Cannot find template {{t}} in {{d}}|テンプレートファイル{{t}}はディレクトリ{{d}}内に見つかりません|
+|cno|Could not open {{f}}|{{f}}を開けません|
+|conv|Conv {{from}} -> {{to}}|変換 {{from}} -> {{to}}|
+|date|%Y-%m-%d|%Y年%m月%d日|
+|date_days|Sun Mon Tue Wed Thu Fri Sat|日 月 火 水 木 金 土|
+|datedow|%a. %Y-%m-%d|%Y年%m月%d日 (%a)|
+|datetrad|%b %d, %Y|%EY(%Y年)%m月%d日|
+|datedowtrad|%a. %b %d, %Y|%EY(%Y年)%m月%d日 (%a)|
+|dt|%Y-%m-%dT%H:%M:%S|%Y年%m月%d日 %H時%M分%S秒|
+|dtdow|%a. %Y-%m-%dT%H:%M:%S|%Y年%m月%d日 (%a) %H時%M分%S秒|
+|dttrad|%b %d, %Y %H:%M:%S|%EY(%Y年)%m月%d日 %H時%M分%S秒|
+|dtdowtrad|%a. %b %d, %Y %H:%M:%S|%EY(%Y年)%m月%d日 (%a) %H時%M分%S秒|
+|dci|Input: Dir {{d}}|入力元ディレクトリ: {{d}}|
+|dco|Output: Dir {{d}}|出力先ディレクトリ: {{d}}|
+|did|Duplicated ID:{{id}}|ID:{{id}}が重複しています|
+|din|Input:   STDIN|入力元: 標準入力|
+|elnf|{{d}} for extra library not found|{{d}}が見たらず、エキストラライブラリに登録できません|
+|Error|error|エラー|
 |fail|failed|失敗|
-!fci!File {{f}} is chosen as input!ファイル{{f}}が入力元ファイルです!
-!fig!Fig. {{n}}!図{{n}}!
+|fci|File {{f}} is chosen as input|ファイル{{f}}が入力元ファイルです|
+|fig|Fig. {{n}}|図{{n}}|
 |fin|completed|終了|
-!fnf!File not found!ファイルが見つかりません!
-!ftf!Found {{t}} as template file!テンプレートファイル{{t}}が見つかりました!
-!idnd!ID {{id}} not defined!ID '{{id}}'は定義されていません!
-!if!input file:!入力ファイル：!
+|fnf|File not found|ファイルが見つかりません|
+|ftf|Found {{t}} as template file|テンプレートファイル{{t}}が見つかりました|
+|idnd|ID {{id}} not defined|ID '{{id}}'は定義されていません|
+|if|input file:|入力ファイル：|
 |ll|loaded library: {{lib}}|ライブラリロード完了： {{lib}}|
 |llf|failed to load library '{{lib}}'|ライブラリロード失敗： {{lib}}|
-!mnf!Cannot find Macro '{{m}}'!マクロ「{{m}}」が見つかりません!
-!Message!Message!メッセージ!
-!mt!{{col}}{{mestype}}{{reset}} at line {{ln}}. !{{reset}}{{ln}}行目にて{{col}}{{mestype}}{{reset}}：!
-!opf!File {{f}} is opened in utf8!{{f}}をutf-8ファイルとして開きます!
-!rout!Output:  STDOUT!出力先: 標準出力!
-!secnames!part chapter section subsection!部 章 節 項!
-!snf!Searched {{t}}, but not found!{{t}}の内部を検索しましたが見つかりません!
-!tbl!Table {{n}}!表{{n}}!
-!time!%H:%M:%S!%H時%M分%S秒!
-!timetrad!%H:%M:%S!%H時%M分%S秒!
-!timedowtrad!%H:%M:%S!%H時%M分%S秒!
+|mnf|Cannot find Macro '{{m}}'|マクロ「{{m}}」が見つかりません|
+|Message|Message|メッセージ|
+|mt|{{col}}{{mestype}}{{reset}} at line {{ln}}. |{{reset}}{{ln}}行目にて{{col}}{{mestype}}{{reset}}：|
+|opf|File {{f}} is opened in utf8|{{f}}をutf-8ファイルとして開きます|
+|rout|Output:  STDOUT|出力先: 標準出力|
+|secnames|part chapter section subsection|部 章 節 項|
+|snf|Searched {{t}}, but not found|{{t}}の内部を検索しましたが見つかりません|
+|tbl|Table {{n}}|表{{n}}|
+|time|%H:%M:%S|%H時%M分%S秒|
+|timetrad|%H:%M:%S|%H時%M分%S秒|
+|timedowtrad|%H:%M:%S|%H時%M分%S秒|
 |ttap|trying to add {{path}} into library directory|{{path}}のライブラリディレクトリへの追加を試みます|
 |ut|undefined text|未定義のテキスト|
-!uref!undefined label!未定義のラベル!
-!vnd!Variable '{{v}}' not defined!変数{{v}}が定義されていません!
-!Warning!Warning!警告!
+|uref|undefined label|未定義のラベル|
+|vnd|Variable '{{v}}' not defined|変数{{v}}が定義されていません|
+|Warning|Warning|警告|
