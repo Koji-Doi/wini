@@ -1143,6 +1143,69 @@ sub biblist{
   return($out);
 }
 
+sub refval0{
+  my @x = ({
+  'au' => ["Kirk,  James T.", "Suzuki, Taro", "Yamada, Hanako", "McDonald, Ronald"],
+  'ti' => "A study of biologists' endurance in research settings.",
+  'jo' => "Journal of Negative data in Biology",
+  "ye" => 2022,
+  "vo" => 2,
+  "is" => 2,
+  "pp" => "100-110",
+  'url' => "http://example.com/jndb/2022_2_2_100",
+  'doi' => "00.00000/ZZZZZ00/0000",
+  },{
+   'au' => ["山岡, 士郎", "栗田, ゆう子", "海原, 雄山"],
+   'ti' => "究極のメニューとは何か？",
+   'ye' => 2022,
+   'url' => "http://example.com/2022_1",
+   'pu'  => "東西新聞社"
+  });
+
+  my $form = "[au|1|lf]; [au|2-3|lf|j: ]; [au|4-|etal]; [ye]. [ti]. {{/|[jo]}} [vo][issue|p()]:[pp].";
+  my $f= $form;
+  $f=~s/\[(.*?)\]/refval($x[0], $1)/ge;
+  print STDERR refval($f);
+  return($f);
+}
+
+sub refval{
+ my($x, $form) = @_;
+ (defined $x and defined $form) or return();
+ my($valname, @filter) = split(/\|/, $form);
+ my $y = (ref $x->{$valname} eq 'ARRAY') ? $x->{$valname} : [$x->{$valname}];
+ foreach my $f (@filter){
+   if($f eq '1'){
+     $y=[$y->[0]];
+   }elsif($f eq 'lf' or $f eq 'lfi'){ # Last, First
+     $y = [map {
+       my($last, $first) = /([^,]*), *(.*)/;
+       ($f eq 'lfi') and ($last, $first) = ((uc substr($last,0,1)), (uc substr($first,0,1)));
+       "${last}, ${first}"
+     } @$y];
+   }elsif($f eq 'fl' or $f eq 'fli'){ # First Last
+     $y = [map {my($last, $first) = /([^,]*), +(.*)/; "${first} ${last}"} @$y ];
+   }elsif($f eq 'uu'){
+     $y = [map {uc $_} @$y];
+   }elsif($f eq 'u'){
+     $y = [map {ucfirst(lc $_)} @$y];
+   }elsif($f=~/(\d)+(?:-(\d+))?/){
+     my($first,$last) = ($1-1, ($2||scalar @$y)-1);
+     $y = [@$y[$first..$last]];
+   }elsif($f=~/^j(.*)$/){
+     my $sep = $1 || ' ';
+     $y = [ join($sep, @$y) ];
+   }elsif($f=~/^l(.*)$/){ # "abc"|l* -> "*abc"
+   }elsif($f=~/^r(.*)$/){ # "abc"|r* -> "abc*"
+   }elsif($f=~/^p(.)(.)$/){ # "abc"|p() -> "(abc)"
+     $y = [ map {$1 . $_ . $2} @$y];
+   }elsif($f=~/^etal(\d*)$/){
+   }
+ }
+ return($y->[-1]);
+}
+
+
 sub bib{
   my($pars) = readpars(\@_, qw/id type au ye jo vo is pp title pu lang url doi form/);
   my $id    = $pars->{id}[-1];
