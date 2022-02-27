@@ -1768,25 +1768,25 @@ sub date{
   # $x: array reference containing parameters from '{{date|...}}'
   # $x->[0]: 2021-12-17 or 2021-12-17T21:22:23
   # $x->[3]: output data type: 'd', 't', 'dt'
-  # $v->{lang}: ja or en
+  # $v->{lang}[0]: ja or en
   my $p = readpars($x, qw/date weekday trad lang type/);
-  my $type = $p->{type} || 'date';
-  my $lang = $p->{lang} || $v->{lang} || '';
+  my $type = $p->{type}[0] || 'date';
+  my $lang = $p->{lang}[0] || $v->{lang} || '';
   my $lc0  = setlocale(LC_ALL, txt('LOCALE', $lang));
   my @days = split(/\s+/, txt('date_days', $lang));
-  my $form0= $p->{type}.(('', qw/dow trad dowtrad/)[($p->{weekday}>0)+($p->{trad}>0)*2]);
+  my $form0= $p->{type}[0].(('', qw/dow trad dowtrad/)[($p->{weekday}[0]>0)+($p->{trad}[0]>0)*2]);
   my $form = txt($form0, $lang);
   my $t;
-  ($p->{date}) or $p->{date} = localtime->datetime;
-  my @n = split("[-/.T]", $p->{date});
-  if($p->{date}=~/\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d/){
-    $t = Time::Piece->strptime($p->{date}, "%Y-%m-%dT%H:%M:%S");
+  ($p->{date}[0]) or $p->{date}[0] = localtime->datetime;
+  if($p->{date}[0]=~/\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d/){
+    $t = Time::Piece->strptime($p->{date}[0], "%Y-%m-%dT%H:%M:%S");
   }else{
+    my @n = split("[-/.T]", $p->{date}[0]);
     eval{ $t = Time::Piece->strptime("$n[0]-$n[1]-$n[2]", "%Y-%m-%d") };
-      $@ and mes("Invalid date format: '$p->{date}'", {err=>1, ln=>__LINE__});
+      $@ and mes("Invalid date format: '$p->{date}[0]'", {err=>1, ln=>__LINE__});
   }
   
-  if(($type eq 'd' or $type eq 'dt') and $p->{weekday}){ # weekday name
+  if(($type eq 'd' or $type eq 'dt') and $p->{weekday}[0]){ # weekday name
     my $wd = $t->day(@days); # Sun, Mon, ...
     $form=~s/%a/$wd/g;
   }
