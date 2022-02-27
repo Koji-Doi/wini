@@ -1162,10 +1162,19 @@ sub refval0{
    'pu'  => "東西新聞社"
   });
 
-  my $form = "[au|1|lf]; [au|2-3|lf|j: ]; [au|4-|etal]; [ye]. [ti]. {{/|[jo]}} [vo][issue|p()]:[pp].";
-  my $f= $form;
-  $f=~s/\[(.*?)\]/refval($x[0], $1)/ge;
-  print STDERR refval($f);
+#  my $form = "[au|1|lf]; [au|2-3|lf|j: ]; [au|4-|etal]; [ye]. [ti]. {{/|[jo]}} [vo][issue|p()]:[pp].";
+#  my $f= $form;
+  #  $f=~s/\[(.*?)\]/refval($x[0], $1)/ge;
+  #  print STDERR refval($f);
+  my $f = citetxt($x[0]);
+  return($f);
+}
+
+sub citetxt{
+  my($x, $f) = @_; # $x: hash ref representing a bib
+  (defined $x) or $x = {au=>['Tanaka, Taro', 'Yamada, Jiro'], ti=>'XXX', ye=>2021}; # test
+  (defined $f) or $f = "[au|1|lf][au|2-3|lf|l; |j] [au|4-|etal|r;] [ye]. [ti]. {{/|[jo]}} [vo][issue|p()]:[pp].";
+  $f=~s/\[(.*?)\]/refval($x, $1)/ge;
   return($f);
 }
 
@@ -1191,12 +1200,16 @@ sub refval{
      $y = [map {ucfirst(lc $_)} @$y];
    }elsif($f=~/(\d)+(?:-(\d+))?/){
      my($first,$last) = ($1-1, ($2||scalar @$y)-1);
-     $y = [@$y[$first..$last]];
+     $y = [grep {defined $_ and $_ ne ''} @$y[$first..$last]];
    }elsif($f=~/^j(.*)$/){
      my $sep = $1 || ' ';
      $y = [ join($sep, @$y) ];
    }elsif($f=~/^l(.*)$/){ # "abc"|l* -> "*abc"
+     my $p = $1;
+     $y = [map {s/^\s*//; "$p$_"} @$y];
    }elsif($f=~/^r(.*)$/){ # "abc"|r* -> "abc*"
+     my $p = $1;
+     $y = [map {s/\s*$//; "$_$p"} @$y];
    }elsif($f=~/^p(.)(.)$/){ # "abc"|p() -> "(abc)"
      $y = [ map {$1 . $_ . $2} @$y];
    }elsif($f=~/^etal(\d*)$/){
