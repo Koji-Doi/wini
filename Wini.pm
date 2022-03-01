@@ -269,6 +269,9 @@ sub stand_alone{
     mes((defined $r) ? txt('ll', undef, {lib=>$lib}) : txt('llf', undef, {lib=>$lib}));
   }
 
+  #test
+  print STDERR "WWWW>>> ", citetxt(); exit;
+
   (defined $cssflameworks[0]) and ($cssflameworks[0] eq '') and $cssflameworks[0]='https://unpkg.com/mvp.css'; # 'https://newcss.net/new.min.css';
   ($test) and ($INFILE[0], $OUTFILE)=("test.wini", "test.html");
 
@@ -1169,8 +1172,9 @@ sub refval0{
 
 sub citetxt{
   my($x, $f) = @_; # $x: hash ref representing a bib
-  (defined $x) or $x = {au=>['Tanaka, Taro', 'Yamada, Jiro'], ti=>'XXX', ye=>2021}; # test
-  (defined $f) or $f = "[au|1|lf][au|2-3|lf|l; |j] [au|4-|etal|r;] [ye]. [ti]. {{/|[jo]}} [vo][issue|p()]:[pp].";
+  (defined $x) or $x = {au=>['Kirk, James T.', 'Tanaka, Taro', 'Yamada, Jiro', 'McDonald, Ronald'], ti=>'XXX', ye=>2021}; # test
+  #  (defined $f) or $f = "[au|1|lf][au|2-3|lf|l; |j] [au|4-|etal|r;] [ye]. [ti]. {{/|[jo]}} [vo][issue|p()]:[pp].";
+  (defined $f) or $f = '[au|j;&e2]';
   $f=~s/\[(.*?)\]/refval($x, $1)/ge;
   return($f);
 }
@@ -1195,7 +1199,7 @@ sub refval{
      $y = [map {uc $_} @$y];
    }elsif($f eq 'u'){
      $y = [map {ucfirst(lc $_)} @$y];
-   }elsif($f=~/(\d)+(?:-(\d+))?/){
+   }elsif($f=~/^(\d)+(?:-(\d+))?$/){
      my($first,$last) = ($1-1, ($2||scalar @$y)-1);
      $y = [grep {defined $_ and $_ ne ''} @$y[$first..$last]];
    }elsif($f=~/^j(.*)$/){
@@ -1206,10 +1210,16 @@ sub refval{
      # j;&: a; b & c
      # je2: a et al.
      # je3: a, b et al.
-     my($is_c, $is_s, $and, $etal) = map {$f=~/$_/} qw/, ; a & e\d/;
-print STDERR qq($is_c, $is_s, $and, $etal\n);
-     my $sep = $1 || ' ';
-     $y = [ join($sep, @$y) ];
+     my($is_c, $is_s, $and, $amp, $etal) = map {$f=~/$_/ or 0} qw/, ; a & e\d/;
+     my $sep = ($is_c) ? ', ' : ($is_s) ? '; ' : ' ';
+     if($etal){
+       ($etal) = $f=~/e(\d+)/;
+          print STDERR qq(refval: is_c=$is_c, is_s=$is_s, and=$and, amp=$amp, etal=$etal\n);
+       $DB::single=$DB::single=1;
+       $y = [join($sep, @$y[0..($etal-1)]) . ' et al.'];
+     }else{
+       $y = [ join($sep, @$y) ];
+     }
    }elsif($f=~/^l(.*)$/){ # "abc"|l* -> "*abc"
      my $p = $1;
      $y = [map {s/^\s*//; "$p$_"} @$y];
