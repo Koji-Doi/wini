@@ -422,8 +422,6 @@ sub winifiles{
   my($indir, @infile, $outdir, @outfile);
   my @in;
   (defined $in) and @in = (ref $in eq 'ARRAY') ? @$in : ($in);
-  #my @out;
-  #(defined $out) and @out = (ref $out eq 'ARRAY') ? @$out : ($out);
   
   # check $indir
   foreach my $in1 (@in){
@@ -473,7 +471,6 @@ sub winifiles{
       $indir1=~s{/$}{};
       (defined $indir) and $indir1=~s{^$indir(/|$)}{};
       my $outdir1 = "$outdir" . (($indir1 eq '') ? '' : "/$indir1");
-      my $d1 = '';
       (-d $outdir1) or (mkpath $outdir1) or die "Failed to create $outdir";
       push(@outfile, "$outdir1/$base.html");
     }
@@ -485,7 +482,7 @@ sub winifiles{
     "outfile: " . (($outfile[0])?join(' ',@outfile):'undef'), {q=>1}
      );
   (defined $indir  or defined $infile[0])  or mes(txt('din'), {q=>1});
-  (defined $outdir or defined $outfile[0]) or mes(txt('rout'), {q=>1});  
+  (defined $outdir or defined $outfile[0]) or mes(txt('rout'), {q=>1});
   return($indir, \@infile, $outdir, \@outfile);
 }
 
@@ -507,12 +504,12 @@ sub to_html{
   my($x, $opt) = @_;
   (defined $opt) or $opt={};
   my(%sectdata, $secttitle, @html);
-  my $htmlout = '';
-  my @sectdata_depth = ([{sect_id=>'_'}]);
-  my ($sect_cnt, $sect_id)       = (0, '_');
-  my ($depth, $lastdepth)        = (0, 0);
-  my $ind = $opt->{indir};
-  (defined $ind) or $ind='';
+  my $htmlout              = '';
+  my @sectdata_depth       = ([{sect_id=>'_'}]);
+  my ($sect_cnt, $sect_id) = (0, '_');
+  my ($depth, $lastdepth)  = (0, 0);
+  my $ind                  = $opt->{indir};
+  (defined $ind) or $ind   = '';
   foreach my $t (split(/(^\?.*?\n)/m, $x)){ # for each section
     $t=~s/^\n*//;
     $t=~s/[\s\n]+$//;
@@ -1202,6 +1199,15 @@ sub refval{
      my($first,$last) = ($1-1, ($2||scalar @$y)-1);
      $y = [grep {defined $_ and $_ ne ''} @$y[$first..$last]];
    }elsif($f=~/^j(.*)$/){
+     # j, : a, b, c,
+     # j; : a; b; c;
+     # ja : a, b and c
+     # j& : a, b & c
+     # j;&: a; b & c
+     # je2: a et al.
+     # je3: a, b et al.
+     my($is_c, $is_s, $and, $etal) = map {$f=~/$_/} qw/, ; a & e\d/;
+print STDERR qq($is_c, $is_s, $and, $etal\n);
      my $sep = $1 || ' ';
      $y = [ join($sep, @$y) ];
    }elsif($f=~/^l(.*)$/){ # "abc"|l* -> "*abc"
