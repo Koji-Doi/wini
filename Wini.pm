@@ -230,7 +230,9 @@ sub init{
   $SCRIPTNAME = basename($0);
   $VERSION    = "ver. 1.0alpha rel. 20220114";
   while(<Text::Markup::Wini::DATA>){
+    /^##/ and next; # comment line
     chomp;
+    /^"[^"]*$/ and next; # skip dummy liine
     my $sp = '\\' . substr($_, 0, 1);
     my($id, $en, $ja) = split($sp, substr($_,1));
     $TXT{$id} = {en=>$en, ja=>$ja};
@@ -1145,7 +1147,7 @@ sub biblist{
 
 sub refval0{
   my @x = ({
-  'au' => ["Kirk,  James T.", "Suzuki, Taro", "Yamada, Hanako", "McDonald, Ronald"],
+  'au' => ["Kirk,  James T.", "Suzuki, Taro", "Yamada-Tanaka, Hanako", "McDonald, Ronald"],
   'ti' => "A study of biologists' endurance in research settings.",
   'jo' => "Journal of Negative data in Biology",
   "ye" => 2022,
@@ -1172,9 +1174,10 @@ sub refval0{
 
 sub citetxt{
   my($x, $f) = @_; # $x: hash ref representing a bib
-  (defined $x) or $x = {au=>['Kirk, James T.', 'Tanaka, Taro', 'Yamada, Jiro', 'McDonald, Ronald'], ti=>'XXX', ye=>2021}; # test
+  (defined $x) or $x = {au=>['Kirk, James T.', 'Tanaka, Taro', 'Yamada-Suzuki, Hanako', 'McDonald, Ronald'], ti=>'XXX', ye=>2021}; # test
   #  (defined $f) or $f = "[au|1|lf][au|2-3|lf|l; |j] [au|4-|etal|r;] [ye]. [ti]. {{/|[jo]}} [vo][issue|p()]:[pp].";
-  (defined $f) or $f = '[au|j;&e2]';
+  #(defined $f) or $f = '[au|j;&e2] %%%% [au|i]'."\n";
+  (defined $f) or $f = '[au|i]'."\n";
   $f=~s/\[(.*?)\]/refval($x, $1)/ge;
   return($f);
 }
@@ -1187,6 +1190,25 @@ sub refval{
  foreach my $f (@filter){
    if($f eq '1'){
      $y=[$y->[0]];
+   }elsif($f=~/^i[afl]?$/){ # take first letter and capitalize. This should be used before 'fl' or 'fli' filter
+     my $y0=$y; #test
+     $y = [map {
+       my($last, $first) = /([^,]*), *(.*)/;
+       if($f ne 'il'){ # Initial for the first name
+         my(@first0) = $first=~/\b([A-Z])/g;
+         map {s/(\w)/$1./} @first0;
+         $first = join(' ', @first0);
+       }
+       if($f ne 'if'){ # Initial for the last name
+         if($last=~/([A-Z])\w*-([A-Z])\w/){ # Yamada-Suzuki -> Y-S.
+           $last = "$1-$2.";
+         }else{
+           my(@l) = $last=~/\b([A-Z])/g;
+           $last  = join(' ', map {($_ eq '') ? '' : "$_."} @l);
+         }
+       }
+       "$last, $first";
+     } @$y ];
    }elsif($f eq 'lf' or $f eq 'lfi'){ # Last, First
      $y = [map {
        my($last, $first) = /([^,]*), *(.*)/;
@@ -1210,7 +1232,7 @@ sub refval{
      # j;&: a; b & c
      # je2: a et al.
      # je3: a, b et al.
-     my($is_c, $is_s, $and, $amp, $etal) = map {$f=~/$_/ or 0} qw/, ; a & e\d/;
+     my($is_c, $is_s, $and, $amp, $etal) = map {$f=~/$_/ or 0} (',', qw/; a & e\d/);
      my $sep = ($is_c) ? ', ' : ($is_s) ? '; ' : ' ';
      if($etal){
        ($etal) = $f=~/e(\d+)/;
@@ -1231,6 +1253,8 @@ sub refval{
    }elsif($f=~/^etal(\d*)$/){
    }
  }
+       $DB::single=$DB::single=1;
+
  return($y->[-1]);
 }
 
