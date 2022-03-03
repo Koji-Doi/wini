@@ -231,9 +231,11 @@ sub init{
   $VERSION    = "ver. 1.0alpha rel. 20220114";
   while(<Text::Markup::Wini::DATA>){
     /^##/ and next; # comment line
+    /^\s*$/ and next;
     chomp;
     /^"[^"]*$/ and next; # skip dummy liine
-    my $sp = '\\' . substr($_, 0, 1);
+    my $sp = substr($_, 0, 1);
+    ($sp eq '') or $sp = '\\' . $sp;
     my($id, $en, $ja) = split($sp, substr($_,1));
     $TXT{$id} = {en=>$en, ja=>$ja};
   }
@@ -900,19 +902,18 @@ sub list{
     ($txt0) or $t2 .= $l,next; # non-list content
     if($hopt ne ''){
       foreach my $o (split(/\|/, $hopt)){
-        $o=~/^#(\w+)/ and push(@{$listopt{listclass}}, $1);
+        $o=~/^##(\w+)/ and push(@{$listopt{listclass}}, $1);
       }
     }
     my($txt1, undef) = markgaab($txt0, {para=>'nb'});
     $txt1=~s/([^\n])$/$1\n/;
     if($hmark){
       my($listtype, $listtag) = ($listtype{$hmark},  $listtag{$hmark});
-      ($lastlisttype ne $listtype) and $t2 .= qq!</$lastlisttype>\n<$listtype class="winilist">\n!;
-      my $listtag_o = (scalar keys %listopt > 0)
-        ? $listtag . join(' ', map {"
-          "} keys %listopt) 
+      my $listtype_o = (scalar keys %listopt > 0)
+        ? sprintf(qq!$listtype class="%s"!, join(' ', 'mglist', @{$listopt{listclass}}))
         : $listtag;
-      $t2 .= "<${listtag_o}>$txt1</$listtag>\n";
+      ($lastlisttype ne $listtype) and $t2 .= qq!</$lastlisttype>\n<${listtype_o}>\n!;
+      $t2 .= "<${listtag}>$txt1</$listtag>\n";
       ($lastlisttype, $lastlisttag) = ($listtype, $listtag);
     }
   } # foreach $l
@@ -1147,11 +1148,11 @@ EOD
 } # env save_quote
 
 sub biblist{
-  my $out = "{{#reflist|\n";
+  my $out = '';
   foreach my $k (grep {exists $REF{$_}{type} and $REF{$_}{type} eq 'bib'} keys %REF){
-    $out .= "* $k\n";
+    $out .= "*|##reflist $k\n";
   }
-  $out .= "}}\n";
+  $out .= "\n";
   return($out);
 }
 

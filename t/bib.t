@@ -1,27 +1,30 @@
 #!/usr/bin/perl
 
-package Text::Markup::Wini;
+#package Text::Markup::Wini;
 use strict;
 use warnings;
 use Test::More;
 
 use lib '.';
 use Wini;
-init();
+Text::Markup::Wini::init();
 
 my @indata;
 my $i=0;
+my $mode;
 while(<DATA>){
-  /^---start mg/   and ($i++, $mode='mg');
-  /^---start html/ and ($mode='html');
-  push(@{$data[$i]{$mode}}, $_);
+  print;
+  /^---start mg/   and ($i++, $mode='mg', next);
+  /^---start html/ and ($mode='html', next);
   /^---end/ and last;
+  $indata[$i]{$mode} .= $_;
 }
 
-for(my $i=0; $i<=$#data; $i++){
-  my $o0 = join('', @{$data[$i]{mg}});
-  my $o1 = markgaab($x);
-  is $o1, $o0;
+for(my $i=1; $i<=$#indata; $i++){
+  my($o1) = Text::Markup::Wini::to_html($indata[$i]{mg});
+  $o1              =~s/[\s\n]//g;
+  $indata[$i]{html}=~s/[\s\n]//g;
+  is $o1, $indata[$i]{html};
 }
 
 done_testing;
@@ -37,5 +40,26 @@ aaa {{ref|kirk2022}}, {{ref|gal2021}}.
 {{biblist}}
 
 ---start html
+<p>
+Reference 1:  [1] </p>
+
+
+<p>
+Referene 2:  [2] </p>
+
+
+<p>
+aaa  [1] ,  [2] .</p>
+
+
+
+<ul class="mglist reflist">
+<li>
+ kirk2022
+</li>
+<li>
+ gal2021
+</li>
+</ul>
 
 ---end
