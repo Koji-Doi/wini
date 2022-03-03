@@ -272,7 +272,7 @@ sub stand_alone{
   }
 
   #test
-  print STDERR "WWWW>>> ", citetxt(); exit;
+  if($test){ print STDERR "WWWW>>> ", citetxt(); exit;};
 
   (defined $cssflameworks[0]) and ($cssflameworks[0] eq '') and $cssflameworks[0]='https://unpkg.com/mvp.css'; # 'https://newcss.net/new.min.css';
   ($test) and ($INFILE[0], $OUTFILE)=("test.wini", "test.html");
@@ -669,7 +669,6 @@ sub to_html{
 
 sub parse{ # for CPAN
   my ($file, $encoding, $opts) = @_;
-#  my $md = Text::Wini->new(@{ $opts || [] });
   $encoding = $encoding || 'utf8';
   open my $fh, "<:encoding($encoding)", $file;
   local $/;
@@ -891,19 +890,29 @@ sub list{
 
   my($lastlisttype, $lastlisttag) = ('', '');
   foreach my $l (@list) {
+    my %listopt;
     # line/page break
     if (($l=~s/^---$/<br style="page-break-after: always;">/) or
         ($l=~s/^--$/<br style="clear: both;">/)) {
       $t2 .= $l; next;
     }
-    my($hmark, $txt0) = $l=~/^\s*([#*:;])(\S*\s+.*)/s;
+    my($hmark, $hopt, $txt0) = $l=~/^\s*([#*:;])(\|\S+)?(\S*\s+.*)/s;
     ($txt0) or $t2 .= $l,next; # non-list content
+    if($hopt ne ''){
+      foreach my $o (split(/\|/, $hopt)){
+        $o=~/^#(\w+)/ and push(@{$listopt{listclass}}, $1);
+      }
+    }
     my($txt1, undef) = markgaab($txt0, {para=>'nb'});
     $txt1=~s/([^\n])$/$1\n/;
     if($hmark){
       my($listtype, $listtag) = ($listtype{$hmark},  $listtag{$hmark});
       ($lastlisttype ne $listtype) and $t2 .= qq!</$lastlisttype>\n<$listtype class="winilist">\n!;
-      $t2 .= "<$listtag>$txt1</$listtag>\n";
+      my $listtag_o = (scalar keys %listopt > 0)
+        ? $listtag . join(' ', map {"
+          "} keys %listopt) 
+        : $listtag;
+      $t2 .= "<${listtag_o}>$txt1</$listtag>\n";
       ($lastlisttype, $lastlisttag) = ($listtype, $listtag);
     }
   } # foreach $l
@@ -1138,10 +1147,11 @@ EOD
 } # env save_quote
 
 sub biblist{
-  my $out = '';
+  my $out = "{{#reflist|\n";
   foreach my $k (grep {exists $REF{$_}{type} and $REF{$_}{type} eq 'bib'} keys %REF){
     $out .= "* $k\n";
   }
+  $out .= "}}\n";
   return($out);
 }
 
