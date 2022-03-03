@@ -1258,6 +1258,23 @@ sub refval{
  return($y->[-1]);
 }
 
+sub join_and{ # qw/a b c/ -> "a, b and c"
+  my($l, $sep, $and, $lastsep) = @_;
+  my $res;
+  ($sep) or $sep = ', ';
+ l1:{
+    if(defined $and and $and ne ''){
+      my $last = $#$l-1;
+      if($last>0){
+        $res = join($sep, @$l[0..$last]) . " $and " . $l->[-1];
+        last l1;
+      }
+    }
+    $res = join($sep, @$l);
+  } # l1
+  return($res);
+}
+
 
 sub bib{
   my($pars) = readpars(\@_, qw/id type au ye jo vo is pp title pu lang url doi form/);
