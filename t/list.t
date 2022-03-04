@@ -33,7 +33,7 @@ my $p = <<EOC;
 
 
 
-<ul class="winilist">
+<ul class="mglist">
 <li> a
 </li>
 <li> b
@@ -61,7 +61,7 @@ my $p = <<EOC;
 
 
 
-<ol class="winilist">
+<ol class="mglist">
 <li> a
 </li>
 <li> b
@@ -107,18 +107,18 @@ my $p = <<EOC;
 
 
 
-<dl class="winilist">
+<dl class="mglist">
 <dt> a
 </dt>
 <dd> a-text
 </dd>
 </dl>
 
-<dl class="winilist">
+<dl class="mglist">
 <dt> a
 </dt>
 <dd> a-text
-<ul class="winilist">
+<ul class="mglist">
 <li> a-text-list1
 </li>
 <li> a-text-list2
@@ -127,11 +127,11 @@ my $p = <<EOC;
 </dd>
 </dl>
 
-<dl class="winilist">
+<dl class="mglist">
 <dt> b
 </dt>
 <dd>
-<ul class="winilist">
+<ul class="mglist">
 <li> b-text-list1
 </li>
 <li> b-text-list2
@@ -140,11 +140,11 @@ my $p = <<EOC;
 </dd>
 </dl>
 
-<dl class="winilist">
+<dl class="mglist">
 <dt> c
 </dt>
 <dd>
-<ul class="winilist">
+<ul class="mglist">
 <li> c-text-list1
 </li>
 <li> c-text-list2
@@ -152,11 +152,11 @@ my $p = <<EOC;
 </ul>
 </dd>
 <dd> c-text
-<ol class="winilist">
+<ol class="mglist">
 <li> c-text-n1
 </li>
 <li> c-text-n2
-<ol class="winilist">
+<ol class="mglist">
 <li> c-text-n2-n1
 </li>
 <li> c-text-n2-n2

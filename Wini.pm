@@ -911,7 +911,7 @@ sub list{
       my($listtype, $listtag) = ($listtype{$hmark},  $listtag{$hmark});
       my $listtype_o = (scalar keys %listopt > 0)
         ? sprintf(qq!$listtype class="%s"!, join(' ', 'mglist', @{$listopt{listclass}}))
-        : $listtag;
+        : qq!$listtype class="mglist"!;
       ($lastlisttype ne $listtype) and $t2 .= qq!</$lastlisttype>\n<${listtype_o}>\n!;
       $t2 .= "<${listtag}>$txt1</$listtag>\n";
       ($lastlisttype, $lastlisttag) = ($listtype, $listtag);
