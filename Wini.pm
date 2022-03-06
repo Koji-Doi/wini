@@ -792,27 +792,36 @@ sub deref{
   my $seq=0;
   $r=~s!${MI}([^${MI}${MO}]+)(?:${MI}t=([^${MI}${MO}]+))?(?:${MI}l=([^${MI}${MO}]+))?${MO}!
     my($id, $type, $lang) = ($1, $2, $3);
-    if(not $type and not $REF{$id}){
-      mes(txt('idnd', '', {id=>$id}), {err=>1});
-    }
-    if(defined $REF{$id}{disp_id}){
-      $type = $REF{$id}{type} || mes(txt('idnd', '', {id=>$id}), {err=>1});
-      $REFASSIGN{$type}{$id} = 1;
-      (defined $REFCOUNT{$type}) ? $REFCOUNT{$type}++ : ( $REFCOUNT{$type} = 1);
-    }else{
-      if(my($type1, $id1)=$id=~/^(fig|tbl|bib|h|s)(\d+)$/){
-        $REF{$id}{disp_id} = $id1;
-        $REFASSIGN{$type}{$id1} = 1;
-      }else{
-        (defined $REFCOUNT{$type}) ? $REFCOUNT{$type}++ : ( $REFCOUNT{$type} = 1);
-        while(defined $REFASSIGN{$type}{$REFCOUNT{$type}}){
-          $REFCOUNT{$type}++;
-        }
-        $REF{$id}{disp_id} = $REFCOUNT{$type};
-        $REFASSIGN{$type}{$REFCOUNT{$type}} = 1;
+    if($type eq 'biblist'){
+      my $o = qq{<ul class="biblist">\n};
+      my @bibids = grep {$REF{$_}{type} eq 'bib'} keys %REF;
+      foreach my $id (sort {$REF{$a}{disp_id} <=> $REF{$b}{disp_id}} @bibids){
+        $o .= sprintf("<li> %s %s\n", (txt('bib', $lang, {n=>$id})||''), ($REF{$id}{text}||''));
       }
+      $o.="</ul>\n";
+    }else{
+      if(not $type and not $REF{$id}){
+        mes(txt('idnd', '', {id=>$id}), {err=>1});
+      }
+      if(defined $REF{$id}{disp_id}){
+        $type = $REF{$id}{type} || mes(txt('idnd', '', {id=>$id}), {err=>1});
+        $REFASSIGN{$type}{$id} = 1;
+        (defined $REFCOUNT{$type}) ? $REFCOUNT{$type}++ : ( $REFCOUNT{$type} = 1);
+      }else{
+        if(my($type1, $id1)=$id=~/^(fig|tbl|bib|h|s)(\d+)$/){
+          $REF{$id}{disp_id} = $id1;
+          $REFASSIGN{$type}{$id1} = 1;
+        }else{
+          (defined $REFCOUNT{$type}) ? $REFCOUNT{$type}++ : ( $REFCOUNT{$type} = 1);
+          while(defined $REFASSIGN{$type}{$REFCOUNT{$type}}){
+            $REFCOUNT{$type}++;
+          }
+          $REF{$id}{disp_id} = $REFCOUNT{$type};
+          $REFASSIGN{$type}{$REFCOUNT{$type}} = 1;
+        }
+      }
+      txt($type, $lang, {n=>$REF{$id}{disp_id}});
     }
-    txt($type, $lang, {n=>$REF{$id}{disp_id}});
   !ge;
   return($r);
 } # sub deref
@@ -1076,7 +1085,8 @@ sub call_macro{
   ($macroname=~/^\@$/)            and return(term(\@f));
   ($macroname=~/^bib$/i)          and return(bib(@f));
   ($macroname=~/^(rr|ref)$/i)     and return(reftxt(@f, 'dup=ok')); #{{ref|id|fig}}
-  ($macroname=~/^biblist$/i)      and return(biblist());
+#  ($macroname=~/^biblist$/i)      and return(biblist());
+  ($macroname=~/^biblist$/i)      and return("${MI}###${MI}t=biblist${MO}");
   ($macroname=~/^(date|time|dt)$/i) and return(date([@f, "type=$1"],  $opt->{_v}));
   ($macroname=~/^calc$/i)         and return(ev(\@f, $opt->{_v}));
   ($macroname=~/^va$/i)           and return(
@@ -1147,9 +1157,10 @@ EOD
 } # sub save_quote
 } # env save_quote
 
-sub biblist{
+
+sub biblist_deref{
   my $out = '';
-  foreach my $k (grep {exists $REF{$_}{type} and $REF{$_}{type} eq 'bib'} keys %REF){
+  foreach my $k (sort {$REF{$a}{disp_id}<=>$REF{$a}{disp_id}} grep {exists $REF{$_}{type} and $REF{$_}{type} eq 'bib'} keys %REF){
     $out .= "*|##reflist $k\n";
   }
   $out .= "\n";
