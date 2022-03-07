@@ -771,6 +771,7 @@ sub markgaab{
           : ($para eq 'nb')                                                              ? $t
           : $t=~m{<(html|body|head|p|table|img|figure|blockquote|[uod]l)[^>]*>.*</\1>}is ? $t
           : $t=~m{<!doctype}is                                                           ? $t
+          : $t=~m{${MI}t=biblist}is ? $t
           : "<p${myclass}>\n$t</p>$cr$cr";
 
     $r .= "\n$t";
@@ -795,7 +796,7 @@ sub deref{
     if($type eq 'biblist'){
       my $o = qq{<ul class="biblist">\n};
       my @bibids = grep {$REF{$_}{type} eq 'bib'} keys %REF;
-      foreach my $id (sort {$REF{$a}{disp_id} <=> $REF{$b}{disp_id}} @bibids){
+      foreach my $id (sort {$REF{$a}{order} <=> $REF{$b}{order}} @bibids){
         $o .= sprintf("<li> %s %s\n", (txt('bib', $lang, {n=>$id})||''), ($REF{$id}{text}||''));
       }
       $o.="</ul>\n";
@@ -803,24 +804,24 @@ sub deref{
       if(not $type and not $REF{$id}){
         mes(txt('idnd', '', {id=>$id}), {err=>1});
       }
-      if(defined $REF{$id}{disp_id}){
+      if(defined $REF{$id}{order}){
         $type = $REF{$id}{type} || mes(txt('idnd', '', {id=>$id}), {err=>1});
         $REFASSIGN{$type}{$id} = 1;
         (defined $REFCOUNT{$type}) ? $REFCOUNT{$type}++ : ( $REFCOUNT{$type} = 1);
       }else{
         if(my($type1, $id1)=$id=~/^(fig|tbl|bib|h|s)(\d+)$/){
-          $REF{$id}{disp_id} = $id1;
+          $REF{$id}{order} = $id1;
           $REFASSIGN{$type}{$id1} = 1;
         }else{
           (defined $REFCOUNT{$type}) ? $REFCOUNT{$type}++ : ( $REFCOUNT{$type} = 1);
           while(defined $REFASSIGN{$type}{$REFCOUNT{$type}}){
             $REFCOUNT{$type}++;
           }
-          $REF{$id}{disp_id} = $REFCOUNT{$type};
+          $REF{$id}{order} = $REFCOUNT{$type};
           $REFASSIGN{$type}{$REFCOUNT{$type}} = 1;
         }
       }
-      txt($type, $lang, {n=>$REF{$id}{disp_id}});
+      txt($type, $lang, {n=>$REF{$id}{order}});
     }
   !ge;
   return($r);
@@ -935,6 +936,7 @@ sub list{
   : ($para eq 'br')                                                               ? "$t2<br>$cr"
   : ($para eq 'nb')                                                               ? $t2
   : $t2=~m{<(html|body|head|p|table|img|figure|blockquote|[uod]l)[^>]*>.*</\1>}is ? $t2
+  : $t2=~m{<(html|body|head|p|table|img|figure|blockquote|[uod]l)}is ? $t2
   : $t2=~m{<!doctype}is                                                           ? $t2
   : "<p${myclass}>\n$t2</p>$cr$cr"
   ): '', \%listitems);
@@ -1157,10 +1159,10 @@ EOD
 } # sub save_quote
 } # env save_quote
 
-
+=begin c
 sub biblist_deref{
   my $out = '';
-  foreach my $k (sort {$REF{$a}{disp_id}<=>$REF{$a}{disp_id}} grep {exists $REF{$_}{type} and $REF{$_}{type} eq 'bib'} keys %REF){
+  foreach my $k (sort {$REF{$a}{order}<=>$REF{$a}{order}} grep {exists $REF{$_}{type} and $REF{$_}{type} eq 'bib'} keys %REF){
     $out .= "*|##reflist $k\n";
   }
   $out .= "\n";
@@ -1194,8 +1196,11 @@ sub refval0{
   return($f);
 }
 
+=end c
+=cut
+
 sub citetxt{
-  my($x, $f) = @_; # $x: hash ref representing a bib
+  my($x, $f) = @_; # $x: hash ref representing a bib; $f: format
   (defined $x) or $x = {au=>['Kirk, James T.', 'Tanaka, Taro', 'Yamada-Suzuki, Hanako', 'McDonald, Ronald'], ti=>'XXX', ye=>2021}; # test
   #  (defined $f) or $f = "[au|1|lf][au|2-3|lf|l; |j] [au|4-|etal|r;] [ye]. [ti]. {{/|[jo]}} [vo][issue|p()]:[pp].";
   #(defined $f) or $f = '[au|j;&e2] %%%% [au|i]'."\n";
@@ -1297,8 +1302,10 @@ sub join_and{ # qw/a b c/ -> "a, b and c"
   return($res);
 }
 
-
 sub bib{
+# {{bib|...}} -> 
+# inline_id: "Suzuki, 2022"
+# text:  "Suzuki, T., et al 2022. Koraeshou no Kenkyu. Journal of Pseudoscience 10:100-110."
   my($pars) = readpars(\@_, qw/id type au ye jo vo is pp title pu lang url doi form/);
   my $id    = $pars->{id}[-1];
   my $aus   = (defined $pars->{au}) ? join('; ', @{$pars->{au}}) : '';

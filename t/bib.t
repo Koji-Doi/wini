@@ -11,9 +11,9 @@ Text::Markup::Wini::init();
 
 my @indata;
 my $i=0;
-my $mode;
+my $mode="";
 while(<DATA>){
-  print;
+#  print STDERR "$i:$mode: $_";
   /^---start mg/   and ($i++, $mode='mg', next);
   /^---start html/ and ($mode='html', next);
   /^---end/ and last;
