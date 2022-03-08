@@ -42,13 +42,13 @@ Text::Markup::Wini.pm - WIki markup ni NIta nanika (Japanese: "Something like wi
 
 =head1 DESCRIPTION
 
-The script file Wini.pm is a perl module supporting WINI markup, which is a simple markup language to build HTML5 texts. This script can also be used as a stand-alone perl script. Users easily can get HTML5 documents from WINI source texts, by using Wini.pm as a filter command.
+The script file Wini.pm is a perl module supporting Markgaab markup (formerly WINI markup). Markgaab (Markup Going Above And Beyond) is an advanced lightweight markup language, which allows users to make structured and multilingual documents in semantic HTML5.
+
+Wini.pm can be used not only as perl module file but also as a stand-alone perl script. Users easily can generate HTML5 documents from Markgaab source texts, by using Wini.pm as a filter command. This script can be used as a static site generator as well.
 
 The text presented here is just a brief description.
 
-Please refer to the synopsis of this page to grasp ontline about WINI markup. 
-
-Please refer to the homepage for details. 
+Please refer to the synopsis of this page to grasp ontline about markgaab markup. Also, The author is pareparing the homepage describing markgaab and Wini.pm for details.
 
 =head2 As module
 
@@ -118,6 +118,14 @@ Add specified directory PATH into library path
 =item B<--title> I<[title]>
 
 Set text for <title>. Effective only when --whole option is set.
+
+=item B<--template> I<[template]>
+
+Specify template file written in html.
+
+=item B<--templatedir> I<[templatedir]>
+
+Specify directory where template files exist.
 
 =item B<--quiet>
 
@@ -1159,46 +1167,6 @@ EOD
 } # sub save_quote
 } # env save_quote
 
-=begin c
-sub biblist_deref{
-  my $out = '';
-  foreach my $k (sort {$REF{$a}{order}<=>$REF{$a}{order}} grep {exists $REF{$_}{type} and $REF{$_}{type} eq 'bib'} keys %REF){
-    $out .= "*|##reflist $k\n";
-  }
-  $out .= "\n";
-  return($out);
-}
-
-sub refval0{
-  my @x = ({
-  'au' => ["Kirk,  James T.", "Suzuki, Taro", "Yamada-Tanaka, Hanako", "McDonald, Ronald"],
-  'ti' => "A study of biologists' endurance in research settings.",
-  'jo' => "Journal of Negative data in Biology",
-  "ye" => 2022,
-  "vo" => 2,
-  "is" => 2,
-  "pp" => "100-110",
-  'url' => "http://example.com/jndb/2022_2_2_100",
-  'doi' => "00.00000/ZZZZZ00/0000",
-  },{
-   'au' => ["山岡, 士郎", "栗田, ゆう子", "海原, 雄山"],
-   'ti' => "究極のメニューとは何か？",
-   'ye' => 2022,
-   'url' => "http://example.com/2022_1",
-   'pu'  => "東西新聞社"
-  });
-
-#  my $form = "[au|1|lf]; [au|2-3|lf|j: ]; [au|4-|etal]; [ye]. [ti]. {{/|[jo]}} [vo][issue|p()]:[pp].";
-#  my $f= $form;
-  #  $f=~s/\[(.*?)\]/refval($x[0], $1)/ge;
-  #  print STDERR refval($f);
-  my $f = citetxt($x[0]);
-  return($f);
-}
-
-=end c
-=cut
-
 sub citetxt{
   my($x, $f) = @_; # $x: hash ref representing a bib; $f: format
   (defined $x) or $x = {au=>['Kirk, James T.', 'Tanaka, Taro', 'Yamada-Suzuki, Hanako', 'McDonald, Ronald'], ti=>'XXX', ye=>2021}; # test
@@ -1263,8 +1231,6 @@ sub refval{
      my $sep = ($is_c) ? ', ' : ($is_s) ? '; ' : ' ';
      if($etal){
        ($etal) = $f=~/e(\d+)/;
-          print STDERR qq(refval: is_c=$is_c, is_s=$is_s, and=$and, amp=$amp, etal=$etal\n);
-       $DB::single=$DB::single=1;
        $y = [join($sep, @$y[0..($etal-1)]) . ' et al.'];
      }else{
        $y = [ join($sep, @$y) ];
@@ -1284,8 +1250,6 @@ sub refval{
    }elsif($f=~/^etal(\d*)$/){
    }
  }
-       $DB::single=$DB::single=1;
-
  return($y->[-1]);
 }
 
@@ -1311,13 +1275,17 @@ sub bib{
 # inline_id: "Suzuki, 2022"
 # text:  "Suzuki, T., et al 2022. Koraeshou no Kenkyu. Journal of Pseudoscience 10:100-110."
   my($pars) = readpars(\@_, qw/id type au ye jo vo is pp title pu lang url doi form/);
+  my $lang = $pars->{lang}[-1] || $LANG || 'en';
   my $id    = $pars->{id}[-1];
-  my $aus   = (defined $pars->{au}) ? join('; ', @{$pars->{au}}) : '';
-  my $au1   = (defined $pars->{au}) ? $pars->{au}[0] : '';
+#  my $aus   = (defined $pars->{au}) ? join('; ', @{$pars->{au}}) : '';
+#  my $au1   = (defined $pars->{au}) ? $pars->{au}[0] : '';
+  my $bib;
+  map {$bib->{$_} = $pars->{$_}} keys %$pars;
   (exists $REF{$id}) and mes(txt('did', '', {id=>$id}), {err=>1});
   my $x = reftxt("id=$id", "type=bib", ($pars->{lang}[-1]) ? "lang=$pars->{lang}[-1]" : undef);
-  $REF{$id}{'inline_id'} = txt('bib', $lang, {n=>$id})||''; # printf("%s, %s", $au1, ($pars->{yr}[-1]||''));
-  $REF{$id}{'text'}      = sprintf("%s, %s", $au1, ($pars->{yr}[-1]||''));
+  $REF{$id}{'inline_id'} = txt('bib_inline', $lang, {au=>$bib->{au}[0], ye=>$bib->{ye}[-1]})||''; # printf("%s, %s", $au1, ($pars->{yr}[-1]||''));
+  $REF{$id}{'text'}      = citetxt($bib, txt('bib_form')); # sprintf("%s, %s", $au1, ($pars->{yr}[-1]||''));
+1;
   return($x);
 }
 
@@ -1996,10 +1964,11 @@ sub array{
 1;
 
 __DATA__
-" <- dummy quotation mark to cancel meddling cperl-mode auto indentation
+" <- dummy quotation mark to cancel meddling emacs cperl-mode auto indentation
 |LOCALE|en_US.utf8|ja_JP.utf8|
-|bib_id| [{{n}}] | [{{n}}] |
-|bib_form| [au|lf|je2] [ye] [ti] [jo] [vo][is|p()] | [{{n}}] |
+|bib| [{{n}}] | [{{n}}] |
+|bib_inline| ({{au}}, {{ye}}) | ({{au}}, {{ye}})|
+!bib_form! [au|lf|je2] [ye] [ti] [jo] [vo][is|p()] ! [au|lf|je2] [ye] [ti] [jo] [vo][is|p()] !
 |cft|Cannot find template {{t}} in {{d}}|テンプレートファイル{{t}}はディレクトリ{{d}}内に見つかりません|
 |cno|Could not open {{f}}|{{f}}を開けません|
 |conv|Conv {{from}} -> {{to}}|変換 {{from}} -> {{to}}|
