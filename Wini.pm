@@ -1277,6 +1277,10 @@ sub refval{
      $y = [map {s/\s*$//; "$_$p"} @$y];
    }elsif($f=~/^p(.)(.)$/){ # "abc"|p() -> "(abc)"
      $y = [ map {$1 . $_ . $2} @$y];
+   }elsif($f eq 'b'){
+     $y = [ map {qq{<span style="font-weight:bold">$_</span>}} @$y];
+   }elsif($f eq 'i'){
+     $y = [ map {qq{<span style="font-style:italic">$_</span>}} @$y];
    }elsif($f=~/^etal(\d*)$/){
    }
  }
@@ -1312,7 +1316,8 @@ sub bib{
   my $au1   = (defined $pars->{au}) ? $pars->{au}[0] : '';
   (exists $REF{$id}) and mes(txt('did', '', {id=>$id}), {err=>1});
   my $x = reftxt("id=$id", "type=bib", ($pars->{lang}[-1]) ? "lang=$pars->{lang}[-1]" : undef);
-  $REF{$id}{text} = sprintf("%s, %s", $au1, ($pars->{yr}[-1]||''));
+  $REF{$id}{'inline_id'} = txt('bib', $lang, {n=>$id})||''; # printf("%s, %s", $au1, ($pars->{yr}[-1]||''));
+  $REF{$id}{'text'}      = sprintf("%s, %s", $au1, ($pars->{yr}[-1]||''));
   return($x);
 }
 
@@ -1993,7 +1998,8 @@ sub array{
 __DATA__
 " <- dummy quotation mark to cancel meddling cperl-mode auto indentation
 |LOCALE|en_US.utf8|ja_JP.utf8|
-|bib| [{{n}}] | [{{n}}] |
+|bib_id| [{{n}}] | [{{n}}] |
+|bib_form| [au|lf|je2] [ye] [ti] [jo] [vo][is|p()] | [{{n}}] |
 |cft|Cannot find template {{t}} in {{d}}|テンプレートファイル{{t}}はディレクトリ{{d}}内に見つかりません|
 |cno|Could not open {{f}}|{{f}}を開けません|
 |conv|Conv {{from}} -> {{to}}|変換 {{from}} -> {{to}}|
