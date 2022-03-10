@@ -1094,7 +1094,7 @@ sub call_macro{
     return('&#x'.unpack('H*',$macroname).';'); # char -> ascii code
   ($macroname=~/^\@$/)            and return(term(\@f));
   ($macroname=~/^bib$/i)          and return(bib(@f));
-  ($macroname=~/^(rr|ref)$/i)     and return(reftxt(@f, 'dup=ok')); #{{ref|id|fig}}
+  ($macroname=~/^(rr|ref)$/i)     and return(ref_tmp_txt(@f, 'dup=ok')); #{{ref|id|fig}}
 #  ($macroname=~/^biblist$/i)      and return(biblist());
   ($macroname=~/^biblist$/i)      and return("${MI}###${MI}t=biblist${MO}");
   ($macroname=~/^(date|time|dt)$/i) and return(date([@f, "type=$1"],  $opt->{_v}));
@@ -1167,17 +1167,17 @@ EOD
 } # sub save_quote
 } # env save_quote
 
-sub citetxt{
+sub bibtxt{
   my($x, $f) = @_; # $x: hash ref representing a bib; $f: format
   (defined $x) or $x = {au=>['Kirk, James T.', 'Tanaka, Taro', 'Yamada-Suzuki, Hanako', 'McDonald, Ronald'], ti=>'XXX', ye=>2021}; # test
   #  (defined $f) or $f = "[au|1|lf][au|2-3|lf|l; |j] [au|4-|etal|r;] [ye]. [ti]. {{/|[jo]}} [vo][issue|p()]:[pp].";
   #(defined $f) or $f = '[au|j;&e2] %%%% [au|i]'."\n";
   (defined $f) or $f = '[au|i]'."\n";
-  $f=~s/\[(.*?)\]/refval($x, $1)/ge;
+  $f=~s/\[(.*?)\]/bibtxt_vals($x, $1)/ge;
   return($f);
 }
 
-sub refval{
+sub bibtxt_vals{
  my($x, $form) = @_;
  (defined $x and defined $form) or return();
  my($valname, @filter) = split(/\|/, $form);
@@ -1282,14 +1282,13 @@ sub bib{
   my $bib;
   map {$bib->{$_} = $pars->{$_}} keys %$pars;
   (exists $REF{$id}) and mes(txt('did', '', {id=>$id}), {err=>1});
-  my $x = reftxt("id=$id", "type=bib", ($pars->{lang}[-1]) ? "lang=$pars->{lang}[-1]" : undef);
+  my $x = ref_tmp_txt("id=$id", "type=bib", ($pars->{lang}[-1]) ? "lang=$pars->{lang}[-1]" : undef);
   $REF{$id}{'inline_id'} = txt('bib_inline', $lang, {au=>$bib->{au}[0], ye=>$bib->{ye}[-1]})||''; # printf("%s, %s", $au1, ($pars->{yr}[-1]||''));
-  $REF{$id}{'text'}      = citetxt($bib, txt('bib_form')); # sprintf("%s, %s", $au1, ($pars->{yr}[-1]||''));
-1;
+  $REF{$id}{'text'}      = bibtxt($bib, txt('bib_form')); # sprintf("%s, %s", $au1, ($pars->{yr}[-1]||''));
   return($x);
 }
 
-sub reftxt{
+sub ref_tmp_txt{
   # make temporal ref template, "${MI}id.*{MO}"
   my $par        = readpars(\@_, qw/id type lang/);
   my($id, $type, $lang, $dup) = map {$par->{$_}[-1]} qw/id type lang dup/;
@@ -1400,7 +1399,7 @@ sub anchor{
       my $img_id0 = $id; # temp_id;
       $img_id0=~s{^(\d)}{fig$1}; # img_id0: "fig111"
       (exists $REF{$img_id0} and $text) and mes(txt('did', undef, {id=>$id}), {q=>1,err=>1});
-      my $reftxt = reftxt($id, 'fig', $lang);
+      my $reftxt = ref_tmp_txt($id, 'fig', $lang);
       $text       = "$reftxt $text";
 #      $REF{$id}   = {type=>'fig', desc => ($text||undef)};
       $img_id     = qq! id="${img_id0}"!; # ID for <img ...>
@@ -1478,9 +1477,9 @@ sub table{
         $tbl_id0=~s{^(\d+)$}{tbl$1}; # #1 -> #tbl1
 # todo: set $REF like figure Ids.
         (exists $REF{$tbl_id0}) and mes(txt('did', undef, {id=>$tbl_id0}), {q=>1,err=>1});
-        ($tbl_id0=~/\S/) and $caption = reftxt($tbl_id0, 'tbl') . " $c";
+        ($tbl_id0=~/\S/) and $caption = ref_tmp_txt($tbl_id0, 'tbl') . " $c";
         $htmlitem[0][0]{copt}{id}[0] = $tbl_id0;
-        $tbl_id = sprintf(qq{ id="%s"}, $tbl_id0); # reftxt($tbl_id0, undef, 'tbl')); # for table->caption tag
+        $tbl_id = sprintf(qq{ id="%s"}, $tbl_id0); # ref_tmp_txt($tbl_id0, undef, 'tbl')); # for table->caption tag
       }
     }# if defined $o
     ($caption) or $caption = $c;
