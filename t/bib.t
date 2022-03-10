@@ -31,13 +31,13 @@ done_testing;
 
 __DATA__
 ---start mg
-Reference 1: {{bib|kirk2022|au='James, T. Kirk'|ye=2022|ti='XXX'}}
+Reference 1: {{cit|kirk2022|au='James, T. Kirk'|ye=2022|ti='XXX'}}
 
-Referene 2: {{bib|gal2021|au='Kadotani, Anzu'|au='Koyama, Yuzuko'|au='Kawashima, Momo'|yr=2021|ti='Practice of Senshado in High School Club Activities'}}
+Referene 2: {{cit|gal2021|au='Kadotani, Anzu'|au='Koyama, Yuzuko'|au='Kawashima, Momo'|yr=2021|ti='Practice of Senshado in High School Club Activities'}}
 
 aaa {{ref|kirk2022}}, {{ref|gal2021}}.
 
-{{biblist}}
+{{citlist}}
 
 ---start html
 <p>

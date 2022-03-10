@@ -20,7 +20,7 @@ binmode STDERR, ':utf8';
 # save new test script to hoge.t
 
 sub do_it{
-  my($cmd, $cmd_infile, $cmd_outfile, $cmd_errfile) = @_;
+  my($cmd, $cmd_outfile, $cmd_errfile) = @_;
 #  my($cmd_infile, $cmd_errfile, $cmd_outfile) = ('','','');
 #  $cmd=~s{\s*<\s*(\S+)}{ $cmd_infile=$1;  ''}eg;
 #  $cmd=~s{\s*2>\s*(\S+)}{$cmd_errfile=$1; ''}eg;
@@ -30,7 +30,7 @@ sub do_it{
     die "Output redirection with '>' is not allowed\n";
   }
   eval{
-    system("cat ${cmd_infile} | $cmd > ${cmd_outfile} 2> ${cmd_errfile}");
+    system("$cmd > ${cmd_outfile} 2> ${cmd_errfile}");
   };
   if ($@) {
     print "error ", $@;
@@ -38,6 +38,6 @@ sub do_it{
 
 }
 
-my($cmd, $infile, $outfile) = @_;
+my($cmd, $outfile) = @_;
 $outfile or $outfile='out';
-do_it($cmd, $infile, "$outfile.out", "$outfile.err");
+do_it($cmd, "$outfile.out", "$outfile.err");

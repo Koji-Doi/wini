@@ -171,11 +171,11 @@ our $LANG;
 our $QUIET;
 our %MACROS;
 our %VARS;
-our %REF;
-our %REFCOUNT;
-our %REFASSIGN;
-our %TXT;
-our($MI, $MO);
+our %REF;       # dataset for each reference
+our %REFCOUNT;  # reference count
+our %REFASSIGN; # reference id definitions
+our %TXT;       # messages and forms
+our($MI, $MO);  # escape chars to 
 our(@INDIR, @INFILE, $OUTFILE);
 our($TEMPLATE, $TEMPLATEDIR);
 my(@libs, @libpaths, $SCRIPTNAME, $VERSION, $debug);
@@ -188,11 +188,12 @@ our ($red, $green, $blue, $magenta, $purple)
   (['219,94,0', 'red'], ['0,158,115', 'green'], ['0,114,178', 'blue'], ['218,0,250', 'magenta'], ['204,121,167', 'purple']);
 our $CSS = {
   'ol, ul, dl' => {'padding-left'     => '1em'},
-  'table, figure, img' 
-	       => {'margin'           => '1em',
-	           'border-collapse'  => 'collapse'},
+  'table, figure, img'
+               => {'margin'           => '1em',
+                   'border-collapse'  => 'collapse'},
   'tfoot, figcaption'
                => {'font-size'        => 'smaller'},
+  '.citlist'   => {'list-style'       => 'none'},
   '.b-r'       => {'background-color' => $red},
   '.b-g'       => {'background-color' => $green},
   '.b-b'       => {'background-color' => $blue},
@@ -241,7 +242,7 @@ sub init{
     /^##/ and next; # comment line
     /^\s*$/ and next;
     chomp;
-    /^"[^"]*$/ and next; # skip dummy liine
+    /^"[^"]*$/ and next; # skip dummy line
     my $sp = substr($_, 0, 1);
     ($sp eq '') or $sp = '\\' . $sp;
     my($id, $en, $ja) = split($sp, substr($_,1));
@@ -779,7 +780,7 @@ sub markgaab{
           : ($para eq 'nb')                                                              ? $t
           : $t=~m{<(html|body|head|p|table|img|figure|blockquote|[uod]l)[^>]*>.*</\1>}is ? $t
           : $t=~m{<!doctype}is                                                           ? $t
-          : $t=~m{${MI}t=biblist}is ? $t
+          : $t=~m{${MI}t=citlist}is ? $t
           : "<p${myclass}>\n$t</p>$cr$cr";
 
     $r .= "\n$t";
@@ -801,11 +802,11 @@ sub deref{
   my $seq=0;
   $r=~s!${MI}([^${MI}${MO}]+)(?:${MI}t=([^${MI}${MO}]+))?(?:${MI}l=([^${MI}${MO}]+))?${MO}!
     my($id, $type, $lang) = ($1, $2, $3);
-    if($type eq 'biblist'){
-      my $o = qq{<ul class="biblist">\n};
-      my @bibids = grep {$REF{$_}{type} eq 'bib'} keys %REF;
-      foreach my $id (sort {$REF{$a}{order} <=> $REF{$b}{order}} @bibids){
-        $o .= sprintf("<li> %s %s\n", (txt('bib', $lang, {n=>$id})||''), ($REF{$id}{text}||''));
+    if($type eq 'citlist'){
+      my $o = qq{<ul class="citlist">\n};
+      my @citids = grep {$REF{$_}{type} eq 'cit'} keys %REF;
+      foreach my $id (sort {$REF{$a}{order} <=> $REF{$b}{order}} @citids){
+        $o .= sprintf("<li> %s %s\n", (txt('cit', $lang, {n=>$id})||''), ($REF{$id}{text}||''));
       }
       $o.="</ul>\n";
     }else{
@@ -817,7 +818,7 @@ sub deref{
         $REFASSIGN{$type}{$id} = 1;
         (defined $REFCOUNT{$type}) ? $REFCOUNT{$type}++ : ( $REFCOUNT{$type} = 1);
       }else{
-        if(my($type1, $id1)=$id=~/^(fig|tbl|bib|h|s)(\d+)$/){
+        if(my($type1, $id1)=$id=~/^(fig|tbl|cit|h|s)(\d+)$/){
           $REF{$id}{order} = $id1;
           $REFASSIGN{$type}{$id1} = 1;
         }else{
@@ -1093,10 +1094,10 @@ sub call_macro{
   ($macroname=~m{^[!-/:-@\[-~]$}) and (not defined $f[0]) and 
     return('&#x'.unpack('H*',$macroname).';'); # char -> ascii code
   ($macroname=~/^\@$/)            and return(term(\@f));
-  ($macroname=~/^bib$/i)          and return(bib(@f));
-  ($macroname=~/^(rr|ref)$/i)     and return(ref_tmp_txt(@f, 'dup=ok')); #{{ref|id|fig}}
-#  ($macroname=~/^biblist$/i)      and return(biblist());
-  ($macroname=~/^biblist$/i)      and return("${MI}###${MI}t=biblist${MO}");
+  ($macroname=~/^cit$/i)          and return(cit(@f));
+  ($macroname=~/^(rr|ref)$/i)     and return(ref_tmp_txt(@f, 'dup=ok')); #{{ref|id|fig}} -> $MI...$MO
+#  ($macroname=~/^citlist$/i)      and return(citlist());
+  ($macroname=~/^citlist$/i)      and return("${MI}###${MI}t=citlist${MO}");
   ($macroname=~/^(date|time|dt)$/i) and return(date([@f, "type=$1"],  $opt->{_v}));
   ($macroname=~/^calc$/i)         and return(ev(\@f, $opt->{_v}));
   ($macroname=~/^va$/i)           and return(
@@ -1167,17 +1168,17 @@ EOD
 } # sub save_quote
 } # env save_quote
 
-sub bibtxt{
-  my($x, $f) = @_; # $x: hash ref representing a bib; $f: format
+sub cittxt{
+  my($x, $f) = @_; # $x: hash ref representing a cit; $f: format
   (defined $x) or $x = {au=>['Kirk, James T.', 'Tanaka, Taro', 'Yamada-Suzuki, Hanako', 'McDonald, Ronald'], ti=>'XXX', ye=>2021}; # test
   #  (defined $f) or $f = "[au|1|lf][au|2-3|lf|l; |j] [au|4-|etal|r;] [ye]. [ti]. {{/|[jo]}} [vo][issue|p()]:[pp].";
   #(defined $f) or $f = '[au|j;&e2] %%%% [au|i]'."\n";
   (defined $f) or $f = '[au|i]'."\n";
-  $f=~s/\[(.*?)\]/bibtxt_vals($x, $1)/ge;
+  $f=~s/\[(.*?)\]/cittxt_vals($x, $1)/ge;
   return($f);
 }
 
-sub bibtxt_vals{
+sub cittxt_vals{
  my($x, $form) = @_;
  (defined $x and defined $form) or return();
  my($valname, @filter) = split(/\|/, $form);
@@ -1270,8 +1271,8 @@ sub join_and{ # qw/a b c/ -> "a, b and c"
   return($res);
 }
 
-sub bib{
-# {{bib|...}} -> 
+sub cit{
+# {{cit|...}} -> 
 # inline_id: "Suzuki, 2022"
 # text:  "Suzuki, T., et al 2022. Koraeshou no Kenkyu. Journal of Pseudoscience 10:100-110."
   my($pars) = readpars(\@_, qw/id type au ye jo vo is pp title pu lang url doi form/);
@@ -1279,12 +1280,12 @@ sub bib{
   my $id    = $pars->{id}[-1];
 #  my $aus   = (defined $pars->{au}) ? join('; ', @{$pars->{au}}) : '';
 #  my $au1   = (defined $pars->{au}) ? $pars->{au}[0] : '';
-  my $bib;
-  map {$bib->{$_} = $pars->{$_}} keys %$pars;
+  my $cit;
+  map {$cit->{$_} = $pars->{$_}} keys %$pars;
   (exists $REF{$id}) and mes(txt('did', '', {id=>$id}), {err=>1});
-  my $x = ref_tmp_txt("id=$id", "type=bib", ($pars->{lang}[-1]) ? "lang=$pars->{lang}[-1]" : undef);
-  $REF{$id}{'inline_id'} = txt('bib_inline', $lang, {au=>$bib->{au}[0], ye=>$bib->{ye}[-1]})||''; # printf("%s, %s", $au1, ($pars->{yr}[-1]||''));
-  $REF{$id}{'text'}      = bibtxt($bib, txt('bib_form')); # sprintf("%s, %s", $au1, ($pars->{yr}[-1]||''));
+  my $x = ref_tmp_txt("id=$id", "type=cit", ($pars->{lang}[-1]) ? "lang=$pars->{lang}[-1]" : undef);
+  $REF{$id}{'inline_id'} = txt('cit_inline', $lang, {au=>$cit->{au}[0], ye=>$cit->{ye}[-1]})||''; # printf("%s, %s", $au1, ($pars->{yr}[-1]||''));
+  $REF{$id}{'text'}      = cittxt($cit, txt('cit_form')); # sprintf("%s, %s", $au1, ($pars->{yr}[-1]||''));
   return($x);
 }
 
@@ -1848,9 +1849,14 @@ sub date{
     my $wd = $t->day(@days); # Sun, Mon, ...
     $form=~s/%a/$wd/g;
   }
-  my $res = $t->strftime($form);
+  my $res = decode('utf-8', $t->strftime($form));
   setlocale(LC_TIME, $lc0);
-  return(decode('utf-8', $res));
+  my $t0 = Time::Piece->strptime("2019-05-01", "%Y-%m-%d");
+  if($t >= $t0){
+  # heisei -> reiwa: 令和に対応してない古いglibcが「平成33年」とかを返してきてしまうことへの対症療法的対処
+    $res=~s{平成(\d+)}{sprintf("令和%02d", $1-30)}ge;
+  }
+  return($res);
 }
 
 sub ev{ # <, >, %in%, and so on
@@ -1965,10 +1971,10 @@ sub array{
 __DATA__
 " <- dummy quotation mark to cancel meddling emacs cperl-mode auto indentation
 |LOCALE|en_US.utf8|ja_JP.utf8|
-|bib| [{{n}}] | [{{n}}] |
-|bib_inline| ({{au}}, {{ye}}) | ({{au}}, {{ye}})|
-!bib_form! [au|lf|je2] [ye] [ti] [jo] [vo][is|p()] ! [au|lf|je2] [ye] [ti] [jo] [vo][is|p()] !
 |cft|Cannot find template {{t}} in {{d}}|テンプレートファイル{{t}}はディレクトリ{{d}}内に見つかりません|
+|cit| [{{n}}] | [{{n}}] |
+|cit_inline| ({{au}}, {{ye}}) | ({{au}}, {{ye}})|
+!cit_form! [au|lf|je2] [ye] [ti] [jo] [vo][is|p()] ! [au|lf|je2] [ye] [ti] [jo] [vo][is|p()] !
 |cno|Could not open {{f}}|{{f}}を開けません|
 |conv|Conv {{from}} -> {{to}}|変換 {{from}} -> {{to}}|
 |date|%Y-%m-%d|%Y年%m月%d日|
