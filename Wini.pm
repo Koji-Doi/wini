@@ -703,7 +703,7 @@ sub markgaab{
   my $cr    = (defined $opt->{nocr} and $opt->{nocr}==1)
               ?"\t":"\n"; # option to inhibit CR insertion (in table)
   my $para  = (defined $opt->{para}) ? $opt->{para} : 'p'; # p or br or none;
-  my $title = $opt->{title} || 'WINI page';
+  my $title = $opt->{title} || 'Markgaab page';
   (defined $footnote_cnt) or $footnote_cnt->{'_'}{'*'} = 0;
   my $lang  = $opt->{_v}{lang} || $LANG || 'en';
 
@@ -842,7 +842,7 @@ sub whole_html{
   #  my($cssfile, $cssflameworks) = map {$opt->{$_}} qw/cssfile cssflameworks/;
   my $cssfile = $opt->{cssfile} || '';
   my $style   = '';
-  $title = $title || 'wini page';
+  $title = $title || 'Markgaab page';
   (defined $opt->{cssflameworks}[0]) and map {$style .= qq{<link rel="stylesheet" type="text/css" href="$_">\n}} @{$opt->{cssflameworks}};
   $style   .= ($cssfile)?qq{<link rel="stylesheet" type="text/css" href="$cssfile">} : "<style>\n".css($CSS)."</style>\n";
   return <<"EOD";

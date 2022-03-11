@@ -21,7 +21,7 @@ EOC
   $o=~s/[\n\r]*//g;
   $o=~s/\s{2,}/ /g;
   my $p = <<EOC;
-<table class="mgtable" border="1" style="border-collapse: collapse; border: solid 1px; ">
+<table class="mgtable"q border="1" style="border-collapse: collapse; border: solid 1px; ">
 <caption> table with &r and &&&l</caption>
 <tbody>
 <tr><th style="text-align:left;">aaaaaaaaa </th><th style="text-align:center;">bbbbbbbbbb </th><th>cccccccc </th></tr>
