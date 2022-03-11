@@ -53,7 +53,7 @@ Value of variable 'b' should be 2, is 2.
 Env name is _.
 </p>
 
-<section class="wini" id="sect1">
+<section class="mg" id="sect1">
 <h1 class="sectiontitle">xxx</h1>
 
 <p>
@@ -66,7 +66,7 @@ Value of variable 'b' should be 333, is 333.
 Env name is _.
 </p>
 
-<section class="wini" id="sect2">
+<section class="mg" id="sect2">
 <h1 class="sectiontitle">yyy</h1>
 
 <p>

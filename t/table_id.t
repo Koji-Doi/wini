@@ -94,34 +94,34 @@ my $p = <<EOC;
 
 
 
-<table id="id1" class="winitable" style="border-collapse: collapse; ">
+<table id="id1" class="mgtable" style="border-collapse: collapse; ">
 <caption>
 Table 1  Here is a caption</caption>
 <tbody>
 <tr><td> a </td><td> b </td></tr>
 </tbody>
 </table>
-<table id="tbl2" class="winitable" style="border-collapse: collapse; ">
+<table id="tbl2" class="mgtable" style="border-collapse: collapse; ">
 <caption>
 Table 2</caption>
 <tbody>
 <tr><td> c </td><td> d </td></tr>
 </tbody>
 </table>
-<table class="winitable" style="border-collapse: collapse; ">
+<table class="mgtable" style="border-collapse: collapse; ">
 <caption></caption>
 <tbody>
 <tr><td> e</td><td> f</td></tr>
 </tbody>
 </table>
-<table id="id2" class="winitable" style="border-collapse: collapse; ">
+<table id="id2" class="mgtable" style="border-collapse: collapse; ">
 <caption>
 Table 3</caption>
 <tbody>
 <tr><td> g </td><td> h </td></tr>
 </tbody>
 </table>
-<table id="tbl100" class="winitable" style="border-collapse: collapse; ">
+<table id="tbl100" class="mgtable" style="border-collapse: collapse; ">
 <caption>
 Table 100</caption>
 <tbody>
@@ -140,7 +140,7 @@ Thi is main.</p>
 Table 1 = id1 en (mainsect: option en in macro)
 </p>
 
-<section class="wini" id="sect1">
+<section class="mg" id="sect1">
 <h1 class="sectiontitle">in jp</h1>
 
 
@@ -149,7 +149,7 @@ Table 1 = id1 en (mainsect: option en in macro)
 This is sub.</p>
 
 
-<table id="id3" class="winitable" style="border-collapse: collapse; ">
+<table id="id3" class="mgtable" style="border-collapse: collapse; ">
 <caption>
 Table 6  Here is a caption, which shold be in Ja</caption>
 <tbody>
@@ -173,7 +173,7 @@ Table 6 = id3 ja from section val
 </p>
 </section> <!-- end of "sect1" d=ld=1 lastdepth=1 -->
 
-<section class="wini" id="sect2">
+<section class="mg" id="sect2">
 <h1 class="sectiontitle">in en</h1>
 
 

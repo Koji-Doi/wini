@@ -47,28 +47,28 @@ my $p = <<EOC;
 root body
 </p>
 
-<section class="wini" id="s1">
+<section class="mg" id="s1">
 
 
 </section> <!-- end of "s1" d=ld=1 lastdepth=1 -->
 
-<section class="wini" id="second">
+<section class="mg" id="second">
 
 
 </section> <!-- end of "second" d=ld=1 lastdepth=1 -->
 
-<section class="wini" id="s3">
+<section class="mg" id="s3">
 <h1 class="sectiontitle">Third</h1>
 
 
 
-<section class="wini" id="s4">
+<section class="mg" id="s4">
 <h1 class="sectiontitle">Third-1</h1>
 
 
 </section> <!-- end of "s4" d=ld=2 lastdepth=2 -->
 
-<section class="wini" id="s5">
+<section class="mg" id="s5">
 <h1 class="sectiontitle">Third-1-1</h1>
 
 <p>
@@ -77,7 +77,7 @@ third-1-1 body
 </section> <!-- end of "s5" d=2 (6) -->
 </section> <!-- end of "s3" *d=1 (6) -->
 
-<section class="wini" id="s6">
+<section class="mg" id="s6">
 <h1 class="sectiontitle">Forth</h1>
 <!-- s6 -->
 
@@ -124,28 +124,28 @@ my $p = <<EOC;
 root body
 </p>
 
-<header class="wini" id="s1">
+<header class="mg" id="s1">
 
 
 </header> <!-- end of "s1" d=ld=1 lastdepth=1 -->
 
-<aside class="wini" id="s2">
+<aside class="mg" id="s2">
 
 
 </aside> <!-- end of "s2" d=ld=1 lastdepth=1 -->
 
-<article class="wini" id="s3">
+<article class="mg" id="s3">
 <h1 class="sectiontitle">Third</h1>
 
 
 
-<article class="wini" id="s4">
+<article class="mg" id="s4">
 <h1 class="sectiontitle">Third-1</h1>
 
 
 </article> <!-- end of "s4" d=ld=2 lastdepth=2 -->
 
-<article class="wini" id="s5">
+<article class="mg" id="s5">
 <h1 class="sectiontitle">Third-1-1</h1>
 
 <p>
@@ -154,7 +154,7 @@ third-1-1 body
 </article> <!-- end of "s5" d=2 (6) -->
 </article> <!-- end of "s3" *d=1 (6) -->
 
-<footer class="wini" id="s6">
+<footer class="mg" id="s6">
 <h1 class="sectiontitle">Forth</h1>
 <!-- s6 -->
 

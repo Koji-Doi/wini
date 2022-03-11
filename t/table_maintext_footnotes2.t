@@ -55,7 +55,7 @@ EOC
 <p>
 Table</p>
 
-<table class="winitable" style="border-collapse: collapse;  text-align: center; ">
+<table class="mgtable" style="border-collapse: collapse;  text-align: center; ">
 <caption> capt.</caption>
 <tbody style="border:solid 2px;">
 <tr><th style="border:solid 2px;">l3 </th><td style="border:solid 2px;">e <sup>&lowast;1</sup> </td></tr>
@@ -79,7 +79,7 @@ Table</p>
 Main text with footnote<sup>&lowast;1</sup>.
 Main text with footnote<sup>&dagger;1</sup>.</p>
 
-<table class="winitable" style="border-collapse: collapse;  text-align: center; ">
+<table class="mgtable" style="border-collapse: collapse;  text-align: center; ">
 <caption> capt2.</caption>
 <tbody style="border:solid 2px;">
 <tr><th style="border:solid 2px;">l3 </th><td style="border:solid 2px;">e <sup>&lowast;1</sup> </td></tr>

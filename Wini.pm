@@ -563,7 +563,7 @@ sub to_html{
 
       # add close tag for the former section here if necessary
       # and set open tag for the current section here
-      my $opentag = qq{<$tag class="wini" id="${sect_id}">\n} .
+      my $opentag = qq{<$tag class="mg" id="${sect_id}">\n} .
         (($secttitle) ? qq{<h1 class="sectiontitle">$secttitle</h1>\n} : '');
       $html[$sect_cnt]{tag} = $tag;
       if($lastdepth==$depth){
@@ -736,7 +736,7 @@ sub markgaab{
   $t0 =~ s!\^\^([^{])!<sup>$1</sup>!g;
 
   my $r = '';
-  my @localclass = ('wini');
+  my @localclass = ('mg');
   foreach my $t (split(/\n{2,}/, $t0)){ # for each paragraph
     my @myclass = @localclass;
     my($myclass, $myid) = ('', '');
@@ -1446,7 +1446,7 @@ sub table{
   my(@winiitem, @htmlitem, $caption, $footnotetext, $tbl_id);
   my @footnotes; # footnotes in cells
 
-  push(@{$htmlitem[0][0]{copt}{class}}, 'winitable');
+  push(@{$htmlitem[0][0]{copt}{class}}, 'mgtable');
 
   #get caption & table setting - remove '^|-' lines from $in
   $in =~ s&(^\|-([^-].*$))\n&
@@ -1505,7 +1505,6 @@ sub table{
     $caption=~s/[\s\n\r]+$//;
   ''&emg; # end of caption & table setting
 
-#  ($htmlitem[0][0]{copt}{id}[0]) or $htmlitem[0][0]{copt}{id}[0] = sprintf("winitable%d", $table_no++);
   my @lines = split(/\n/, $in);
   my $macro = '';
   my %tablemacros;
