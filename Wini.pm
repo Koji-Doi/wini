@@ -803,10 +803,10 @@ sub deref{
   $r=~s!${MI}([^${MI}${MO}]+)(?:${MI}t=([^${MI}${MO}]+))?(?:${MI}l=([^${MI}${MO}]+))?${MO}!
     my($id, $type, $lang) = ($1, $2, $3);
     if($type eq 'citlist'){
-      my $o = qq{<ul class="citlist">\n};
+      my $o = qq{<ul class="reflist">\n};
       my @citids = grep {$REF{$_}{type} eq 'cit'} keys %REF;
       foreach my $id (sort {$REF{$a}{order} <=> $REF{$b}{order}} @citids){
-        $o .= sprintf("<li> %s %s\n", (txt('cit', $lang, {n=>$id})||''), ($REF{$id}{text}||''));
+        $o .= sprintf("<li> %s %s\n", (txt('cit', $lang, {n=>$REF{$id}{order}||''}), ($REF{$id}{text}||'')));
       }
       $o.="</ul>\n";
     }else{
@@ -1168,7 +1168,7 @@ EOD
 } # sub save_quote
 } # env save_quote
 
-sub cittxt{
+sub cittxt{ # format text with '[]' -> matured reference text
   my($x, $f) = @_; # $x: hash ref representing a cit; $f: format
   (defined $x) or $x = {au=>['Kirk, James T.', 'Tanaka, Taro', 'Yamada-Suzuki, Hanako', 'McDonald, Ronald'], ti=>'XXX', ye=>2021}; # test
   #  (defined $f) or $f = "[au|1|lf][au|2-3|lf|l; |j] [au|4-|etal|r;] [ye]. [ti]. {{/|[jo]}} [vo][issue|p()]:[pp].";
@@ -1178,7 +1178,7 @@ sub cittxt{
   return($f);
 }
 
-sub cittxt_vals{
+sub cittxt_vals{ # subst. "[...]" in reference format to final value
  my($x, $form) = @_;
  (defined $x and defined $form) or return();
  my($valname, @filter) = split(/\|/, $form);
