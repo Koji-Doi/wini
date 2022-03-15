@@ -172,7 +172,7 @@ our $QUIET;
 our %MACROS;
 our %VARS;
 our %REF;       # dataset for each reference
-our %REFCOUNT;  # reference count
+#our %REFCOUNT;  # reference count
 our %REFASSIGN; # reference id definitions
 our %TXT;       # messages and forms
 our($MI, $MO);  # escape chars to 
@@ -224,6 +224,7 @@ __PACKAGE__->stand_alone() if !caller() || caller() eq 'PAR';
 sub init{
   setlocale(LC_ALL, 'C');
   setlocale(LC_TIME, 'C');
+  undef %MACROS; undef %VARS; undef %REF; undef %REFASSIGN;
   no warnings;
   *Data::Dumper::qquote = sub { return encode "utf8", shift } ;
   $Data::Dumper::Useperl = 1 ;
@@ -283,7 +284,12 @@ sub stand_alone{
   }
 
   #test
-  if($test){ print STDERR "WWWW>>> ", citetxt(); exit;};
+  if($test){
+    print STDERR "WWWW>>> ", my $out=bibtest();
+    $DB::single=$DB::single=1;
+    1;
+    exit;
+  }
 
   (defined $cssflameworks[0]) and ($cssflameworks[0] eq '') and $cssflameworks[0]='https://unpkg.com/mvp.css'; # 'https://newcss.net/new.min.css';
   ($test) and ($INFILE[0], $OUTFILE)=("test.wini", "test.html");
@@ -815,19 +821,13 @@ sub deref{
       }
       if(defined $REF{$id}{order}){
         $type = $REF{$id}{type} || mes(txt('idnd', '', {id=>$id}), {err=>1});
-        $REFASSIGN{$type}{$id} = 1;
-        (defined $REFCOUNT{$type}) ? $REFCOUNT{$type}++ : ( $REFCOUNT{$type} = 1);
       }else{
         if(my($type1, $id1)=$id=~/^(fig|tbl|cit|h|s)(\d+)$/){
           $REF{$id}{order} = $id1;
           $REFASSIGN{$type}{$id1} = 1;
         }else{
-          (defined $REFCOUNT{$type}) ? $REFCOUNT{$type}++ : ( $REFCOUNT{$type} = 1);
-          while(defined $REFASSIGN{$type}{$REFCOUNT{$type}}){
-            $REFCOUNT{$type}++;
-          }
-          $REF{$id}{order} = $REFCOUNT{$type};
-          $REFASSIGN{$type}{$REFCOUNT{$type}} = 1;
+          $REF{$id}{order} = (scalar keys %{$REFASSIGN{$type}}) + 1;
+          $REFASSIGN{$type}{$id} = 1;
         }
       }
       txt($type, $lang, {n=>$REF{$id}{order}});
@@ -1129,6 +1129,7 @@ sub readpars{
 
   foreach my $x (@par0){
     if(my($k,$v) = $x=~/(\w+)\s*=\s*(.*)\s*/){
+      $v=~s/^(['"])(.*)\1$/$2/;
       push(@{$pars{$k}}, $v);
     }else{
       push(@pars, $x);
@@ -1170,6 +1171,33 @@ EOD
   }
 } # sub save_quote
 } # env save_quote
+
+sub bibtest{
+  my $x = <<"EOD";
+Reference 1: {{cit|kirk2022|au='James, T. Kirk'|ye=2022|ti='XXX'}}
+
+Referene 2: {{cit|gal2021a|au='Kadotani, Anzu'|au='Koyama, Yuzuko'|au='Kawashima, Momo'|yr=2021|ti='Practice of Senshado in High School Club Activities'}}
+
+[!example1.png|#figx]
+[!example2.png|#figy]
+
+Referene 3: {{cit|gal2021b|au='Kadotani, Anzu'|au='Koyama, Yuzuko'|au='Kawashima, Momo'|yr=2021|ti='Practice of Senshado in High School Club Activities 2'}}
+
+aaa 1:{{ref|kirk2022}}, 2:{{ref|gal2021a}} 2:{{ref|gal2021a}}.
+
+{{citlist}}
+
+EOD
+  init();
+  my($html) = to_html($x);
+  $DB::single=$DB::single=1;
+  1;
+print STDERR "\n\n----------------\n";
+print STDERR "*** REF\n", Dumper %REF;
+print STDERR "*** REFASSIGN\n", Dumper %REFASSIGN;
+print STDERR "----------------\n\n";
+  return($html);
+}
 
 sub cittxt{ # format text with '[]' -> matured reference text
   my($x, $f) = @_; # $x: hash ref representing a cit; $f: format
