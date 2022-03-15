@@ -646,7 +646,7 @@ sub to_html{
     my $tmpldir  = (defined $TEMPLATEDIR) ? $TEMPLATEDIR : cwd();
     if($template=~m{^/}){ # absolute path
     }else{
-        my @testdirs = ($tmpldir, $opt->{dir}, (map {"$_/_template"} ($tmpldir, $opt->{dir})));
+      my @testdirs = ($tmpldir, $opt->{dir}, (map {"$_/_template"} ($tmpldir, $opt->{dir})));
     L1:{
         foreach my $d (@testdirs){
           my $t = "$d/$TEMPLATE";
@@ -1094,8 +1094,11 @@ sub call_macro{
   ($macroname=~m{^[!-/:-@\[-~]$}) and (not defined $f[0]) and 
     return('&#x'.unpack('H*',$macroname).';'); # char -> ascii code
   ($macroname=~/^\@$/)            and return(term(\@f));
-  ($macroname=~/^cit$/i)          and return(cit(@f));
-  ($macroname=~/^(rr|ref)$/i)     and return(ref_tmp_txt(@f, 'dup=ok')); #{{ref|id|fig}} -> $MI...$MO
+  ($macroname=~/^(rr|ref|cit)$/i) and return(cit(@f));
+#  ($macroname=~/^(rr|ref)$/i)     and return(
+#                                        ($f[1]) ? cit(@f)
+#                                                : ref_tmp_txt(@f, 'dup=ok')
+#                                  ); #{{ref|id|fig}} -> $MI...$MO
 #  ($macroname=~/^citlist$/i)      and return(citlist());
   ($macroname=~/^citlist$/i)      and return("${MI}###${MI}t=citlist${MO}");
   ($macroname=~/^(date|time|dt)$/i) and return(date([@f, "type=$1"],  $opt->{_v}));
@@ -1272,12 +1275,17 @@ sub join_and{ # qw/a b c/ -> "a, b and c"
 }
 
 sub cit{
-# {{cit|...}} -> 
+# {{ref|...}} -> 
 # inline_id: "Suzuki, 2022"
 # text:  "Suzuki, T., et al 2022. Koraeshou no Kenkyu. Journal of Pseudoscience 10:100-110."
   my($pars) = readpars(\@_, qw/id type au ye jo vo is pp title pu lang url doi form/);
   my $lang = $pars->{lang}[-1] || $LANG || 'en';
   my $id    = $pars->{id}[-1];
+  ($id) or mes(txt('idnd', {id=>''}), {err=>1});
+  unless(defined $pars->{au}[0]){ # as for {{ref|id}}
+    # ID should be already defined
+    return(ref_tmp_txt("id=$id", "type=cit", "dup=ok", ($pars->{lang}[-1]) ? "lang=$pars->{lang}[-1]" : undef));
+  }
 #  my $aus   = (defined $pars->{au}) ? join('; ', @{$pars->{au}}) : '';
 #  my $au1   = (defined $pars->{au}) ? $pars->{au}[0] : '';
   my $cit;
