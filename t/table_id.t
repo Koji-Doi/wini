@@ -47,7 +47,7 @@ lang: 'en'
 | i | j |
 
 
-Thi is main.
+This is main.
 
 {{rr|id1|lang=ja}} = id1 ja (mainsect: option ja in macro)
 
@@ -83,16 +83,10 @@ lang: 'en'
 
 {{rr|id1}} = id1 en from section val
 
-
-
-
 EOC
   $o=std($o);
 
 my $p = <<EOC;
-
-
-
 
 <table id="id1" class="mgtable" style="border-collapse: collapse; ">
 <caption>
@@ -129,7 +123,7 @@ Table 100</caption>
 </tbody>
 </table>
 <p>
-Thi is main.</p>
+This is main.</p>
 
 
 <p>
@@ -189,9 +183,9 @@ Table 1 = id1 en from section val
 </section>
 
 EOC
-  $p=std($p);
+  #$p=std($p);
 
-  is $o, $p;
+  is std($o), std($p);
 }
 
 

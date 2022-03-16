@@ -1094,7 +1094,7 @@ sub call_macro{
   ($macroname=~m{^[!-/:-@\[-~]$}) and (not defined $f[0]) and 
     return('&#x'.unpack('H*',$macroname).';'); # char -> ascii code
   ($macroname=~/^\@$/)            and return(term(\@f));
-  ($macroname=~/^(rr|ref|cit)$/i) and return(cit(@f));
+  ($macroname=~/^(rr|ref|cit)$/i) and return(cit(\@f, $opt->{_v}));
 #  ($macroname=~/^(rr|ref)$/i)     and return(
 #                                        ($f[1]) ? cit(@f)
 #                                                : ref_tmp_txt(@f, 'dup=ok')
@@ -1305,14 +1305,16 @@ sub join_and{ # qw/a b c/ -> "a, b and c"
 sub cit{
 # {{ref|...}} -> 
 # inline_id: "Suzuki, 2022"
-# text:  "Suzuki, T., et al 2022. Koraeshou no Kenkyu. Journal of Pseudoscience 10:100-110."
-  my($pars) = readpars(\@_, qw/id type au ye jo vo is pp title pu lang url doi form/);
-  my $lang = $pars->{lang}[-1] || $LANG || 'en';
+  # text:  "Suzuki, T., et al 2022. Koraeshou no Kenkyu. Journal of Pseudoscience 10:100-110."
+  my($pars0, $opt) = @_;
+  my($pars) = readpars($pars0, qw/id type au ye jo vo is pp title pu lang url doi form/);
+  my $lang = $pars->{lang}[-1] || $opt->{lang} || $LANG || 'en';
   my $id    = $pars->{id}[-1];
+  print STDERR ">>>id=$id, lang=$lang.<<<\n";
   ($id) or mes(txt('idnd', {id=>''}), {err=>1});
   unless(defined $pars->{au}[0]){ # as for {{ref|id}}
     # ID should be already defined
-    return(ref_tmp_txt("id=$id", "type=cit", "dup=ok", ($pars->{lang}[-1]) ? "lang=$pars->{lang}[-1]" : undef));
+    return(ref_tmp_txt("id=$id", "type=cit", "dup=ok", "lang=$lang")); #($pars->{lang}[-1]) ? "lang=$pars->{lang}[-1]" : undef));
   }
 #  my $aus   = (defined $pars->{au}) ? join('; ', @{$pars->{au}}) : '';
 #  my $au1   = (defined $pars->{au}) ? $pars->{au}[0] : '';
