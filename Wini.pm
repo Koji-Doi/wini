@@ -1210,80 +1210,91 @@ sub cittxt{ # format text with '[]' -> matured reference text
 }
 
 sub cittxt_vals{ # subst. "[...]" in reference format to final value
- my($x, $form) = @_;
- (defined $x and defined $form) or return();
- my($valname, @filter) = split(/\|/, $form);
- my $y = (ref $x->{$valname} eq 'ARRAY') ? $x->{$valname} : [$x->{$valname}];
- foreach my $f (@filter){
-   if($f eq '1'){
-     $y=[$y->[0]];
-   }elsif($f=~/^i[afl]?$/){ # take first letter and capitalize. This should be used before 'fl' or 'fli' filter
-     my $y0=$y; #test
-     $y = [map {
-       my($last, $first) = /([^,]*), *(.*)/;
-       if($f ne 'il'){ # Initial for the first name
-         my(@first0) = $first=~/\b([A-Z])/g;
-         map {s/(\w)/$1./} @first0;
-         $first = join(' ', @first0);
-       }
-       if($f ne 'if'){ # Initial for the last name
-         if($last=~/([A-Z])\w*-([A-Z])\w/){ # Yamada-Suzuki -> Y-S.
-           $last = "$1-$2.";
-         }else{
-           my(@l) = $last=~/\b([A-Z])/g;
-           $last  = join(' ', map {($_ eq '') ? '' : "$_."} @l);
-         }
-       }
-       "$last, $first";
-     } @$y ];
-   }elsif($f eq 'lf' or $f eq 'lfi'){ # Last, First
-     $y = [map {
+  my($x, $form) = @_;
+  (defined $x and defined $form) or return();
+  my($valname, @filter) = split(/\|/, $form);
+  my $y = (ref $x->{$valname} eq 'ARRAY') ? $x->{$valname} : [$x->{$valname}];
+  foreach my $f (@filter){
+    if($f eq '1'){
+      $y = [$y->[0]];
+    }elsif($f eq 'n'){
+      $y = [scalar @$y];
+    }elsif($f=~/^morethan(\d+)/){ # if list size is not more than $1, the list is canceled.
+      ($1 > scalar @$y) and return([]);
+    }elsif($f=~/^i[afl]?$/){ # take first letter and capitalize. This should be used before 'fl' or 'fli' filter
+      my $y0=$y; #test
+      $y = [map {
+        my($last, $first) = /([^,]*), *(.*)/;
+        if($f ne 'il'){ # Initial for the first name
+          my(@first0) = $first=~/\b([A-Z])/g;
+          map {s/(\w)/$1./} @first0;
+          $first = join(' ', @first0);
+        }
+        if($f ne 'if'){ # Initial for the last name
+          if($last=~/([A-Z])\w*-([A-Z])\w/){ # Yamada-Suzuki -> Y-S.
+            $last = "$1-$2.";
+          }else{
+            my(@l) = $last=~/\b([A-Z])/g;
+            $last  = join(' ', map {($_ eq '') ? '' : "$_."} @l);
+          }
+        }
+        "$last, $first";
+      } @$y ];
+    }elsif($f eq 'lf' or $f eq 'lfi'){ # Last, First
+      $y = [map {
        my($last, $first) = /([^,]*), *(.*)/;
        ($f eq 'lfi') and ($last, $first) = ((uc substr($last,0,1)), (uc substr($first,0,1)));
        "${last}, ${first}"
-     } @$y];
-   }elsif($f eq 'fl' or $f eq 'fli'){ # First Last
-     $y = [map {my($last, $first) = /([^,]*), +(.*)/; "${first} ${last}"} @$y ];
-   }elsif($f eq 'uu'){
-     $y = [map {uc $_} @$y];
-   }elsif($f eq 'u'){
-     $y = [map {ucfirst(lc $_)} @$y];
-   }elsif($f=~/^(\d)+(?:-(\d+))?$/){
-     my($first,$last) = ($1-1, ($2||scalar @$y)-1);
-     $y = [grep {defined $_ and $_ ne ''} @$y[$first..$last]];
-   }elsif($f=~/^j(.*)$/){
-     # j, : a, b, c,
-     # j; : a; b; c;
-     # ja : a, b and c
-     # j& : a, b & c
-     # j;&: a; b & c
-     # je2: a et al.
-     # je3: a, b et al.
-     my($is_c, $is_s, $and, $amp, $etal) = map {$f=~/$_/ or 0} (',', qw/; a & e\d/);
-     my $sep = ($is_c) ? ', ' : ($is_s) ? '; ' : ' ';
-     if($etal){
-       ($etal) = $f=~/e(\d+)/;
-       $y = [join($sep, @$y[0..($etal-1)]) . ' et al.'];
-     }else{
-       $y = [ join($sep, @$y) ];
-     }
-   }elsif($f=~/^l(.*)$/){ # "abc"|l* -> "*abc"
-     my $p = $1;
-     $y = [map {s/^\s*//; "$p$_"} @$y];
-   }elsif($f=~/^r(.*)$/){ # "abc"|r* -> "abc*"
-     my $p = $1;
-     $y = [map {s/\s*$//; "$_$p"} @$y];
-   }elsif($f=~/^p(.)(.)$/){ # "abc"|p() -> "(abc)"
-     $y = [ map {$1 . $_ . $2} @$y];
-   }elsif($f eq 'b'){
-     $y = [ map {qq{<span style="font-weight:bold">$_</span>}} @$y];
-   }elsif($f eq 'i'){
-     $y = [ map {qq{<span style="font-style:italic">$_</span>}} @$y];
-   }elsif($f=~/^etal(\d*)$/){
-   }
- }
- return($y->[-1]);
-}
+      } @$y];
+    }elsif($f eq 'fl' or $f eq 'fli'){ # First Last
+      $y = [map {my($last, $first) = /([^,]*), +(.*)/; "${first} ${last}"} @$y ];
+    }elsif($f eq 'uu'){
+      $y = [map {uc $_} @$y];
+    }elsif($f eq 'u'){
+      $y = [map {ucfirst(lc $_)} @$y];
+    }elsif($f=~/^(\d)+(?:-(\d+))?$/){ # list slice
+      my($first,$last) = ($1-1, ($2||scalar @$y)-1);
+      $y = [grep {defined $_ and $_ ne ''} @$y[$first..$last]];
+    }elsif($f=~/^j(.*)$/){
+      # j, : a, b, c,
+      # j; : a; b; c;
+      # ja : a, b and c
+      # j& : a, b & c
+      # j;&: a; b & c
+      # je2: a et al.
+      # je3: a, b et al.
+      my($is_c, $is_s, $and, $amp, $etal) = map {$f=~/$_/ or 0} (',', qw/; a & e\d/);
+      my $sep = ($is_c) ? ', ' : ($is_s) ? '; ' : ' ';
+      if($etal){
+        ($etal) = $f=~/e(\d+)/;
+        $y = [join($sep, @$y[0..($etal-1)]) . ' et al.'];
+      }else{
+        $y = [ join($sep, @$y) ];
+      }
+    }elsif($f=~/^l(.*)$/){ # "abc"|l* -> "*abc"
+      my $p = $1;
+      $y = [map {s/^\s*//; "$p$_"} @$y];
+    }elsif($f=~/^r(.*)$/){ # "abc"|r* -> "abc*"
+      my $p = $1;
+      $y = [map {s/\s*$//; "$_$p"} @$y];
+    }elsif($f eq 'q'){
+      $y = [ map {"'$_'"} @$y];
+    }elsif($f eq 'qq'){
+      $y = [ map {qq!"$_"!} @$y];
+    }elsif($f eq 'p'){
+      $y = [ map {"($_)"} @$y];
+    }elsif($f=~/^br(.)?(.)?$/){ # "abc"|br() -> "(abc)"
+      my($o, $c) = ($1 eq '' and $2 eq '') ? qw/( )/ : ($1, $2);
+      $y = [ map {$1 . $_ . $2} @$y];
+    }elsif($f eq 'b'){
+      $y = [ map {qq{<span style="font-weight:bold">$_</span>}} @$y];
+    }elsif($f eq 'i'){
+      $y = [ map {qq{<span style="font-style:italic">$_</span>}} @$y];
+    }elsif($f=~/^etal(\d*)$/){
+    }
+  } # foreach @filter
+  return($y->[-1]);
+} 
 
 sub join_and{ # qw/a b c/ -> "a, b and c"
   my($l, $sep, $and, $lastsep) = @_;
