@@ -31,19 +31,19 @@ sub std{
 lang: 'en'
 ===
 
-|- Here is a caption | #id1 |
+|- Here is a caption | #id1 @2 |
 | a | b |
 
-|- | #2 |
+|- | #2 @2 |
 | c | d |
 
-|- | |
+|- | @2 |
 | e | f |
 
-|- | #id2 |
+|- | #id2 @2 |
 | g | h |
 
-|- | #100 |
+|- | #100 @2 |
 | i | j |
 
 
@@ -62,7 +62,7 @@ lang: 'ja'
 
 This is sub.
 
-|- Here is a caption, which shold be in Ja | #id3 |
+|- Here is a caption, which shold be in Ja | #id3 @2 |
 | a | b |
 
 {{rr|id1|id2=c|lang=ja}} = id1 ja (subsect: option ja in macro)
@@ -84,6 +84,8 @@ lang: 'en'
 {{rr|id1|id2=h}} = id1 en from section val
 
 EOC
+  open(my $fho, '>:utf8', 'table_id.html');
+  print {$fho} "$o\n"; close $fho;
   $o=std($o);
 
 my $p = <<EOC;

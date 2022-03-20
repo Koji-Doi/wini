@@ -723,7 +723,7 @@ sub markgaab{
   $t0 =~ s/^"""([\w =]*)\n(.*?)\n"""$/&save_quote("q $1", $2)/esmg;
     
   # conv table to html
-  $t0 =~ s/^\s*(\|.*?)[\n\r]+(?!\|)/table($1)/esmg;
+  $t0 =~ s/^\s*(\|.*?)[\n\r]+(?!\|)/table($1, $opt->{_v})/esmg;
   # footnote
   if(exists $opt->{table}){ # in table
     my $table_id = $opt->{table};
@@ -1488,12 +1488,11 @@ sub ruby{
   return("<ruby>$t</ruby>");
 }
 
-{
-#my $table_no;
 sub table{
-  my($in, $footnotes)=@_;
+  my($in, $val)=@_;
 #  (defined $table_no) or $table_no=1;
   my $ln=0;
+  my $lang = $val->{lang} || $LANG || 'en';
   my(@winiitem, @htmlitem, $caption, $footnotetext, $tbl_id);
   my @footnotes; # footnotes in cells
 
@@ -1527,9 +1526,8 @@ sub table{
       while($o=~/#([-\w]+)/g){
         my($tbl_id0) = $1;
         $tbl_id0=~s{^(\d+)$}{tbl$1}; # #1 -> #tbl1
-# todo: set $REF like figure Ids.
         (exists $REF{$tbl_id0}) and mes(txt('did', undef, {id=>$tbl_id0}), {q=>1,err=>1});
-        ($tbl_id0=~/\S/) and $caption = ref_tmp_txt($tbl_id0, 'tbl') . " $c";
+        ($tbl_id0=~/\S/) and $caption = ref_tmp_txt($tbl_id0, 'tbl', $lang) . " $c";
         $htmlitem[0][0]{copt}{id}[0] = $tbl_id0;
         $tbl_id = sprintf(qq{ id="%s"}, $tbl_id0); # ref_tmp_txt($tbl_id0, undef, 'tbl')); # for table->caption tag
       }
@@ -1718,7 +1716,6 @@ sub table{
       (defined $htmlitem[$ln][$i]) or next;
       my $cell = $htmlitem[$ln][$i];
       ($cell->{wini}, my $opt) = markgaab($cell->{val}, {para=>'nb', nocr=>1, table=>$htmlitem[0][0]{copt}{id}[0]});
-      #(exists $opt->{footnote}) and push(@{$footnotes->{$table_no}}, @{$opt->{footnote}});
       $cell->{wini} =~ s/\t *//g;
       $cell->{wini} =~ s/[ \n]+/ /g;
       $htmlitem[$ln][$i] = $cell; # $htmlitem[$ln][0]: data for row (tr)
@@ -1769,7 +1766,7 @@ sub table{
       and $htmlitem[0][0]{copt}{bborder} = $htmlitem[0][0]{copt}{tborder};
 
     #(defined $htmlitem[0][0]{copt}{border}) and $outtxt .= sprintf("border: solid %dpx; ", $htmlitem[0][0]{copt}{border});
-    (defined $styles[0]) and $ropt .= qq{style="} . join('; ', sort @styles) . '"';  
+    (defined $styles[0]) and $ropt .= qq{style="} . join('; ', sort @styles) . '"';
 
     if(defined $htmlitem[$rn][0]{copt}{class}[0]){
       $ropt .= q{ class="} . join(' ',  sort @{$htmlitem[$rn][0]{copt}{class}}) . q{"};
@@ -1821,7 +1818,6 @@ sub table{
     #  : ($outtxt .= $outtxt0);
   } # foreach $rn
   $outtxt .= "</tbody>\n";
-#  if((defined $footnotes[0]) or (defined $footnotes->{$table_no} and scalar @{$footnotes->{$table_no}} > 0) or $footnotetext){
    if(defined $footnotes[0]){
     $outtxt .= (defined $htmlitem[0][0]{copt}{fborder})?qq{<tfoot style="border: solid $htmlitem[0][0]{copt}{fborder}px;">\n}:"<tfoot>\n";
     #my $colspan = scalar @{$htmlitem[-1]} -1;
@@ -1835,8 +1831,6 @@ sub table{
   $outtxt=~s/\t+/ /g; # tab is separator of cells vertically unified
   return($outtxt);
 } # sub table
-
-} # table env
 
 {
 my %vars;
