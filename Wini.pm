@@ -144,6 +144,7 @@ Show version.
 Show this help.
 
 =back
+
 =cut
 
 package Text::Markup::Wini;
@@ -369,13 +370,13 @@ sub txt{ # multilingual text from text id
 } # sub txt
 
 sub mes{ # display guide, warning etc. to STDERR
-  my($x, $o) = @_;
-# $o->{err}: treat $x as error and die
-# $o->{warn}: treat $x as warning and use warn()
+  my($txt, $o) = @_;
+# $o->{err}: treat $txt as error and die
+# $o->{warn}: treat $txt as warning and use warn()
 # $o->{q}: do not show caller-related info
 # $o->{ln}: line number
 # $QUIET: show err or warn, but any others are omitted
-  chomp $x;
+  chomp $txt;
   my $mes;
   my $ind = '';
   my($mestype, $col) = (exists $o->{err})  ? ('Error',   "\e[37m\e[41m")
@@ -392,15 +393,15 @@ sub mes{ # display guide, warning etc. to STDERR
     print STDERR "${col}$mes\e[0m\n";
     $ind='  ';
   }
-#  ($QUIET==0) and $x = sprintf("${x}${ln1} [Wini.pm] ", $o->{ln});
+#  ($QUIET==0) and $txt = sprintf("${x}${ln1} [Wini.pm] ", $o->{ln});
   if(exists $o->{err}){
-    (($FORCE) and print STDERR "$ind$x\n") or die "$ind$x\n";
+    (($FORCE) and print STDERR "$ind$txt\n") or die "$ind$txt\n";
   }elsif($o->{warn}){
-    warn("$ind$x\n");
+    warn("$ind$txt\n");
   }else{
-    ($QUIET==0) and print STDERR "$ind$x\n";
+    ($QUIET==0) and print STDERR "$ind$txt\n";
   }
-  return($x);
+  return($txt);
 } # sub mes
 
 sub help{
@@ -787,7 +788,7 @@ sub markgaab{
           : $t=~m{<(html|body|head|p|table|img|figure|blockquote|[uod]l)[^>]*>.*</\1>}is ? $t
           : $t=~m{<!doctype}is                                                           ? $t
           : $t=~m{${MI}t=citlist}is ? $t
-          : "<p${myclass}>\n$t</p>$cr$cr";
+          : "<p${myclass}>\n$t" . (($t=~/\n$/)?'':"\n") . "</p>$cr$cr";
 
     $r .= "\n$t";
   } # foreach $t # for each paragraph
@@ -830,7 +831,7 @@ sub deref{
           $REFASSIGN{$type}{$id} = 1;
         }
       }
-      txt($type, $lang, {n=>$REF{$id}{order}});
+      txt("ref_${type}", $lang, {n=>$REF{$id}{order}});
     }
   !ge;
   return($r);
@@ -947,7 +948,7 @@ sub list{
   : $t2=~m{<(html|body|head|p|table|img|figure|blockquote|[uod]l)[^>]*>.*</\1>}is ? $t2
   : $t2=~m{<(html|body|head|p|table|img|figure|blockquote|[uod]l)}is ? $t2
   : $t2=~m{<!doctype}is                                                           ? $t2
-  : "<p${myclass}>\n$t2</p>$cr$cr"
+  : "<p${myclass}>\n$t2" . (($t2=~/\n$/)?'':"\n") . "</p>$cr$cr"
   ): '', \%listitems);
 } # sub list
 
@@ -1318,24 +1319,25 @@ sub cit{
 # inline_id: "Suzuki, 2022"
   # text:  "Suzuki, T., et al 2022. Koraeshou no Kenkyu. Journal of Pseudoscience 10:100-110."
   my($pars0, $opt) = @_;
-  my($pars) = readpars($pars0, qw/id type au ye jo vo is pp title pu lang url doi form/);
-  my $lang = $pars->{lang}[-1] || $opt->{lang} || $LANG || 'en';
-  my $id    = $pars->{id}[-1];
-  print STDERR ">>>id=$id, lang=$lang.<<<\n";
+  my($pars)        = readpars($pars0, qw/id type au ye jo vo is pp title pu lang url doi form/);
+  my $lang         = $pars->{lang}[-1] || $opt->{lang} || $LANG || 'en';
+  my $id           = $pars->{id}[-1];
+  my @bibopts = grep {!/^(id\d*|type|lang)$/ and defined $pars->{$_}[0]} keys %$pars;
   ($id) or mes(txt('idnd', {id=>''}), {err=>1});
-  unless(defined $pars->{au}[0]){ # as for {{ref|id}}
-    # ID should be already defined
-    return(ref_tmp_txt("id=$id", "type=cit", "dup=ok", "lang=$lang")); #($pars->{lang}[-1]) ? "lang=$pars->{lang}[-1]" : undef));
+
+  if((scalar @bibopts)>0){
+    # is newly defined bibliography
+    (defined $REF{$id}) and mes(txt('did', {id=>$id}), {err=>1});
+    my $tmptxt = ref_tmp_txt("id=$id", "type=cit", "lang=$lang");
+    $REF{$id}{inline_id} = txt('cit_inline', $lang, {au=>$pars->{au}[0], ye=>$pars->{ye}[-1]})||''; # printf("%s, %s", $au1, ($pars->{yr}[-1]||''));
+    $REF{$id}{text}      = cittxt($pars, txt('cit_form')); # sprintf("%s, %s", $au1, ($pars->{yr}[-1]||''));  }
+    $REF{$id}{type}      = 'cit';
+    return($tmptxt);
+  }else{ # is already defined id (for bib, fig, table ...)
+    my $reftype = $REF{$id}{type} || $pars->{type}[-1];
+    print STDERR "id=$id, lang=$lang id2=".($pars->{id2}[0]||"?")."\nopt: ", Dumper $opt;
+    return(ref_tmp_txt("id=$id", "type=$reftype", "lang=$lang", "dup=ok"));
   }
-#  my $aus   = (defined $pars->{au}) ? join('; ', @{$pars->{au}}) : '';
-#  my $au1   = (defined $pars->{au}) ? $pars->{au}[0] : '';
-  my $cit;
-  map {$cit->{$_} = $pars->{$_}} keys %$pars;
-  (exists $REF{$id}) and mes(txt('did', '', {id=>$id}), {err=>1});
-  my $x = ref_tmp_txt("id=$id", "type=cit", ($pars->{lang}[-1]) ? "lang=$pars->{lang}[-1]" : undef);
-  $REF{$id}{'inline_id'} = txt('cit_inline', $lang, {au=>$cit->{au}[0], ye=>$cit->{ye}[-1]})||''; # printf("%s, %s", $au1, ($pars->{yr}[-1]||''));
-  $REF{$id}{'text'}      = cittxt($cit, txt('cit_form')); # sprintf("%s, %s", $au1, ($pars->{yr}[-1]||''));
-  return($x);
 }
 
 sub ref_tmp_txt{
@@ -1347,7 +1349,7 @@ sub ref_tmp_txt{
   my $lang1 = ($lang eq '') ? '' : "${MI}l=${lang}";
   my $type1 = ($type eq '') ? '' : "${MI}t=${type}";
   my   $out = "${MI}${id}${type1}${lang1}${MO}";
-  ($dup ne 'ok') and (exists $REF{$id}) and txt(mes('did', {id=>$id}), $lang, {err=>1});
+  ($dup ne 'ok') and (exists $REF{$id}) and mes(txt('did', $lang, {id=>$id}), {err=>1});
   (defined $type) and $REF{$id} = {type=>$type};
   return($out);
 }
@@ -2042,7 +2044,6 @@ __DATA__
 |Error|error|エラー|
 |fail|failed|失敗|
 |fci|File {{f}} is chosen as input|ファイル{{f}}が入力元ファイルです|
-|fig|Fig. {{n}}|図{{n}}|
 |fin|completed|終了|
 |fnf|File not found|ファイルが見つかりません|
 |ftf|Found {{t}} as template file|テンプレートファイル{{t}}が見つかりました|
@@ -2054,10 +2055,12 @@ __DATA__
 |Message|Message|メッセージ|
 |mt|{{col}}{{mestype}}{{reset}} at line {{ln}}. |{{reset}}{{ln}}行目にて{{col}}{{mestype}}{{reset}}：|
 |opf|File {{f}} is opened in utf8|{{f}}をutf-8ファイルとして開きます|
+|ref_cit|[{{id}}]|[{{id}}|
+|ref_fig|Fig. {{n}}|図{{n}}|
+|ref_tbl|Table {{n}}|表{{n}}|
 |rout|Output:  STDOUT|出力先: 標準出力|
 |secnames|part chapter section subsection|部 章 節 項|
 |snf|Searched {{t}}, but not found|{{t}}の内部を検索しましたが見つかりません|
-|tbl|Table {{n}}|表{{n}}|
 |time|%H:%M:%S|%H時%M分%S秒|
 |timetrad|%H:%M:%S|%H時%M分%S秒|
 |timedowtrad|%H:%M:%S|%H時%M分%S秒|

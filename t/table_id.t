@@ -16,9 +16,9 @@ init();
 
 sub std{
   my($x)=@_;
-  $x=~s/[\n\r]*//g;
+  $x=~s/[\n\r]+/\n/g;
   $x=~s/> */>/g;
-  $x=~s/\s{2,}//g;
+  $x=~s/\s{2,}/ /g;
   $x=~s/ +</</g;
   $x=~s/> +/>/g;
   return($x);
@@ -49,9 +49,9 @@ lang: 'en'
 
 This is main.
 
-{{rr|id1|lang=ja}} = id1 ja (mainsect: option ja in macro)
+{{rr|id1|id2=a|lang=ja}} = id1 ja (mainsect: option ja in macro)
 
-{{rr|id1|lang=en}} = id1 en (mainsect: option en in macro)
+{{rr|id1|id2=b|lang=en}} = id1 en (mainsect: option en in macro)
 
 
 ? in jp
@@ -65,13 +65,13 @@ This is sub.
 |- Here is a caption, which shold be in Ja | #id3 |
 | a | b |
 
-{{rr|id1|lang=ja}} = id1 ja (subsect: option ja in macro)
+{{rr|id1|id2=c|lang=ja}} = id1 ja (subsect: option ja in macro)
 
-{{rr|id1|lang=en}} = id1 en (subsect: option en in macro)
+{{rr|id1|id2=d|lang=en}} = id1 en (subsect: option en in macro)
 
-{{rr|id1}} = id1 ja from section val
+{{rr|id1|id2=e}} = id1 ja from section val
 
-{{rr|id3}} = id3 ja from section val
+{{rr|id3|id2=f}} = id3 ja from section val
 
 ? in en
 
@@ -79,9 +79,9 @@ This is sub.
 lang: 'en'
 ===
 
-{{rr|id2}} = id2 en from section val
+{{rr|id2|id2=g}} = id2 en from section val
 
-{{rr|id1}} = id1 en from section val
+{{rr|id1|id2=h}} = id1 en from section val
 
 EOC
   $o=std($o);
