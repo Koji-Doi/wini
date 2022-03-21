@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    #testtable1 td{
+        background-color: yellow;
+    }
+    #testtable1 tbody{
+    }
+  </style>    
+</head>
+<body>
+
+<table style="border: solid 2px black;">
+<tr> <td>a1</td> <td>a2</td> <td>a3</td> </tr>
+<tr> <td>b1</td> <td>b2</td> <td>b3</td> </tr>
+</table>
+
+<table>
+<tr> <td style="border:solid 2px red;">a1</td> <td>a2</td> <td>a3</td> </tr>
+<tr> <td>b1</td> <td>b2</td> <td>b3</td> </tr>
+</table>
+
+<table style="border-collapse: collapse; border: solid 2px black;">
+<tr> <td style="border:solid 2px red; collapse">a1</td> <td>a2</td> <td>a3</td> </tr>
+<tr> <td style="border:solid 2px red; collapse">b1</td> <td>b2</td> <td>b3</td> </tr>
+</table>
+
+ccc<br>
+
+<table id="testtable1">
+<tbody style="color:green; box-shadow: 0 0 0 1px black;">
+<tr> <td style="border:solid 2px red; collapse">a1</td> <td>a2</td> <td>a3</td> </tr>
+<tr> <td style="border:solid 2px red; collapse">b1</td> <td>b2</td> <td>b3</td> </tr>
+</tbody>
+<tbody style="border-collapse: collapse; border: solid 2px black;">
+<tr> <td style="border:solid 2px red; collapse">c1</td> <td>c2</td> <td>c3</td> </tr>
+<tr> <td style="border:solid 2px red; collapse">d1</td> <td>d2</td> <td>d3</td> </tr>
+</tbody>
+</table>
+
+</body>
+</html>
