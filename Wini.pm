@@ -1490,7 +1490,6 @@ sub ruby{
 
 sub table{
   my($in, $val)=@_;
-#  (defined $table_no) or $table_no=1;
   my $ln=0;
   my $lang = $val->{lang} || $LANG || 'en';
   my(@winiitem, @htmlitem, $caption, $footnotetext, $tbl_id);
@@ -1729,6 +1728,7 @@ sub table{
         or $htmlitem[0][0]{copt}{style}{width}[0] = sprintf("%drem", ((sort map{$_ or 0} @rowlen)[-1])*2);
 
   # make html
+#todo: reflect 'borderall' options to table style
   my $outtxt = sprintf(qq!\n<table${tbl_id} class="%s"!, join(' ', sort @{$htmlitem[0][0]{copt}{class}}));
   (defined $htmlitem[0][0]{copt}{border}) and $outtxt .= ' border="1"';
   $outtxt .= q{ style="border-collapse: collapse; };
