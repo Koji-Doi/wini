@@ -1494,7 +1494,7 @@ sub table{
   my $lang = $val->{lang} || $LANG || 'en';
   my(@winiitem, @htmlitem, $caption, $footnotetext, $tbl_id);
   my @footnotes; # footnotes in cells
-
+  my $linestyle = {qw/, dotted ; dashed : double/};
   push(@{$htmlitem[0][0]{copt}{class}}, 'mgtable');
 
   #get caption & table setting - remove '^|-' lines from $in
@@ -1513,7 +1513,7 @@ sub table{
         $htmlitem[0][0]{copt}{style}{float}[0] = ($1 eq '<')?'left':'right';
       }
       while($o=~/([tbf])@(?!@)([,;:]?)(\d*)([a-zA-Z]+|#[\da-fA-F]{3}|#[\da-fA-F]{6})?/g){
-        my($attr, $lstyle, $w, $col) = ($1, $2||'solid', $3||1, $4||'black');
+        my($attr, $lstyle, $w, $col) = ($1, ($2)?$linestyle->{$2}:'solid', $3||1, $4||'black');
         $htmlitem[0][0]{copt}{"${attr}border"} = "0 0 0 ${w}px $lstyle $col";
       }
       while($o=~/([tbf])@@(\d*)/g){
