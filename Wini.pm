@@ -1512,8 +1512,9 @@ sub table{
       if($o=~/(?<![<>])([<>])(?![<>])/){
         $htmlitem[0][0]{copt}{style}{float}[0] = ($1 eq '<')?'left':'right';
       }
-      while($o=~/([tbf])@(?!@)(\d*)/g){
-        $htmlitem[0][0]{copt}{$1.'border'} = ($2)?$2:1;
+      while($o=~/([tbf])@(?!@)([,;:]?)(\d*)([a-zA-Z]+|#[\da-fA-F]{3}|#[\da-fA-F]{6})?/g){
+        my($attr, $lstyle, $w, $col) = ($1, $2||'solid', $3||1, $4||'black');
+        $htmlitem[0][0]{copt}{"${attr}border"} = "0 0 0 ${w}px $lstyle $col";
       }
       while($o=~/([tbf])@@(\d*)/g){
         $htmlitem[0][0]{copt}{$1.'borderall'} = ($2)?$2:1;
@@ -1739,7 +1740,8 @@ sub table{
 
   $outtxt .= qq{">\n}; # end of style
   (defined $caption) and $outtxt .= "<caption>$caption</caption>\n";
-  $outtxt .= (defined $htmlitem[0][0]{copt}{bborder})?qq{<tbody style="border:solid $htmlitem[0][0]{copt}{bborder}px;">\n}:"<tbody>\n";
+#  $outtxt .= (defined $htmlitem[0][0]{copt}{bborder})?qq{<tbody style="border:solid $htmlitem[0][0]{copt}{bborder}px;">\n}:"<tbody>\n";
+  $outtxt .= (defined $htmlitem[0][0]{copt}{bborder})?qq{<tbody style="box-shadow: $htmlitem[0][0]{copt}{bborder};">\n}:"<tbody>\n";
 
   for(my $rn=1; $rn<=$#htmlitem; $rn++){
     my $outtxt0;
