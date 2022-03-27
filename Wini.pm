@@ -1494,11 +1494,11 @@ sub table{
   my $lang = $val->{lang} || $LANG || 'en';
   my(@winiitem, @htmlitem, $caption, $footnotetext, $tbl_id);
   my @footnotes; # footnotes in cells
-  my $linestyle = {qw/, dotted ; dashed : double/};
+  my $linestyle = {',', qw/dotted ; dashed : double/};
   push(@{$htmlitem[0][0]{copt}{class}}, 'mgtable');
 
   #get caption & table setting - remove '^|-' lines from $in
-  $in =~ s&(^\|-([^-].*$))\n&
+  $in =~ s{(^\|-([^-].*$))\n}{
     my $caption0 = $2;
     $caption0=~s/\|\s*$//;
     my($c, $o) = split(/ \|(?= |$)/, $caption0, 2); # $caption=~s{[| ]*$}{};
@@ -1512,12 +1512,16 @@ sub table{
       if($o=~/(?<![<>])([<>])(?![<>])/){
         $htmlitem[0][0]{copt}{style}{float}[0] = ($1 eq '<')?'left':'right';
       }
-      while($o=~/([tbf])@(?!@)([,;:]?)(\d*)([a-zA-Z]+|#[\da-fA-F]{3}|#[\da-fA-F]{6})?/g){
-        my($attr, $lstyle, $w, $col) = ($1, ($2)?$linestyle->{$2}:'solid', $3||1, $4||'black');
-        $htmlitem[0][0]{copt}{"${attr}border"} = "0 0 0 ${w}px $lstyle $col";
+      while($o=~/(\s)@(\d*)([a-zA-Z]+|#[\da-fA-F]{3}|#[\da-fA-F]{6})?(?:(?=\s)|$)/g){
+        my($w, $col) = ((($2 eq '')?1:$2), $3);
+        $htmlitem[0][0]{copt}{border} = "0 0 0 ${w}px $col";
       }
-      while($o=~/([tbf])@@(\d*)/g){
-        $htmlitem[0][0]{copt}{$1.'borderall'} = ($2)?$2:1;
+      while($o=~/([tbf])@(?!@)(\d*)([a-zA-Z]+|#[\da-fA-F]{3}|#[\da-fA-F]{6})?/g){
+        my($attr, $w, $col) = ($1, $2||1, $3||'black');
+        $htmlitem[0][0]{copt}{"${attr}border"} = "0 0 0 ${w}px $col";
+      }
+      while($o=~/@@(\d*)([a-zA-Z]+|#[\da-fA-F]{3}|#[\da-fA-F]{6})?/g){
+        $htmlitem[0][0]{copt}{borderall} = (($1)?$1:1) . (($2)?" $2":'');
         (defined $htmlitem[0][0]{copt}{$1.'border'}) or $htmlitem[0][0]{copt}{$1.'border'} = ($2)?$2:1; 
       }
       while($o=~/\.([-\w]+)/g){
@@ -1552,7 +1556,7 @@ sub table{
     } # if defined $o
     ($caption)=markgaab($caption, {para=>'nb', nocr=>1});
     $caption=~s/[\s\n\r]+$//;
-  ''&emg; # end of caption & table setting
+  ''}emg; # end of caption & table setting
 
   my @lines = split(/\n/, $in);
   my $macro = '';
@@ -1780,7 +1784,7 @@ sub table{
       }else{ #not rowspan or colspan
         my $copt = '';
         my %style;
-        if(my $bb=$htmlitem[0][0]{copt}{bborder}){
+        if(my $bb=$htmlitem[0][0]{copt}{bborderall}){
           $style{border} .= "solid ${bb}px";
         }
         foreach my $c (qw/class colspan rowspan/){
@@ -1815,20 +1819,24 @@ sub table{
     ); # join
     $outtxt0 .= "</tr>\n";
     (defined $htmlitem[$rn][0]{footnote}) ? ($footnotetext .= $htmlitem[$rn][0]{footnote}."; ") : ($outtxt .= $outtxt0);
-    #($htmlitem[$rn][0]{footnote})
-    #  ? ($footnotetext .= join('<br>', grep {/\S/} map {$htmlitem[$rn][$_]{val}} 1..$#{$htmlitem[$rn]}) . "<br>\n")
-    #  : ($outtxt .= $outtxt0);
+print STDERR ">>>> footnote in $rn: $footnotetext.\n";
   } # foreach $rn
   $outtxt .= "</tbody>\n";
-   if(defined $footnotes[0]){
-    $outtxt .= (defined $htmlitem[0][0]{copt}{fborder})?qq{<tfoot style="border: solid $htmlitem[0][0]{copt}{fborder}px;">\n}:"<tfoot>\n";
+  if(defined $footnotes[0] or defined $footnotetext){
+    if(defined $footnotes[0]){ # $footnotetext+@footnotes->$footnotetext
+      my $f = join(";\&nbsp;\n", @footnotes);
+      $footnotetext = (defined $footnotetext)
+       ? join('<br>', $footnotetext, $f)
+       : $f;
+    }
+    $outtxt .= (defined $htmlitem[0][0]{copt}{fborder})?qq{<tfoot style="box-shadow: $htmlitem[0][0]{copt}{fborder};">\n}:"<tfoot>\n";
     #my $colspan = scalar @{$htmlitem[-1]} -1;
     $outtxt .= sprintf(qq!<tr><td colspan="%d">!, $#{$htmlitem[1]});
-    (defined $footnotetext) and $outtxt .= $footnotetext;
-    $outtxt .= join(";\n", @footnotes);
+#    (defined $footnotetext) and $outtxt .= $footnotetext;
+    $outtxt .= $footnotetext;
     #(scalar @{$footnotes->{$table_no}} > 0) and $outtxt .= sprintf(qq{<tr><td colspan="$colspan">%s</td></tr>\n}, join('&ensp;', @{$footnotes->{$table_no}}));
     $outtxt .= "</td></tr>\n</tfoot>\n";
-  }
+  } #if defined $footnotes[0] ...
   $outtxt .= "</table>\n\n";
   $outtxt=~s/\t+/ /g; # tab is separator of cells vertically unified
   return($outtxt);
