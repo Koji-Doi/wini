@@ -1501,33 +1501,33 @@ sub table{
   $in =~ s{(^\|-([^-].*$))\n}{
     my $caption0 = $2;
     $caption0=~s/\|\s*$//;
-    my($c, $o) = split(/ \|(?= |$)/, $caption0, 2); # $caption=~s{[| ]*$}{};
-    if(defined $o){
-      while($o =~ /([^=\s]+)="([^"]*)"/g){
+    my($c, $o0) = split(/ \|(?= |$)/, $caption0, 2); # $caption=~s{[| ]*$}{};
+    foreach my $o (split(/\s+/, $o0||'')){
+      if($o =~ /([^=\s]+)="([^"]*)"/){
         my($k,$v) = ($1,$2);
         ($k eq 'class')  and push(@{$htmlitem[0][0]{copt}{class}}, $v), next;
         ($k eq 'border') and $htmlitem[0][0]{copt}{border}=$v         , next;
         push(@{$htmlitem[0][0]{copt}{style}{$k}}, $v);
       }
-      if($o=~/(?<![<>])([<>])(?![<>])/){
+      if($o=~/^([<>])$/){
         $htmlitem[0][0]{copt}{style}{float}[0] = ($1 eq '<')?'left':'right';
       }
-      while($o=~/(\s)@(\d*)([a-zA-Z]+|#[\da-fA-F]{3}|#[\da-fA-F]{6})?(?:(?=\s)|$)/g){
-        my($w, $col) = ((($2 eq '')?1:$2), $3);
-        $htmlitem[0][0]{copt}{border} = "0 0 0 ${w}px $col";
-      }
-      while($o=~/([tbf])@(?!@)(\d*)([a-zA-Z]+|#[\da-fA-F]{3}|#[\da-fA-F]{6})?/g){
+      if($o=~/^@@(\d*)([a-zA-Z]+|#[\da-fA-F]{3}|#[\da-fA-F]{6})?$/){
+        $htmlitem[0][0]{copt}{borderall} = (($1)?$1:1) . 'px' . (($2)?" $2":'');
+1;
+        #(defined $htmlitem[0][0]{copt}{$1.'border'}) or $htmlitem[0][0]{copt}{$1.'border'} = ($2)?$2:1; 
+      }elsif($o=~/^([tbf])@(?!@)(\d*)([a-zA-Z]+|#[\da-fA-F]{3}|#[\da-fA-F]{6})?$/){
         my($attr, $w, $col) = ($1, $2||1, $3||'black');
         $htmlitem[0][0]{copt}{"${attr}border"} = "0 0 0 ${w}px $col";
+      }elsif($o=~/^@(\d*)([a-zA-Z]+|#[\da-fA-F]{3}|#[\da-fA-F]{6})?$/){
+        my($w, $col) = ((($1 eq '')?1:$1), $2);
+        $htmlitem[0][0]{copt}{border} = "0 0 0 ${w}px $col";
       }
-      while($o=~/@@(\d*)([a-zA-Z]+|#[\da-fA-F]{3}|#[\da-fA-F]{6})?/g){
-        $htmlitem[0][0]{copt}{borderall} = (($1)?$1:1) . (($2)?" $2":'');
-        (defined $htmlitem[0][0]{copt}{$1.'border'}) or $htmlitem[0][0]{copt}{$1.'border'} = ($2)?$2:1; 
-      }
-      while($o=~/\.([-\w]+)/g){
+
+      if($o=~/\.([-\w]+)/){
         push(@{$htmlitem[0][0]{copt}{class}}, $1);
       }
-      while($o=~/#([-\w]+)/g){
+      if($o=~/#([-\w]+)/){
         my($tbl_id0) = $1;
         $tbl_id0=~s{^(\d+)$}{tbl$1}; # #1 -> #tbl1
         (exists $REF{$tbl_id0}) and mes(txt('did', undef, {id=>$tbl_id0}), {q=>1,err=>1});
@@ -1535,10 +1535,8 @@ sub table{
         $htmlitem[0][0]{copt}{id}[0] = $tbl_id0;
         $tbl_id = sprintf(qq{ id="%s"}, $tbl_id0); # ref_tmp_txt($tbl_id0, undef, 'tbl')); # for table->caption tag
       }
-    }# if defined $o
-    ($caption) or $caption = $c;
+      ($caption) or $caption = $c;
 
-    if(defined $o){
       while($o=~/\&([lrcjsebtm]+)/g){
         my $h = {qw/l left r right c center j justify s start e end/}->{$1};
         (defined $h) and push(@{$htmlitem[0][0]{copt}{style}{'text-align'}}, $h);
@@ -1547,13 +1545,13 @@ sub table{
       }
       while($o=~/(?<!\w)([][_~@=|])+([,;:]?)(\d+)?/g){
         my($a, $aa, $b) = ($1, $2, $3);
-        my $b1    = sprintf("%s %dpx", ($aa)?(($aa eq ',')?'dotted':($aa eq ';')?'dashed':'double'):'solid', $b);
+        my $b1    = sprintf("%s %dpx", ($aa)?(($aa eq ',')?'dotted':($aa eq ';')?'dashed':'double'):'solid', $b); ## TODO: px linestyle color!
         ($a=~/[[@|]/) and $htmlitem[0][0]{copt}{style}{'border-left'}   = $b1;
         ($a=~/[]@|]/) and $htmlitem[0][0]{copt}{style}{'border-right'}  = $b1;
         ($a=~/[_@=]/) and $htmlitem[0][0]{copt}{style}{'border-bottom'} = $b1;
         ($a=~/[~@=]/) and $htmlitem[0][0]{copt}{style}{'border-top'}    = $b1;
       }
-    } # if defined $o
+    } # foreach $o
     ($caption)=markgaab($caption, {para=>'nb', nocr=>1});
     $caption=~s/[\s\n\r]+$//;
   ''}emg; # end of caption & table setting
