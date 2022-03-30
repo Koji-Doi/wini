@@ -1543,9 +1543,15 @@ sub table{
         my $v = {qw/t top m middle b bottom/}->{$1};
         (defined $v) and push(@{$htmlitem[0][0]{copt}{style}{'vertical-align'}}, $v);
       }
-      while($o=~/(?<!\w)([][_~@=|])+([,;:]?)(\d+)?/g){
-        my($a, $aa, $b) = ($1, $2, $3);
-        my $b1    = sprintf("%s %dpx", ($aa)?(($aa eq ',')?'dotted':($aa eq ';')?'dashed':'double'):'solid', $b); ## TODO: px linestyle color!
+      if($o=~/([][_~@=|])([,;:]?)(\d*)([a-zA-Z]*|#[a-fA-F0-9]{3}|#[a-fA-F0-9]{6})?$/){
+        my($a, $linestyle, $width, $color) = ($1, $2, $3, $4);
+        my $b1= sprintf("%s %dpx %s",
+                  ($linestyle)?(
+                   ($linestyle eq ',')?'dotted'
+                  :($linestyle eq ';')?'dashed':'double'
+                  ):'solid',
+                  $width, $color
+                ); ## TODO: px linestyle color!
         ($a=~/[[@|]/) and $htmlitem[0][0]{copt}{style}{'border-left'}   = $b1;
         ($a=~/[]@|]/) and $htmlitem[0][0]{copt}{style}{'border-right'}  = $b1;
         ($a=~/[_@=]/) and $htmlitem[0][0]{copt}{style}{'border-bottom'} = $b1;
