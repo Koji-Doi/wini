@@ -1512,16 +1512,29 @@ sub table{
       if($o=~/^([<>])$/){
         $htmlitem[0][0]{copt}{style}{float}[0] = ($1 eq '<')?'left':'right';
       }
-      if($o=~/^@@(\d*)([a-zA-Z]+|#[\da-fA-F]{3}|#[\da-fA-F]{6})?$/){
+      if($o=~/^@@(\d*)([a-zA-Z]+|#[\da-fA-F]{3}|#[\da-fA-F]{6})?$/){ # @@1red -> {copt}{borderall} for each cell
         $htmlitem[0][0]{copt}{borderall} = (($1)?$1:1) . 'px' . (($2)?" $2":'');
-1;
         #(defined $htmlitem[0][0]{copt}{$1.'border'}) or $htmlitem[0][0]{copt}{$1.'border'} = ($2)?$2:1; 
-      }elsif($o=~/^([tbf])@(?!@)(\d*)([a-zA-Z]+|#[\da-fA-F]{3}|#[\da-fA-F]{6})?$/){
+      }elsif($o=~/^([tbf])@(\d*)([a-zA-Z]+|#[\da-fA-F]{3}|#[\da-fA-F]{6})?$/){ # @1red -> {copt}{xborder}
         my($attr, $w, $col) = ($1, $2||1, $3||'black');
-        $htmlitem[0][0]{copt}{"${attr}border"} = "0 0 0 ${w}px $col";
-      }elsif($o=~/^@(\d*)([a-zA-Z]+|#[\da-fA-F]{3}|#[\da-fA-F]{6})?$/){
-        my($w, $col) = ((($1 eq '')?1:$1), $2);
-        $htmlitem[0][0]{copt}{border} = "0 0 0 ${w}px $col";
+print STDERR "tbf@",        $htmlitem[0][0]{copt}{"${attr}border"} = "0 0 0 ${w}px $col";
+      #}elsif($o=~/^@(\d*)([a-zA-Z]+|#[\da-fA-F]{3}|#[\da-fA-F]{6})?$/){ # @1red -> 
+      #  my($w, $col) = ((($1 eq '')?1:$1), $2);
+      #  $htmlitem[0][0]{copt}{border} = "0 0 0 ${w}px $col";
+      }elsif($o=~/([][_~@=|])([,;:]?)(\d*)([a-zA-Z]*|#[a-fA-F0-9]{3}|#[a-fA-F0-9]{6})?$/){ # @;1red -> {copt}{style}{border-*} for <table>
+        my($a, $linestyle, $width, $color) = ($1, $2, $3, $4);
+        my $b1= sprintf("%s %dpx %s",
+                  ($linestyle)?(
+                   ($linestyle eq ',')?'dotted'
+                  :($linestyle eq ';')?'dashed':'double'
+                  ):'solid',
+                  $width, $color
+                ); ## TODO: px linestyle color!
+print STDERR "b1=$b1\n";
+        ($a=~/[[@|]/) and $htmlitem[0][0]{copt}{style}{'border-left'}   = $b1;
+        ($a=~/[]@|]/) and $htmlitem[0][0]{copt}{style}{'border-right'}  = $b1;
+        ($a=~/[_@=]/) and $htmlitem[0][0]{copt}{style}{'border-bottom'} = $b1;
+        ($a=~/[~@=]/) and $htmlitem[0][0]{copt}{style}{'border-top'}    = $b1;
       }
 
       if($o=~/\.([-\w]+)/){
@@ -1542,20 +1555,6 @@ sub table{
         (defined $h) and push(@{$htmlitem[0][0]{copt}{style}{'text-align'}}, $h);
         my $v = {qw/t top m middle b bottom/}->{$1};
         (defined $v) and push(@{$htmlitem[0][0]{copt}{style}{'vertical-align'}}, $v);
-      }
-      if($o=~/([][_~@=|])([,;:]?)(\d*)([a-zA-Z]*|#[a-fA-F0-9]{3}|#[a-fA-F0-9]{6})?$/){
-        my($a, $linestyle, $width, $color) = ($1, $2, $3, $4);
-        my $b1= sprintf("%s %dpx %s",
-                  ($linestyle)?(
-                   ($linestyle eq ',')?'dotted'
-                  :($linestyle eq ';')?'dashed':'double'
-                  ):'solid',
-                  $width, $color
-                ); ## TODO: px linestyle color!
-        ($a=~/[[@|]/) and $htmlitem[0][0]{copt}{style}{'border-left'}   = $b1;
-        ($a=~/[]@|]/) and $htmlitem[0][0]{copt}{style}{'border-right'}  = $b1;
-        ($a=~/[_@=]/) and $htmlitem[0][0]{copt}{style}{'border-bottom'} = $b1;
-        ($a=~/[~@=]/) and $htmlitem[0][0]{copt}{style}{'border-top'}    = $b1;
       }
     } # foreach $o
     ($caption)=markgaab($caption, {para=>'nb', nocr=>1});
@@ -1735,7 +1734,7 @@ sub table{
         or $htmlitem[0][0]{copt}{style}{height}[0] = sprintf("%drem", (scalar @lines)*2);
   (defined $htmlitem[0][0]{copt}{style}{width}[0])
         or $htmlitem[0][0]{copt}{style}{width}[0] = sprintf("%drem", ((sort map{$_ or 0} @rowlen)[-1])*2);
-
+print STDERR "DUMPER htmlitem: ", Dumper $htmlitem[0][0]{copt};
   # make html
 #todo: reflect 'borderall' options to table style
   my $outtxt = sprintf(qq!\n<table${tbl_id} class="%s"!, join(' ', sort @{$htmlitem[0][0]{copt}{class}}));
