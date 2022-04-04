@@ -1530,11 +1530,10 @@ print STDERR "tbf@",        $htmlitem[0][0]{copt}{"${attr}border"} = "0 0 0 ${w}
                   ):'solid',
                   $width, $color
                 ); ## TODO: px linestyle color!
-print STDERR "b1=$b1\n";
-        ($a=~/[[@|]/) and $htmlitem[0][0]{copt}{style}{'border-left'}   = $b1;
-        ($a=~/[]@|]/) and $htmlitem[0][0]{copt}{style}{'border-right'}  = $b1;
-        ($a=~/[_@=]/) and $htmlitem[0][0]{copt}{style}{'border-bottom'} = $b1;
-        ($a=~/[~@=]/) and $htmlitem[0][0]{copt}{style}{'border-top'}    = $b1;
+        ($a=~/[[@|]/) and $htmlitem[0][0]{copt}{style}{'border-left'}[0]   = $b1;
+        ($a=~/[]@|]/) and $htmlitem[0][0]{copt}{style}{'border-right'}[0]  = $b1;
+        ($a=~/[_@=]/) and $htmlitem[0][0]{copt}{style}{'border-bottom'}[0] = $b1;
+        ($a=~/[~@=]/) and $htmlitem[0][0]{copt}{style}{'border-top'}[0]    = $b1;
       }
 
       if($o=~/\.([-\w]+)/){
@@ -1735,17 +1734,17 @@ print STDERR "b1=$b1\n";
   (defined $htmlitem[0][0]{copt}{style}{width}[0])
         or $htmlitem[0][0]{copt}{style}{width}[0] = sprintf("%drem", ((sort map{$_ or 0} @rowlen)[-1])*2);
 print STDERR "DUMPER htmlitem: ", Dumper $htmlitem[0][0]{copt};
+
   # make html
 #todo: reflect 'borderall' options to table style
   my $outtxt = sprintf(qq!\n<table${tbl_id} class="%s"!, join(' ', sort @{$htmlitem[0][0]{copt}{class}}));
   (defined $htmlitem[0][0]{copt}{border}) and $outtxt .= ' border="1"';
   $outtxt .= q{ style="border-collapse: collapse; };
-  foreach my $k (qw/text-align vertical-align color background-color float/){
+  foreach my $k (qw/text-align vertical-align color background-color float border-left border-right border-top border-bottom/){
     (defined $htmlitem[0][0]{copt}{style}{$k}) and $outtxt .= qq{ $k: $htmlitem[0][0]{copt}{style}{$k}[0]; }; 
   }
   (defined $htmlitem[0][0]{copt}{border}) and $outtxt .= sprintf("border: solid %dpx; ", $htmlitem[0][0]{copt}{border});
-
-  $outtxt .= qq{">\n}; # end of style
+  $outtxt .= qq{">\n}; # end of <table style="...">
   (defined $caption) and $outtxt .= "<caption>$caption</caption>\n";
 #  $outtxt .= (defined $htmlitem[0][0]{copt}{bborder})?qq{<tbody style="border:solid $htmlitem[0][0]{copt}{bborder}px;">\n}:"<tbody>\n";
   $outtxt .= (defined $htmlitem[0][0]{copt}{bborder})?qq{<tbody style="box-shadow: $htmlitem[0][0]{copt}{bborder};">\n}:"<tbody>\n";
@@ -1808,7 +1807,7 @@ print STDERR "DUMPER htmlitem: ", Dumper $htmlitem[0][0]{copt};
             map {$style{$c} = $_} (@{$htmlitem[$rn][$_]{copt}{style}{$c}});
           }
         }
-        my $style0 = join(' ', sort map { "$_:$style{$_};" } grep {$style{$_}} sort keys %style);
+        my $style0 = join(' ', sort map { "$_:$style{$_}[0];" } grep {$style{$_}} sort keys %style);
         ($style0) and $copt .= qq! style="$style0"!; #option for each cell
         my $ctag = (
           (not $htmlitem[$rn][0]{footnote}) and (
