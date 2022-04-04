@@ -1736,17 +1736,16 @@ print STDERR "b1=$b1\n";
         or $htmlitem[0][0]{copt}{style}{width}[0] = sprintf("%drem", ((sort map{$_ or 0} @rowlen)[-1])*2);
 print STDERR "DUMPER htmlitem: ", Dumper $htmlitem[0][0]{copt};
   # make html
-#todo: reflect 'borderall' options to table style
   my $outtxt = sprintf(qq!\n<table${tbl_id} class="%s"!, join(' ', sort @{$htmlitem[0][0]{copt}{class}}));
-  (defined $htmlitem[0][0]{copt}{border}) and $outtxt .= ' border="1"';
+  (defined $htmlitem[0][0]{copt}{border})      and $outtxt .= ' border="1"';
   $outtxt .= q{ style="border-collapse: collapse; };
   foreach my $k (qw/text-align vertical-align color background-color float/){
-    (defined $htmlitem[0][0]{copt}{style}{$k}) and $outtxt .= qq{ $k: $htmlitem[0][0]{copt}{style}{$k}[0]; }; 
+    (defined $htmlitem[0][0]{copt}{style}{$k}) and $outtxt .= qq! $k: $htmlitem[0][0]{copt}{style}{$k}[0]; !;
   }
-  (defined $htmlitem[0][0]{copt}{border}) and $outtxt .= sprintf("border: solid %dpx; ", $htmlitem[0][0]{copt}{border});
-
+  (defined $htmlitem[0][0]{copt}{border})      and $outtxt .= sprintf("border: solid %dpx; ", $htmlitem[0][0]{copt}{border});
+  (defined $htmlitem[0][0]{copt}{borderall})   and $outtxt .= "border: $htmlitem[0][0]{copt}{borderall}";
   $outtxt .= qq{">\n}; # end of style
-  (defined $caption) and $outtxt .= "<caption>$caption</caption>\n";
+  (defined $caption) and $caption=~s/(^\n|\n$)//g, $outtxt .= "<caption>\n$caption\n</caption>\n";
 #  $outtxt .= (defined $htmlitem[0][0]{copt}{bborder})?qq{<tbody style="border:solid $htmlitem[0][0]{copt}{bborder}px;">\n}:"<tbody>\n";
   $outtxt .= (defined $htmlitem[0][0]{copt}{bborder})?qq{<tbody style="box-shadow: $htmlitem[0][0]{copt}{bborder};">\n}:"<tbody>\n";
 
