@@ -1513,32 +1513,27 @@ sub table{
         $htmlitem[0][0]{copt}{style}{float}[0] = ($1 eq '<')?'left':'right';
       }
       if($o=~/^@@(\d*)([a-zA-Z]+|#[\da-fA-F]{3}|#[\da-fA-F]{6})?$/){ # @@1red -> {copt}{borderall} for each cell
-        $htmlitem[0][0]{copt}{borderall} = (($1)?$1:1) . 'px' . (($2)?" $2":'');
+        $htmlitem[0][0]{copt}{borderall} = 'solid ' . (($1)?$1:1) . 'px' . (($2)?" $2":'') . ';';
         #(defined $htmlitem[0][0]{copt}{$1.'border'}) or $htmlitem[0][0]{copt}{$1.'border'} = ($2)?$2:1; 
       }elsif($o=~/^([tbf])@(\d*)([a-zA-Z]+|#[\da-fA-F]{3}|#[\da-fA-F]{6})?$/){ # @1red -> {copt}{xborder}
         my($attr, $w, $col) = ($1, $2||1, $3||'black');
-print STDERR "tbf@",        $htmlitem[0][0]{copt}{"${attr}border"} = "0 0 0 ${w}px $col";
-      #}elsif($o=~/^@(\d*)([a-zA-Z]+|#[\da-fA-F]{3}|#[\da-fA-F]{6})?$/){ # @1red -> 
-      #  my($w, $col) = ((($1 eq '')?1:$1), $2);
-      #  $htmlitem[0][0]{copt}{border} = "0 0 0 ${w}px $col";
       }elsif($o=~/([][_~@=|])([,;:]?)(\d*)([a-zA-Z]*|#[a-fA-F0-9]{3}|#[a-fA-F0-9]{6})?$/){ # @;1red -> {copt}{style}{border-*} for <table>
         my($a, $linestyle, $width, $color) = ($1, $2, $3, $4);
-        my $b1= sprintf("%s %dpx %s",
+        my $b1= sprintf("%s %dpx",
                   ($linestyle)?(
                    ($linestyle eq ',')?'dotted'
                   :($linestyle eq ';')?'dashed':'double'
                   ):'solid',
-                  $width, $color
-                ); ## TODO: px linestyle color!
+                  $width
+                );
+        ($color) and $b1 .= " $color";
         ($a=~/[[@|]/) and $htmlitem[0][0]{copt}{style}{'border-left'}[0]   = $b1;
         ($a=~/[]@|]/) and $htmlitem[0][0]{copt}{style}{'border-right'}[0]  = $b1;
         ($a=~/[_@=]/) and $htmlitem[0][0]{copt}{style}{'border-bottom'}[0] = $b1;
         ($a=~/[~@=]/) and $htmlitem[0][0]{copt}{style}{'border-top'}[0]    = $b1;
       }
 
-      if($o=~/\.([-\w]+)/){
-        push(@{$htmlitem[0][0]{copt}{class}}, $1);
-      }
+      ($o=~/\.([-\w]+)/) and push(@{$htmlitem[0][0]{copt}{class}}, $1);
       if($o=~/#([-\w]+)/){
         my($tbl_id0) = $1;
         $tbl_id0=~s{^(\d+)$}{tbl$1}; # #1 -> #tbl1
@@ -1673,8 +1668,10 @@ print STDERR "tbf@",        $htmlitem[0][0]{copt}{"${attr}border"} = "0 0 0 ${w}
           next;
         } # rowspan
 
-        while($col=~/(([][_~=@|])(?:\2*))([,;:]?)(\d*)/g){ # border setting
-          my($m, $btype, $n) = (length($1), $2, sprintf("%s %dpx", ($3)?(($3 eq ',')?'dotted':($3 eq ';')?'dashed':'double'):'solid', ($4 ne '')?$4:1));
+        while($col=~/(([][_~=@|])(?:\2*))([,;:]?)(\d*)([a-zA-Z]*|#[a-fA-F0-9]{3}|#[a-fA-F0-9]{6})?/g){ # border setting
+          my($m, $btype, $n, $color) = (length($1), $2, 
+            sprintf("%s %dpx%s", ($3)?(($3 eq ',')?'dotted':($3 eq ';')?'dashed':'double'):'solid', ($4 ne '')?$4:1, ($5 ne '')?" $5":'')
+          );
           my %btype;
           ($btype=~/[[@|]/) and $btype{left}   = $n;
           ($btype=~/[]@|]/) and $btype{right}  = $n;
@@ -1685,13 +1682,14 @@ print STDERR "tbf@",        $htmlitem[0][0]{copt}{"${attr}border"} = "0 0 0 ${w}
                        :($m==3)?(  0, $col_n)  # for all cells in the target col
                        :($m==2)?($ln, 0)       # for all cells in the target row
                        :        ($ln, $col_n); # for target cell
-            push(@{$htmlitem[$r][$c]{copt}{style}{"border-$k"}}, 
-              (defined $btype{$k})?$btype{$k}
-             :(defined $htmlitem[0][0]{copt}{style}{"border-$k"})?$htmlitem[0][0]{copt}{style}{"border-$k"}:undef
-            );
+            my $x =
+              (defined $btype{$k}) ? $btype{$k}
+             :(defined $htmlitem[0][0]{copt}{style}{"border-$k"}) ? $htmlitem[0][0]{copt}{style}{"border-$k"} : undef;
+            ($color) and $x .= " $color";
+            push(@{$htmlitem[$r][$c]{copt}{style}{"border-$k"}}, $x);
           }
         } # while border
-
+print STDERR "**** dumper htmlitem: ", Dumper @htmlitem;
         while($col=~/(&{1,3})([lrcjsetmb])/g){ # text-align
           my($a,$b)=($1,$2);
           my $h = {qw/l left r right c center j justify s start e end/}->{$b};
@@ -1740,13 +1738,12 @@ print STDERR "DUMPER htmlitem: ", Dumper $htmlitem[0][0]{copt};
   (defined $htmlitem[0][0]{copt}{border})      and $outtxt .= ' border="1"';
   $outtxt .= q{ style="border-collapse: collapse; };
   foreach my $k (qw/text-align vertical-align color background-color float/){
-    (defined $htmlitem[0][0]{copt}{style}{$k}) and $outtxt .= qq! $k: $htmlitem[0][0]{copt}{style}{$k}[0]; !;
+    (defined $htmlitem[0][0]{copt}{style}{$k}) and $outtxt .= qq! $k: $htmlitem[0][0]{copt}{style}{$k}[0];!;
   }
-  (defined $htmlitem[0][0]{copt}{border})      and $outtxt .= sprintf("border: solid %dpx; ", $htmlitem[0][0]{copt}{border});
+  (defined $htmlitem[0][0]{copt}{border})      and $outtxt .= sprintf("border: solid %dpx;", $htmlitem[0][0]{copt}{border});
   (defined $htmlitem[0][0]{copt}{borderall})   and $outtxt .= "border: $htmlitem[0][0]{copt}{borderall}";
   $outtxt .= qq{">\n}; # end of style
   (defined $caption) and $caption=~s/(^\n|\n$)//g, $outtxt .= "<caption>\n$caption\n</caption>\n";
-#  $outtxt .= (defined $htmlitem[0][0]{copt}{bborder})?qq{<tbody style="border:solid $htmlitem[0][0]{copt}{bborder}px;">\n}:"<tbody>\n";
   $outtxt .= (defined $htmlitem[0][0]{copt}{bborder})?qq{<tbody style="box-shadow: $htmlitem[0][0]{copt}{bborder};">\n}:"<tbody>\n";
 
   for(my $rn=1; $rn<=$#htmlitem; $rn++){
@@ -1760,6 +1757,8 @@ print STDERR "DUMPER htmlitem: ", Dumper $htmlitem[0][0]{copt};
       # join(' ', map{ sprintf("$_:%s;", join(' ', @{$htmlitem[$rn][0]{copt}{style}{$_}})) } (keys %{$htmlitem[$rn][0]{copt}{style}})) . '"';
     }
     my $border;
+
+=begin c
     if(defined $htmlitem[$rn][0]{copt}{style}{tborderall}){
       $border = $htmlitem[$rn][0]{copt}{style}{tborderall};
     }
@@ -1772,6 +1771,8 @@ print STDERR "DUMPER htmlitem: ", Dumper $htmlitem[0][0]{copt};
     (defined $border) and push(@styles, "border: solid ${border}px");
     ((not defined $htmlitem[0][0]{copt}{bborder}) and (defined $htmlitem[0][0]{copt}{tborder}))
       and $htmlitem[0][0]{copt}{bborder} = $htmlitem[0][0]{copt}{tborder};
+=end c
+=cut
 
     #(defined $htmlitem[0][0]{copt}{border}) and $outtxt .= sprintf("border: solid %dpx; ", $htmlitem[0][0]{copt}{border});
     (defined $styles[0]) and $ropt .= qq{style="} . join('; ', sort @styles) . '"';
@@ -1786,8 +1787,11 @@ print STDERR "DUMPER htmlitem: ", Dumper $htmlitem[0][0]{copt};
       }else{ #not rowspan or colspan
         my $copt = '';
         my %style;
-        if(my $bb=$htmlitem[0][0]{copt}{bborderall}){
-          $style{border} .= "solid ${bb}px";
+        #if(my $bb=$htmlitem[0][0]{copt}{bborderall}){
+        #  $style{border} .= "solid ${bb}px";
+        #}
+        if($htmlitem[0][0]{copt}{borderall}){
+          $style{border} = $htmlitem[0][0]{copt}{borderall};
         }
         foreach my $c (qw/class colspan rowspan/){
           ($c eq 'rowspan') and ($htmlitem[$rn][0]{footnote}) and next;
@@ -1801,14 +1805,19 @@ print STDERR "DUMPER htmlitem: ", Dumper $htmlitem[0][0]{copt};
           foreach my $k (keys %{$htmlitem[0][$_]{copt}{style}}){
             map {$style{$k} = $_} (@{$htmlitem[0][$_]{copt}{style}{$k}});
           }
+print STDERR "==== style{*border*} = ", join(", ", map {"$_: $style{$_}; "} sort grep {/border/} keys %style), ".\n";
         }
         if(defined $htmlitem[$rn][$_]{copt}{style}){
           foreach my $c (keys %{$htmlitem[$rn][$_]{copt}{style}}){
             map {$style{$c} = $_} (@{$htmlitem[$rn][$_]{copt}{style}{$c}});
           }
-        }
-        my $style0 = join(' ', sort map { "$_:$style{$_};" } grep {defined $style{$_}} sort keys %style);
+print STDERR "==== style{*border*} for $rn,$_ = ", join(" ", map {"$_: $style{$_}; "} sort grep {/border/} keys %style), ".\n";
 
+        }
+        my $style0 = join('; ', sort map {
+                       "$_: " . ((ref $style{$_} eq 'ARRAY')?$style{$_}[0]:$style{$_})
+                     } grep {defined $style{$_}} sort keys %style);
+print STDERR "====== style{*border*} for $rn,$_ = $style0.\n";
         ($style0) and $copt .= qq! style="$style0"!; #option for each cell
         my $ctag = (
           (not $htmlitem[$rn][0]{footnote}) and (
