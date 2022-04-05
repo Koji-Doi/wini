@@ -1736,16 +1736,16 @@ print STDERR "tbf@",        $htmlitem[0][0]{copt}{"${attr}border"} = "0 0 0 ${w}
 print STDERR "DUMPER htmlitem: ", Dumper $htmlitem[0][0]{copt};
 
   # make html
-#todo: reflect 'borderall' options to table style
   my $outtxt = sprintf(qq!\n<table${tbl_id} class="%s"!, join(' ', sort @{$htmlitem[0][0]{copt}{class}}));
-  (defined $htmlitem[0][0]{copt}{border}) and $outtxt .= ' border="1"';
+  (defined $htmlitem[0][0]{copt}{border})      and $outtxt .= ' border="1"';
   $outtxt .= q{ style="border-collapse: collapse; };
-  foreach my $k (qw/text-align vertical-align color background-color float border-left border-right border-top border-bottom/){
-    (defined $htmlitem[0][0]{copt}{style}{$k}) and $outtxt .= qq{ $k: $htmlitem[0][0]{copt}{style}{$k}[0]; }; 
+  foreach my $k (qw/text-align vertical-align color background-color float/){
+    (defined $htmlitem[0][0]{copt}{style}{$k}) and $outtxt .= qq! $k: $htmlitem[0][0]{copt}{style}{$k}[0]; !;
   }
-  (defined $htmlitem[0][0]{copt}{border}) and $outtxt .= sprintf("border: solid %dpx; ", $htmlitem[0][0]{copt}{border});
-  $outtxt .= qq{">\n}; # end of <table style="...">
-  (defined $caption) and $outtxt .= "<caption>$caption</caption>\n";
+  (defined $htmlitem[0][0]{copt}{border})      and $outtxt .= sprintf("border: solid %dpx; ", $htmlitem[0][0]{copt}{border});
+  (defined $htmlitem[0][0]{copt}{borderall})   and $outtxt .= "border: $htmlitem[0][0]{copt}{borderall}";
+  $outtxt .= qq{">\n}; # end of style
+  (defined $caption) and $caption=~s/(^\n|\n$)//g, $outtxt .= "<caption>\n$caption\n</caption>\n";
 #  $outtxt .= (defined $htmlitem[0][0]{copt}{bborder})?qq{<tbody style="border:solid $htmlitem[0][0]{copt}{bborder}px;">\n}:"<tbody>\n";
   $outtxt .= (defined $htmlitem[0][0]{copt}{bborder})?qq{<tbody style="box-shadow: $htmlitem[0][0]{copt}{bborder};">\n}:"<tbody>\n";
 
@@ -1807,7 +1807,8 @@ print STDERR "DUMPER htmlitem: ", Dumper $htmlitem[0][0]{copt};
             map {$style{$c} = $_} (@{$htmlitem[$rn][$_]{copt}{style}{$c}});
           }
         }
-        my $style0 = join(' ', sort map { "$_:$style{$_}[0];" } grep {$style{$_}} sort keys %style);
+        my $style0 = join(' ', sort map { "$_:$style{$_};" } grep {defined $style{$_}} sort keys %style);
+
         ($style0) and $copt .= qq! style="$style0"!; #option for each cell
         my $ctag = (
           (not $htmlitem[$rn][0]{footnote}) and (
