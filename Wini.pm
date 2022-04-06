@@ -1667,7 +1667,7 @@ sub table{
           $htmlitem[$ln][$col_n]{copt}{rowspan} = -1; #200708
           next;
         } # rowspan
-
+print STDERR "**** dumper htmlitem for ln=$ln,cn=${cn},col_n=${col_n} for <<$col>>: ", Dumper $htmlitem[$ln][$col_n];
         while($col=~/(([][_~=@|])(?:\2*))([,;:]?)(\d*)([a-zA-Z]*|#[a-fA-F0-9]{3}|#[a-fA-F0-9]{6})?/g){ # border setting
           my($m, $btype, $n, $color) = (length($1), $2, 
             sprintf("%s %dpx%s", ($3)?(($3 eq ',')?'dotted':($3 eq ';')?'dashed':'double'):'solid', ($4 ne '')?$4:1, ($5 ne '')?" $5":'')
@@ -1689,7 +1689,6 @@ sub table{
             push(@{$htmlitem[$r][$c]{copt}{style}{"border-$k"}}, $x);
           }
         } # while border
-print STDERR "**** dumper htmlitem: ", Dumper @htmlitem;
         while($col=~/(&{1,3})([lrcjsetmb])/g){ # text-align
           my($a,$b)=($1,$2);
           my $h = {qw/l left r right c center j justify s start e end/}->{$b};
@@ -1826,7 +1825,7 @@ print STDERR "====== style{*border*} for $rn,$_ = $style0.\n";
           ($htmlitem[$rn][0]{ctag}  and $htmlitem[$rn][0]{ctag}  eq 'th'))
         )?'th':'td';
         sprintf("<$ctag$copt>%s</$ctag>", ($htmlitem[$rn][$_]{wini} || ''));
-      }
+      } # if {copt}{rowspan}<=1 or {copt}{colpan}<=1
     } (1 .. $#{$htmlitem[1]}) # map
     ); # join
     $outtxt0 .= "</tr>\n";
