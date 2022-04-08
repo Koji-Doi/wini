@@ -260,7 +260,7 @@ sub stand_alone{
     "h|help"         => sub {help()},
     "v|version"      => sub {print STDERR "Wini.pm $VERSION\n"; exit()},
     "i=s"            => \@input,
-    "o=s"            => \$output,
+    "o:s"            => \$output,
     "title=s"        => \$title,
     "cssfile:s"      => \$cssfile,
     "E|extralib:s"   => \@libs,
@@ -302,7 +302,7 @@ sub stand_alone{
     (-d $outd) or mkdir $outd;
   }
   if(defined $inf->[0]){
-    mes(txt('if') . join(' ', @$inf), {q=>1});
+#    mes(txt('if') . join(' ', @$inf), {q=>1});
   } else {
     push(@$inf, '');
   }
@@ -313,14 +313,15 @@ sub stand_alone{
   if(scalar @$outf>1){
     # 1. multiple infile -> multiple outfile (1:1)
     for(my $i=0; $i<=$#$inf; $i++){
+      my $outfile = $outf->[$i];
       if($inf->[$i] eq ''){
-        mes(txt('conv', undef, {from=>'STDIN', to=>$outf->[$i]}), {q=>1});
+        mes(txt('conv', undef, {from=>'STDIN', to=>$outfile}), {q=>1});
         $fhi=*STDIN;
       }else{
-        mes(txt('conv', undef, {from=>$inf->[$i], to=>$outf->[$i]}), {q=>1});
+        mes(txt('conv', undef, {from=>$inf->[$i], to=>$outfile}), {q=>1});
         open($fhi, '<:utf8', $inf->[$i]);
       }
-      open(my $fho, '>:utf8', $outf->[$i]);
+      open(my $fho, '>:utf8', $outfile);
       my $winitxt = join('', <$fhi>);
       $winitxt=~s/\x{FEFF}//; # remove BOM if exists
       my($htmlout) = to_html($winitxt, {indir=>$ind, dir=>getcwd(), whole=>$whole, cssfile=>$cssfile, title=>$title, cssflameworks=>\@cssflameworks});
@@ -445,7 +446,7 @@ sub winifiles{
   my($indir, @infile, $outdir, @outfile);
   my @in;
   (defined $in) and @in = (ref $in eq 'ARRAY') ? @$in : ($in);
-  
+
   # check $indir
   foreach my $in1 (@in){
     my(@in1x) = ($in1);
@@ -459,7 +460,7 @@ sub winifiles{
     }elsif(not -f $in1){ # non-existing entry, x/=dir x.wini=file
       ($in1=~m{/$}) ? ($indir = $in1) : push(@infile, $in1);
     }else{ # existing normal file
-      mes(txt('fci',undef, {f=>$in1}), {q=>1});
+#      mes(txt('fci',undef, {f=>$in1}), {q=>1});
       push(@infile, $in1);
     }
   }
@@ -468,8 +469,13 @@ sub winifiles{
   }
 
   # check $outdir
-
-  if(not defined $out){
+  if (defined $out and $out eq ''){
+    foreach my $in1 (@infile){
+      my $out1=$in1;
+      $out1=~s{(\.\w+$)}{.html};
+      push(@outfile, $out1);
+    }
+  }elsif(not defined $out){
     if(not defined $in){
     }
 
