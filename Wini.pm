@@ -633,7 +633,7 @@ sub to_html{
     } # read sect content
   } # foreach sect
   ($depth!=0) and $html[-1]{close} = ("\n" . ('</section>' x $depth));
-  map{$htmlout .= "\n" . join("\n", $_->{open}||'', $_->{txt}||'', $_->{close}||'')} @html;
+  $htmlout .= join("\n", map{join("\n", $_->{open}||'', $_->{txt}||'', $_->{close}||'')} @html);
   $htmlout .= "\n";
   
   # template?
@@ -747,8 +747,7 @@ sub markgaab{
   $t0 =~ s!\^\^\{(.*?)}!<sup>$1</sup>!g;
   $t0 =~ s!__([^{])!<sub>$1</sub>!g;
   $t0 =~ s!\^\^([^{])!<sup>$1</sup>!g;
-
-  my $r = '';
+  my @r;
   my @localclass = ('mg');
   foreach my $t (split(/\n{2,}/, $t0)){ # for each paragraph
     my @myclass = @localclass;
@@ -796,9 +795,10 @@ sub markgaab{
           : $t=~m{${MI}t=citlist}is ? $t
           : "<p${myclass}>\n$t" . (($t=~/\n$/)?'':"\n") . "</p>$cr$cr";
 
-    $r .= "\n$t";
+#    $r .= "\n$t";
+    push(@r, $t);
   } # foreach $t # for each paragraph
-
+  my $r = join('', @r);
   $r=~s/${MI}i=(\d+)${MO}/$save[$1]/ge;
   if($cssfile){
     open(my $fho, '>', $cssfile) or die "Cannot modify $cssfile";
@@ -807,6 +807,7 @@ sub markgaab{
   }
   (defined $footnotes{'_'}[0]) and $r .= qq{<hr>\n<footer>\n<ul style="list-style:none;">\n} . join("\n", (map {"<li>$_</li>"}  @{$footnotes{'_'}})) . "\n</ul>\n</footer>\n";
   ($opt->{table}) or $r=~s/[\s\n\r]*$//;
+  $r=~s/^[\s\n\r]*//;
   return($r, $opt);
 } # sub markgaab
 
@@ -1503,7 +1504,6 @@ sub table{
   my $lang = $val->{lang} || $LANG || 'en';
   my(@winiitem, @htmlitem, $caption, $footnotetext, $tbl_id);
   my @footnotes; # footnotes in cells
-#  my $linestyle = {',', qw/dotted ; dashed : double/};
   push(@{$htmlitem[0][0]{copt}{class}}, 'mgtable');
 
   #get caption & table setting - remove '^|-' lines from $in
@@ -1625,12 +1625,12 @@ sub table{
       if($cn%2==1){ # separator
         $col = substr($col,1); # remove the first '|'
 
-        # border style initial setting from $htmlitem[0][0]{copt}{style} 191217 - 191220
-        foreach my $btype (map {"border-$_"} qw/left right bottom top/){
-          (not defined $htmlitem[$ln][0]{footnote}) and 
-            (defined $htmlitem[0][0]{copt}{style}{$btype}) and 
-              $htmlitem[$ln][$col_n]{copt}{style}{$btype}[0] = $htmlitem[0][0]{copt}{style}{$btype}; 
-        }
+        ## border style initial setting from $htmlitem[0][0]{copt}{style} 191217 - 191220
+        #foreach my $btype (map {"border-$_"} qw/left right bottom top/){
+        #  (not defined $htmlitem[$ln][0]{footnote}) and 
+        #    (defined $htmlitem[0][0]{copt}{style}{$btype}) and 
+        #      $htmlitem[$ln][$col_n]{copt}{style}{$btype}[0] = $htmlitem[0][0]{copt}{style}{$btype}; 
+        #}
 
         #$ctag = ($col=~/\bh\b/)?'th':'td';
         $htmlitem[$ln][$col_n]{ctag} = 'td';
@@ -1731,6 +1731,7 @@ sub table{
         or $htmlitem[0][0]{copt}{style}{width}[0] = sprintf("%drem", ((sort map{$_ or 0} @rowlen)[-1])*2);
 
   # make html
+  ## style for <table>
   my $outtxt = sprintf(qq!\n<table${tbl_id} class="%s"!, join(' ', sort @{$htmlitem[0][0]{copt}{class}}));
   (defined $htmlitem[0][0]{copt}{border})      and $outtxt .= ' border="1"';
   $outtxt .= q{ style="border-collapse: collapse; };
@@ -1738,11 +1739,17 @@ sub table{
     (defined $htmlitem[0][0]{copt}{style}{$k}) and $outtxt .= qq! $k: $htmlitem[0][0]{copt}{style}{$k}[0];!;
   }
   (defined $htmlitem[0][0]{copt}{border})      and $outtxt .= sprintf("border: solid %dpx;", $htmlitem[0][0]{copt}{border});
-  (defined $htmlitem[0][0]{copt}{borderall})   and $outtxt .= "border: $htmlitem[0][0]{copt}{borderall}";
+#  (defined $htmlitem[0][0]{copt}{borderall})   and $outtxt .= "border: $htmlitem[0][0]{copt}{borderall}";
+  foreach my $bt0 (qw/left right bottom top/){
+    my $bt = "border-${bt0}";
+    (defined $htmlitem[0][0]{copt}{style}{$bt}[0]) and $outtxt .= "$bt: $htmlitem[0][0]{copt}{style}{$bt}[0] ";
+  }
   $outtxt .= qq{">\n}; # end of style
+
   (defined $caption) and $caption=~s/(^\n|\n$)//g, $outtxt .= "<caption>\n$caption\n</caption>\n";
   $outtxt .= (defined $htmlitem[0][0]{copt}{bborder})?qq{<tbody style="box-shadow: $htmlitem[0][0]{copt}{bborder};">\n}:"<tbody>\n";
 
+  ## style for each row
   for(my $rn=1; $rn<=$#htmlitem; $rn++){
     my $outtxt0;
     ($htmlitem[$rn][0] eq '^^') and next;
