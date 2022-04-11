@@ -847,6 +847,9 @@ sub whole_html{
   my($x, $title, $opt) = @_;
   $x=~s/[\s\n\r]*$//s;
   #  my($cssfile, $cssflameworks) = map {$opt->{$_}} qw/cssfile cssflameworks/;
+  # lang -> css font
+  $CSS->{body}{'font-family'} = txt('font');
+
   my $cssfile = $opt->{cssfile} || '';
   my $style   = '';
   $title = $title || 'Markgaab page';
@@ -2035,6 +2038,7 @@ __DATA__
 |fci|File {{f}} is chosen as input|ファイル{{f}}が入力元ファイルです|
 |fin|completed|終了|
 |fnf|File not found|ファイルが見つかりません|
+|font|"Helvetica Neue", Arial, sans-serif|"Helvetica Neue", Arial, "Hiragino Kaku Gothic ProN", "Hiragino Sans", "BIZ UDPGothic", Meiryo, sans-serif|
 |ftf|Found {{t}} as template file|テンプレートファイル{{t}}が見つかりました|
 |idnd|ID {{id}} not defined|ID '{{id}}'は定義されていません|
 |if|input file:|入力ファイル：|
