@@ -1742,7 +1742,7 @@ sub table{
 #  (defined $htmlitem[0][0]{copt}{borderall})   and $outtxt .= "border: $htmlitem[0][0]{copt}{borderall}";
   foreach my $bt0 (qw/left right bottom top/){
     my $bt = "border-${bt0}";
-    (defined $htmlitem[0][0]{copt}{style}{$bt}[0]) and $outtxt .= "$bt: $htmlitem[0][0]{copt}{style}{$bt}[0] ";
+    (defined $htmlitem[0][0]{copt}{style}{$bt}[0]) and $outtxt .= "$bt: $htmlitem[0][0]{copt}{style}{$bt}[0]; ";
   }
   $outtxt .= qq{">\n}; # end of style
 
