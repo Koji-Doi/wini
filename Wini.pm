@@ -1520,7 +1520,7 @@ sub table{
         $htmlitem[0][0]{copt}{"${attr}border"} = sprintf("0 0 0 %dpx %s", $w, $col); # https://stackoverflow.com/questions/18989958/how-to-set-border-to-tbody-element
       }elsif($o=~/([][_~@=|])([,;:]?)(\d*)([a-zA-Z]*|#[a-fA-F0-9]{3}|#[a-fA-F0-9]{6})?$/){ # @;1red -> {copt}{style}{border-*} for <table>
         my($a, $linestyle, $width, $color) = ($1, $2, $3, $4);
-        my $b1 = table_borderstyle($linestyle, $width, $color);
+        my $b1 = borderstyle($linestyle, $width, $color);
         ($a=~/[[@|]/) and $htmlitem[0][0]{copt}{style}{'border-left'}[0]   = $b1;
         ($a=~/[]@|]/) and $htmlitem[0][0]{copt}{style}{'border-right'}[0]  = $b1;
         ($a=~/[_@=]/) and $htmlitem[0][0]{copt}{style}{'border-bottom'}[0] = $b1;
@@ -1661,7 +1661,7 @@ sub table{
           my($m, $btype, $linestyle, $width, $color) = (length($1), $2, $3, $4, $5);
  #           sprintf("%s %dpx%s", ($3)?(($3 eq ',')?'dotted':($3 eq ';')?'dashed':'double'):'solid', ($4 ne '')?$4:1, ($5 ne '')?" $5":'')
  #         );
-          my $n = table_borderstyle($linestyle, $width, $color);
+          my $n = borderstyle($linestyle, $width, $color);
           my %btype;
           ($btype=~/[[@|]/) and $btype{left}   = $n;
           ($btype=~/[]@|]/) and $btype{right}  = $n;
@@ -1814,7 +1814,7 @@ sub table{
   return($outtxt);
 } # sub table
 
-sub table_borderstyle{
+sub borderstyle{
   my($linestyle, $width, $color) = @_;
   my $linestyles = {',', qw/dotted ; dashed : double/};
   $linestyle = ($linestyle) ? (exists $linestyles->{$linestyle}) ? $linestyles->{$linestyle} : '' : 'solid';
