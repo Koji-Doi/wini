@@ -1028,14 +1028,11 @@ sub term{
 }
 sub abbr{ # return abbr list
   my($t) = @_;
-  my $o;
-  unless(defined $t){
-    foreach my $k (keys %abbr){
-      push(@$o, {term=>$k, abbr=>$abbr{$k}});
-    }
-    return($o);
-  }
-  return($abbr{$_[0]} || '');
+  #my $o;
+  (defined $t) and return($abbr{$t});
+      return([ map {{term=>$_, abbr=>$abbr{$_}}} keys %abbr ]);
+  #}
+#  return(\@o);
 }
 } # term env
 
@@ -1106,11 +1103,6 @@ sub call_macro{
     return('&#x'.unpack('H*',$macroname).';'); # char -> ascii code
   ($macroname=~/^\@$/)            and return(term(\@f));
   ($macroname=~/^(rr|ref|cit)$/i) and return(cit(\@f, $opt->{_v}));
-#  ($macroname=~/^(rr|ref)$/i)     and return(
-#                                        ($f[1]) ? cit(@f)
-#                                                : ref_tmp_txt(@f, 'dup=ok')
-#                                  ); #{{ref|id|fig}} -> $MI...$MO
-#  ($macroname=~/^citlist$/i)      and return(citlist());
   ($macroname=~/^citlist$/i)      and return("${MI}###${MI}t=citlist${MO}");
   ($macroname=~/^(date|time|dt)$/i) and return(date([@f, "type=$1"],  $opt->{_v}));
   ($macroname=~/^calc$/i)         and return(ev(\@f, $opt->{_v}));
@@ -1510,7 +1502,7 @@ sub table{
   $in =~ s{(^\|-([^-].*$))\n}{
     my $caption0 = $2;
     $caption0=~s/\|\s*$//;
-    my($c, $o0) = split(/ \|(?= |$)/, $caption0, 2); # $caption=~s{[| ]*$}{};
+    ($caption, my $o0) = split(/ *\|(?= |$)/, $caption0, 2); # $caption=~s{[| ]*$}{};
     foreach my $o (split(/\s+/, $o0||'')){
       if($o =~ /([^=\s]+)="([^"]*)"/){
         my($k,$v) = ($1,$2);
@@ -1541,11 +1533,11 @@ sub table{
         my($tbl_id0) = $1;
         $tbl_id0=~s{^(\d+)$}{tbl$1}; # #1 -> #tbl1
         (exists $REF{$tbl_id0}) and mes(txt('did', undef, {id=>$tbl_id0}), {q=>1,err=>1});
-        ($tbl_id0=~/\S/) and $caption = ref_tmp_txt($tbl_id0, 'tbl', $lang) . " $c";
+        ($tbl_id0=~/\S/) and $caption = ref_tmp_txt($tbl_id0, 'tbl', $lang) . " $caption";
         $htmlitem[0][0]{copt}{id}[0] = $tbl_id0;
         $tbl_id = sprintf(qq{ id="%s"}, $tbl_id0); # ref_tmp_txt($tbl_id0, undef, 'tbl')); # for table->caption tag
       }
-      ($caption) or $caption = $c;
+#      ($caption) or $caption = $c;
 
       while($o=~/\&([lrcjsebtm]+)/g){
         my $h = {qw/l left r right c center j justify s start e end/}->{$1};
@@ -1668,8 +1660,6 @@ sub table{
         } # rowspan
         while($col=~/(([][_~=@|])(?:\2*))([,;:]?)(\d*)([a-zA-Z]*|#[a-fA-F0-9]{3}|#[a-fA-F0-9]{6})?/g){ # border setting
           my($m, $btype, $linestyle, $width, $color) = (length($1), $2, $3, $4, $5);
- #           sprintf("%s %dpx%s", ($3)?(($3 eq ',')?'dotted':($3 eq ';')?'dashed':'double'):'solid', ($4 ne '')?$4:1, ($5 ne '')?" $5":'')
- #         );
           my $n = table_borderstyle($linestyle, $width, $color);
           my %btype;
           ($btype=~/[[@|]/) and $btype{left}   = $n;
@@ -1684,7 +1674,7 @@ sub table{
             my $x =
               (defined $btype{$k}) ? $btype{$k}
              :(defined $htmlitem[0][0]{copt}{style}{"border-$k"}) ? $htmlitem[0][0]{copt}{style}{"border-$k"} : undef;
-            ($color) and $x .= " $color";
+            #($color) and $x .= " $color";
             push(@{$htmlitem[$r][$c]{copt}{style}{"border-$k"}}, $x);
           }
         } # while border
@@ -1739,7 +1729,6 @@ sub table{
     (defined $htmlitem[0][0]{copt}{style}{$k}) and $outtxt .= qq! $k: $htmlitem[0][0]{copt}{style}{$k}[0];!;
   }
   (defined $htmlitem[0][0]{copt}{border})      and $outtxt .= sprintf("border: solid %dpx;", $htmlitem[0][0]{copt}{border});
-#  (defined $htmlitem[0][0]{copt}{borderall})   and $outtxt .= "border: $htmlitem[0][0]{copt}{borderall}";
   foreach my $bt0 (qw/left right bottom top/){
     my $bt = "border-${bt0}";
     (defined $htmlitem[0][0]{copt}{style}{$bt}[0]) and $outtxt .= "$bt: $htmlitem[0][0]{copt}{style}{$bt}[0]; ";
@@ -1794,10 +1783,10 @@ sub table{
             map {$style{$c} = $_} (@{$htmlitem[$rn][$_]{copt}{style}{$c}});
           }
         }
-        my $style0 = join('; ', sort map {
-                       "$_: " . ((ref $style{$_} eq 'ARRAY')?$style{$_}[0]:$style{$_})
+        my $style0 = join('; ', map {
+                       "$_:" . ((ref $style{$_} eq 'ARRAY')?$style{$_}[0]:$style{$_})
                      } grep {defined $style{$_}} sort keys %style);
-        ($style0) and $copt .= qq! style="$style0"!; #option for each cell
+        ($style0) and $copt .= qq! style="${style0};"!; #option for each cell
         my $ctag = (
           (not $htmlitem[$rn][0]{footnote}) and (
           ($htmlitem[$rn][$_]{ctag} and $htmlitem[$rn][$_]{ctag} eq 'th') or
@@ -1819,11 +1808,8 @@ sub table{
        ? join('<br>', $footnotetext, $f)
        : $f;
     }
-    $outtxt .= (defined $htmlitem[0][0]{copt}{fborder})?qq{<tfoot style="box-shadow: $htmlitem[0][0]{copt}{fborder};">\n}:"<tfoot>\n";
-    #my $colspan = scalar @{$htmlitem[-1]} -1;
-    $outtxt .= sprintf(qq!<tr><td colspan="%d">${footnotetext}</td></tr>\n</tfoot>\n!, $#{$htmlitem[1]});
-#    $outtxt .= $footnotetext;
-#    $outtxt .= "</td></tr>\n</tfoot>\n";
+    $outtxt .= (defined $htmlitem[0][0]{copt}{fborder})?qq{<tfoot style="box-shadow: $htmlitem[0][0]{copt}{fborder};">\n}:"<tfoot>\n"
+            . sprintf(qq!<tr><td colspan="%d">${footnotetext}</td></tr>\n</tfoot>\n!, $#{$htmlitem[1]});
   } #if defined $footnotes[0] ...
   $outtxt .= "</table>\n\n";
   $outtxt=~s/\t+/ /g; # tab is separator of cells vertically unified
@@ -2056,8 +2042,8 @@ __DATA__
 |mt|{{col}}{{mestype}}{{reset}} at line {{ln}}. |{{reset}}{{ln}}行目にて{{col}}{{mestype}}{{reset}}：|
 |opf|File {{f}} is opened in utf8|{{f}}をutf-8ファイルとして開きます|
 |ref_cit|[{{id}}]|[{{id}}|
-|ref_fig|Fig. {{n}}|図{{n}}|
-|ref_tbl|Table {{n}}|表{{n}}|
+|ref_fig|Fig. {{n}}: |図{{n}}：|
+|ref_tbl|Table {{n}}: |表{{n}}：|
 |rout|Output:  STDOUT|出力先: 標準出力|
 |secnames|part chapter section subsection|部 章 節 項|
 |snf|Searched {{t}}, but not found|{{t}}の内部を検索しましたが見つかりません|
