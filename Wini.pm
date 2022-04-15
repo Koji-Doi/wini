@@ -798,7 +798,7 @@ sub markgaab{
 #    $r .= "\n$t";
     push(@r, $t);
   } # foreach $t # for each paragraph
-  my $r = join('', @r);
+  my $r = join("\n", @r);
   $r=~s/${MI}i=(\d+)${MO}/$save[$1]/ge;
   if($cssfile){
     open(my $fho, '>', $cssfile) or die "Cannot modify $cssfile";
@@ -1735,7 +1735,10 @@ sub table{
   }
   $outtxt .= qq{">\n}; # end of style
 
-  (defined $caption) and $caption=~s/(^\n|\n$)//g, $outtxt .= "<caption>\n$caption\n</caption>\n";
+  if(defined $caption){
+    $caption=~s/(^\s*|\s*$)//g;
+    ($caption ne '') and $outtxt .= "<caption>\n$caption\n</caption>\n";
+  }
   $outtxt .= (defined $htmlitem[0][0]{copt}{bborder})?qq{<tbody style="box-shadow: $htmlitem[0][0]{copt}{bborder};">\n}:"<tbody>\n";
 
   ## style for each row

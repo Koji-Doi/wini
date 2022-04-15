@@ -40,26 +40,29 @@ EOC
 
   my $p = <<EOC;
 <p>
-Table</p>
+Table
+</p>
 
-<table class="mgtable" style="border-collapse: collapse;  text-align: center; ">
-<caption> capt.</caption>
-<tbody style="border:solid 2px;">
-<tr><th style="border:solid 2px;">l3 </th><td style="border:solid 2px;">e <sup>&lowast;1</sup> </td></tr>
-<tr><th style="border:solid 2px;">l4 </th><td style="border:solid 2px; vertical-align:bottom;">f <sup>&plus;1</sup> </td></tr>
-<tr><th style="border:solid 2px;">l5 </th><td style="border:solid 2px; vertical-align:bottom;">f2<sup>&plus;2</sup> </td></tr>
-<tr><th style="border:solid 2px;">l6 </th><td style="border:solid 2px; vertical-align:bottom;">e2<sup>&lowast;2</sup> </td></tr>
-<tr><th style="border:solid 2px;">l7 </th><td style="border:solid 2px; vertical-align:bottom;">g <sup>&lowast;</sup> </td></tr>
-<tr><th style="border:solid 2px;">l8 </th><td style="border:solid 2px; vertical-align:bottom;">h <sup>&dagger;1</sup> </td></tr>
-<tr><th style="border:solid 2px;">l9 </th><td style="border:solid 2px; vertical-align:bottom;">i <sup>&lowast;&lowast;</sup> </td></tr>
+<table class="mgtable" border="1" style="border-collapse: collapse; border: solid 1px;">
+<caption>
+capt.
+</caption>
+<tbody>
+<tr><th>l3</th><td>e <sup>&lowast;1</sup></td></tr>
+<tr><th>l4</th><td style="vertical-align:bottom;">f <sup>&plus;1</sup></td></tr>
+<tr><th>l5</th><td style="vertical-align:bottom;">f2<sup>&plus;2</sup></td></tr>
+<tr><th>l6</th><td style="vertical-align:bottom;">e2<sup>&lowast;2</sup></td></tr>
+<tr><th>l7</th><td style="vertical-align:bottom;">g <sup>&lowast;</sup></td></tr>
+<tr><th>l8</th><td style="vertical-align:bottom;">h <sup>&dagger;1</sup></td></tr>
+<tr><th>l9</th><td style="vertical-align:bottom;">i <sup>&lowast;&lowast;</sup></td></tr>
 </tbody>
 <tfoot>
-<tr><td colspan="2">inner table footnote; <sup>&lowast;1</sup>captE;
-<sup>&plus;1</sup>captF;
-<sup>&plus;2</sup>captF2;
-<sup>&lowast;2</sup>captE2;
-<sup>&lowast;</sup>captG;
-<sup>&dagger;1</sup>captH;
+<tr><td colspan="2">inner table footnote; <br><sup>&lowast;1</sup>captE;&nbsp;
+<sup>&plus;1</sup>captF;&nbsp;
+<sup>&plus;2</sup>captF2;&nbsp;
+<sup>&lowast;2</sup>captE2;&nbsp;
+<sup>&lowast;</sup>captG;&nbsp;
+<sup>&dagger;1</sup>captH;&nbsp;
 <sup>&lowast;&lowast;</sup>captI</td></tr>
 </tfoot>
 </table><p>
@@ -74,6 +77,7 @@ Main text with footnote<sup>&dagger;1</sup>.
 <li><sup>&dagger;1</sup>main text footnote2</li>
 </ul>
 </footer>
+
 EOC
 
   $p=std($p);

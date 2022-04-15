@@ -62,7 +62,7 @@ lang: 'ja'
 
 This is sub.
 
-|- Here is a caption, which shold be in Ja | #id3 @2 |
+|- Here is a caption, which should be in Ja | #id3 @2 |
 | a | b |
 
 {{rr|id1|id2=c|lang=ja}} = id1 ja (subsect: option ja in macro)
