@@ -260,7 +260,7 @@ sub stand_alone{
     "h|help"         => sub {help()},
     "v|version"      => sub {print STDERR "Wini.pm $VERSION\n"; exit()},
     "i=s"            => \@input,
-    "o=s"            => \$output,
+    "o:s"            => \$output,
     "title=s"        => \$title,
     "cssfile:s"      => \$cssfile,
     "E|extralib:s"   => \@libs,
@@ -302,7 +302,7 @@ sub stand_alone{
     (-d $outd) or mkdir $outd;
   }
   if(defined $inf->[0]){
-    mes(txt('if') . join(' ', @$inf), {q=>1});
+#    mes(txt('if') . join(' ', @$inf), {q=>1});
   } else {
     push(@$inf, '');
   }
@@ -313,14 +313,15 @@ sub stand_alone{
   if(scalar @$outf>1){
     # 1. multiple infile -> multiple outfile (1:1)
     for(my $i=0; $i<=$#$inf; $i++){
+      my $outfile = $outf->[$i];
       if($inf->[$i] eq ''){
-        mes(txt('conv', undef, {from=>'STDIN', to=>$outf->[$i]}), {q=>1});
+        mes(txt('conv', undef, {from=>'STDIN', to=>$outfile}), {q=>1});
         $fhi=*STDIN;
       }else{
-        mes(txt('conv', undef, {from=>$inf->[$i], to=>$outf->[$i]}), {q=>1});
+        mes(txt('conv', undef, {from=>$inf->[$i], to=>$outfile}), {q=>1});
         open($fhi, '<:utf8', $inf->[$i]);
       }
-      open(my $fho, '>:utf8', $outf->[$i]);
+      open(my $fho, '>:utf8', $outfile);
       my $winitxt = join('', <$fhi>);
       $winitxt=~s/\x{FEFF}//; # remove BOM if exists
       my($htmlout) = to_html($winitxt, {indir=>$ind, dir=>getcwd(), whole=>$whole, cssfile=>$cssfile, title=>$title, cssflameworks=>\@cssflameworks});
@@ -445,7 +446,7 @@ sub winifiles{
   my($indir, @infile, $outdir, @outfile);
   my @in;
   (defined $in) and @in = (ref $in eq 'ARRAY') ? @$in : ($in);
-  
+
   # check $indir
   foreach my $in1 (@in){
     my(@in1x) = ($in1);
@@ -459,7 +460,7 @@ sub winifiles{
     }elsif(not -f $in1){ # non-existing entry, x/=dir x.wini=file
       ($in1=~m{/$}) ? ($indir = $in1) : push(@infile, $in1);
     }else{ # existing normal file
-      mes(txt('fci',undef, {f=>$in1}), {q=>1});
+#      mes(txt('fci',undef, {f=>$in1}), {q=>1});
       push(@infile, $in1);
     }
   }
@@ -468,8 +469,13 @@ sub winifiles{
   }
 
   # check $outdir
-
-  if(not defined $out){
+  if (defined $out and $out eq ''){
+    foreach my $in1 (@infile){
+      my $out1=$in1;
+      $out1=~s{(\.\w+$)}{.html};
+      push(@outfile, $out1);
+    }
+  }elsif(not defined $out){
     if(not defined $in){
     }
 
@@ -627,7 +633,7 @@ sub to_html{
     } # read sect content
   } # foreach sect
   ($depth!=0) and $html[-1]{close} = ("\n" . ('</section>' x $depth));
-  map{$htmlout .= "\n" . join("\n", $_->{open}||'', $_->{txt}||'', $_->{close}||'')} @html;
+  $htmlout .= join("\n", map{join("\n", $_->{open}||'', $_->{txt}||'', $_->{close}||'')} @html);
   $htmlout .= "\n";
   
   # template?
@@ -741,8 +747,7 @@ sub markgaab{
   $t0 =~ s!\^\^\{(.*?)}!<sup>$1</sup>!g;
   $t0 =~ s!__([^{])!<sub>$1</sub>!g;
   $t0 =~ s!\^\^([^{])!<sup>$1</sup>!g;
-
-  my $r = '';
+  my @r;
   my @localclass = ('mg');
   foreach my $t (split(/\n{2,}/, $t0)){ # for each paragraph
     my @myclass = @localclass;
@@ -790,9 +795,10 @@ sub markgaab{
           : $t=~m{${MI}t=citlist}is ? $t
           : "<p${myclass}>\n$t" . (($t=~/\n$/)?'':"\n") . "</p>$cr$cr";
 
-    $r .= "\n$t";
+#    $r .= "\n$t";
+    push(@r, $t);
   } # foreach $t # for each paragraph
-
+  my $r = join('', @r);
   $r=~s/${MI}i=(\d+)${MO}/$save[$1]/ge;
   if($cssfile){
     open(my $fho, '>', $cssfile) or die "Cannot modify $cssfile";
@@ -801,6 +807,7 @@ sub markgaab{
   }
   (defined $footnotes{'_'}[0]) and $r .= qq{<hr>\n<footer>\n<ul style="list-style:none;">\n} . join("\n", (map {"<li>$_</li>"}  @{$footnotes{'_'}})) . "\n</ul>\n</footer>\n";
   ($opt->{table}) or $r=~s/[\s\n\r]*$//;
+  $r=~s/^[\s\n\r]*//;
   return($r, $opt);
 } # sub markgaab
 
@@ -841,6 +848,9 @@ sub whole_html{
   my($x, $title, $opt) = @_;
   $x=~s/[\s\n\r]*$//s;
   #  my($cssfile, $cssflameworks) = map {$opt->{$_}} qw/cssfile cssflameworks/;
+  # lang -> css font
+  $CSS->{body}{'font-family'} = txt('font');
+
   my $cssfile = $opt->{cssfile} || '';
   my $style   = '';
   $title = $title || 'Markgaab page';
@@ -1018,14 +1028,11 @@ sub term{
 }
 sub abbr{ # return abbr list
   my($t) = @_;
-  my $o;
-  unless(defined $t){
-    foreach my $k (keys %abbr){
-      push(@$o, {term=>$k, abbr=>$abbr{$k}});
-    }
-    return($o);
-  }
-  return($abbr{$_[0]} || '');
+  #my $o;
+  (defined $t) and return($abbr{$t});
+      return([ map {{term=>$_, abbr=>$abbr{$_}}} keys %abbr ]);
+  #}
+#  return(\@o);
 }
 } # term env
 
@@ -1096,11 +1103,6 @@ sub call_macro{
     return('&#x'.unpack('H*',$macroname).';'); # char -> ascii code
   ($macroname=~/^\@$/)            and return(term(\@f));
   ($macroname=~/^(rr|ref|cit)$/i) and return(cit(\@f, $opt->{_v}));
-#  ($macroname=~/^(rr|ref)$/i)     and return(
-#                                        ($f[1]) ? cit(@f)
-#                                                : ref_tmp_txt(@f, 'dup=ok')
-#                                  ); #{{ref|id|fig}} -> $MI...$MO
-#  ($macroname=~/^citlist$/i)      and return(citlist());
   ($macroname=~/^citlist$/i)      and return("${MI}###${MI}t=citlist${MO}");
   ($macroname=~/^(date|time|dt)$/i) and return(date([@f, "type=$1"],  $opt->{_v}));
   ($macroname=~/^calc$/i)         and return(ev(\@f, $opt->{_v}));
@@ -1494,14 +1496,13 @@ sub table{
   my $lang = $val->{lang} || $LANG || 'en';
   my(@winiitem, @htmlitem, $caption, $footnotetext, $tbl_id);
   my @footnotes; # footnotes in cells
-#  my $linestyle = {',', qw/dotted ; dashed : double/};
   push(@{$htmlitem[0][0]{copt}{class}}, 'mgtable');
 
   #get caption & table setting - remove '^|-' lines from $in
   $in =~ s{(^\|-([^-].*$))\n}{
     my $caption0 = $2;
     $caption0=~s/\|\s*$//;
-    my($c, $o0) = split(/ \|(?= |$)/, $caption0, 2); # $caption=~s{[| ]*$}{};
+    ($caption, my $o0) = split(/ *\|(?= |$)/, $caption0, 2); # $caption=~s{[| ]*$}{};
     foreach my $o (split(/\s+/, $o0||'')){
       if($o =~ /([^=\s]+)="([^"]*)"/){
         my($k,$v) = ($1,$2);
@@ -1532,11 +1533,11 @@ sub table{
         my($tbl_id0) = $1;
         $tbl_id0=~s{^(\d+)$}{tbl$1}; # #1 -> #tbl1
         (exists $REF{$tbl_id0}) and mes(txt('did', undef, {id=>$tbl_id0}), {q=>1,err=>1});
-        ($tbl_id0=~/\S/) and $caption = ref_tmp_txt($tbl_id0, 'tbl', $lang) . " $c";
+        ($tbl_id0=~/\S/) and $caption = ref_tmp_txt($tbl_id0, 'tbl', $lang) . " $caption";
         $htmlitem[0][0]{copt}{id}[0] = $tbl_id0;
         $tbl_id = sprintf(qq{ id="%s"}, $tbl_id0); # ref_tmp_txt($tbl_id0, undef, 'tbl')); # for table->caption tag
       }
-      ($caption) or $caption = $c;
+#      ($caption) or $caption = $c;
 
       while($o=~/\&([lrcjsebtm]+)/g){
         my $h = {qw/l left r right c center j justify s start e end/}->{$1};
@@ -1616,12 +1617,12 @@ sub table{
       if($cn%2==1){ # separator
         $col = substr($col,1); # remove the first '|'
 
-        # border style initial setting from $htmlitem[0][0]{copt}{style} 191217 - 191220
-        foreach my $btype (map {"border-$_"} qw/left right bottom top/){
-          (not defined $htmlitem[$ln][0]{footnote}) and 
-            (defined $htmlitem[0][0]{copt}{style}{$btype}) and 
-              $htmlitem[$ln][$col_n]{copt}{style}{$btype}[0] = $htmlitem[0][0]{copt}{style}{$btype}; 
-        }
+        ## border style initial setting from $htmlitem[0][0]{copt}{style} 191217 - 191220
+        #foreach my $btype (map {"border-$_"} qw/left right bottom top/){
+        #  (not defined $htmlitem[$ln][0]{footnote}) and 
+        #    (defined $htmlitem[0][0]{copt}{style}{$btype}) and 
+        #      $htmlitem[$ln][$col_n]{copt}{style}{$btype}[0] = $htmlitem[0][0]{copt}{style}{$btype}; 
+        #}
 
         #$ctag = ($col=~/\bh\b/)?'th':'td';
         $htmlitem[$ln][$col_n]{ctag} = 'td';
@@ -1659,8 +1660,6 @@ sub table{
         } # rowspan
         while($col=~/(([][_~=@|])(?:\2*))([,;:]?)(\d*)([a-zA-Z]*|#[a-fA-F0-9]{3}|#[a-fA-F0-9]{6})?/g){ # border setting
           my($m, $btype, $linestyle, $width, $color) = (length($1), $2, $3, $4, $5);
- #           sprintf("%s %dpx%s", ($3)?(($3 eq ',')?'dotted':($3 eq ';')?'dashed':'double'):'solid', ($4 ne '')?$4:1, ($5 ne '')?" $5":'')
- #         );
           my $n = borderstyle($linestyle, $width, $color);
           my %btype;
           ($btype=~/[[@|]/) and $btype{left}   = $n;
@@ -1675,7 +1674,7 @@ sub table{
             my $x =
               (defined $btype{$k}) ? $btype{$k}
              :(defined $htmlitem[0][0]{copt}{style}{"border-$k"}) ? $htmlitem[0][0]{copt}{style}{"border-$k"} : undef;
-            ($color) and $x .= " $color";
+            #($color) and $x .= " $color";
             push(@{$htmlitem[$r][$c]{copt}{style}{"border-$k"}}, $x);
           }
         } # while border
@@ -1722,6 +1721,7 @@ sub table{
         or $htmlitem[0][0]{copt}{style}{width}[0] = sprintf("%drem", ((sort map{$_ or 0} @rowlen)[-1])*2);
 
   # make html
+  ## style for <table>
   my $outtxt = sprintf(qq!\n<table${tbl_id} class="%s"!, join(' ', sort @{$htmlitem[0][0]{copt}{class}}));
   (defined $htmlitem[0][0]{copt}{border})      and $outtxt .= ' border="1"';
   $outtxt .= q{ style="border-collapse: collapse; };
@@ -1729,11 +1729,16 @@ sub table{
     (defined $htmlitem[0][0]{copt}{style}{$k}) and $outtxt .= qq! $k: $htmlitem[0][0]{copt}{style}{$k}[0];!;
   }
   (defined $htmlitem[0][0]{copt}{border})      and $outtxt .= sprintf("border: solid %dpx;", $htmlitem[0][0]{copt}{border});
-  (defined $htmlitem[0][0]{copt}{borderall})   and $outtxt .= "border: $htmlitem[0][0]{copt}{borderall}";
+  foreach my $bt0 (qw/left right bottom top/){
+    my $bt = "border-${bt0}";
+    (defined $htmlitem[0][0]{copt}{style}{$bt}[0]) and $outtxt .= "$bt: $htmlitem[0][0]{copt}{style}{$bt}[0]; ";
+  }
   $outtxt .= qq{">\n}; # end of style
+
   (defined $caption) and $caption=~s/(^\n|\n$)//g, $outtxt .= "<caption>\n$caption\n</caption>\n";
   $outtxt .= (defined $htmlitem[0][0]{copt}{bborder})?qq{<tbody style="box-shadow: $htmlitem[0][0]{copt}{bborder};">\n}:"<tbody>\n";
 
+  ## style for each row
   for(my $rn=1; $rn<=$#htmlitem; $rn++){
     my $outtxt0;
     ($htmlitem[$rn][0] eq '^^') and next;
@@ -1778,10 +1783,10 @@ sub table{
             map {$style{$c} = $_} (@{$htmlitem[$rn][$_]{copt}{style}{$c}});
           }
         }
-        my $style0 = join('; ', sort map {
-                       "$_: " . ((ref $style{$_} eq 'ARRAY')?$style{$_}[0]:$style{$_})
+        my $style0 = join('; ', map {
+                       "$_:" . ((ref $style{$_} eq 'ARRAY')?$style{$_}[0]:$style{$_})
                      } grep {defined $style{$_}} sort keys %style);
-        ($style0) and $copt .= qq! style="$style0"!; #option for each cell
+        ($style0) and $copt .= qq! style="${style0};"!; #option for each cell
         my $ctag = (
           (not $htmlitem[$rn][0]{footnote}) and (
           ($htmlitem[$rn][$_]{ctag} and $htmlitem[$rn][$_]{ctag} eq 'th') or
@@ -1803,11 +1808,8 @@ sub table{
        ? join('<br>', $footnotetext, $f)
        : $f;
     }
-    $outtxt .= (defined $htmlitem[0][0]{copt}{fborder})?qq{<tfoot style="box-shadow: $htmlitem[0][0]{copt}{fborder};">\n}:"<tfoot>\n";
-    #my $colspan = scalar @{$htmlitem[-1]} -1;
-    $outtxt .= sprintf(qq!<tr><td colspan="%d">${footnotetext}</td></tr>\n</tfoot>\n!, $#{$htmlitem[1]});
-#    $outtxt .= $footnotetext;
-#    $outtxt .= "</td></tr>\n</tfoot>\n";
+    $outtxt .= (defined $htmlitem[0][0]{copt}{fborder})?qq{<tfoot style="box-shadow: $htmlitem[0][0]{copt}{fborder};">\n}:"<tfoot>\n"
+            . sprintf(qq!<tr><td colspan="%d">${footnotetext}</td></tr>\n</tfoot>\n!, $#{$htmlitem[1]});
   } #if defined $footnotes[0] ...
   $outtxt .= "</table>\n\n";
   $outtxt=~s/\t+/ /g; # tab is separator of cells vertically unified
@@ -2029,6 +2031,7 @@ __DATA__
 |fci|File {{f}} is chosen as input|ファイル{{f}}が入力元ファイルです|
 |fin|completed|終了|
 |fnf|File not found|ファイルが見つかりません|
+|font|"Helvetica Neue", Arial, sans-serif|"Helvetica Neue", Arial, "Hiragino Kaku Gothic ProN", "Hiragino Sans", "BIZ UDPGothic", Meiryo, sans-serif|
 |ftf|Found {{t}} as template file|テンプレートファイル{{t}}が見つかりました|
 |idnd|ID {{id}} not defined|ID '{{id}}'は定義されていません|
 |if|input file:|入力ファイル：|
@@ -2039,8 +2042,8 @@ __DATA__
 |mt|{{col}}{{mestype}}{{reset}} at line {{ln}}. |{{reset}}{{ln}}行目にて{{col}}{{mestype}}{{reset}}：|
 |opf|File {{f}} is opened in utf8|{{f}}をutf-8ファイルとして開きます|
 |ref_cit|[{{id}}]|[{{id}}|
-|ref_fig|Fig. {{n}}|図{{n}}|
-|ref_tbl|Table {{n}}|表{{n}}|
+|ref_fig|Fig. {{n}}: |図{{n}}：|
+|ref_tbl|Table {{n}}: |表{{n}}：|
 |rout|Output:  STDOUT|出力先: 標準出力|
 |secnames|part chapter section subsection|部 章 節 項|
 |snf|Searched {{t}}, but not found|{{t}}の内部を検索しましたが見つかりません|

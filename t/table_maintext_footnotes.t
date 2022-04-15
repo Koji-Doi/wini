@@ -22,7 +22,7 @@ sub std{
   my($o, undef) = markgaab(<<'EOC');
 Table
 
-|- capt.      | &c b@2                |
+|- capt.      | border="1"            |
 |!$        l3 |      e {{^|captE}}    |
 |!$        l4 |&b    f {{^|captF|+}}  |
 |!$        l5 |&b    f2{{^|captF2|+}} |
