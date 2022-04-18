@@ -5,7 +5,7 @@ use utf8;
 use strict;
 use warnings;
 use Test::More;
-
+use Encode qw/encode decode/;
 use lib '.';
 use Wini;
 
@@ -185,9 +185,9 @@ Table 1 = id1 en from section val
 </section>
 
 EOC
-  #$p=std($p);
 
-  is std($o), std($p);
+  # $o must be decoded.
+  is std(encode('utf-8',$o)), std($p);
 }
 
 
