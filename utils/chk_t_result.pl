@@ -23,17 +23,19 @@ foreach my $l (split(/\n/, $res)){
   if($l=~/^\s*got: / .. $l=~/^'$/){
     $l=~/^\s*got: / and next;
     $l=~/^'$/       and next;
-    $got .= "$l\n";
+    $l=~s/[\n\r]*$//;
+    $got .= $l;
   }
   if($l=~/^\s*expected: / .. $l=~/^'$/){
     $l=~/^\s*expected: / and next;
     $l=~/^'$/            and next;
-    $expected .= "$l\n";
+    $l=~s/[\n\r]*$//;
+    $expected .= $l;
   }
 
 }
-my @got      = split(/(<.*?>)/, $got);
-my @expected = split(/(<.*?>)/, $expected);
+my @got      = grep {/./} split(/(<.*?>)/, $got);
+my @expected = grep {/./} split(/(<.*?>)/, $expected);
 
 open(my $fho_g, '>:utf8', "got.html") or die;
 open(my $fho_e, '>:utf8', "exp.html") or die;
@@ -42,8 +44,8 @@ for(my $i=0; $i<=$#got; $i++){
   my $e = $expected[$i] || '';
   my $r = ($g eq $e)?1:0;
 # print "$i>>$r>> $g\t$e\n";
-  print {$fho_g} $g;
-  print {$fho_e} $e;
+  print {$fho_g} "$g\n";
+  print {$fho_e} "$e\n";
 }
 close $fho_g;
 close $fho_e;

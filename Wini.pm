@@ -811,6 +811,8 @@ sub markgaab{
   return($r, $opt);
 } # sub markgaab
 
+{
+my %ref_cnt;
 sub deref{
   my($r) = @_;
   my $seq=0;
@@ -831,11 +833,15 @@ sub deref{
         $type = $REF{$id}{type} || mes(txt('idnd', '', {id=>$id}), {err=>1});
       }else{
         if(my($type1, $id1)=$id=~/^(fig|tbl|cit|h|s)(\d+)$/){
-          $REF{$id}{order} = $id1;
-          $REFASSIGN{$type}{$id1} = 1;
+          $REF{$id}{order}        = $id1; # id -> count
+          $REFASSIGN{$type}{$id1} = $id;  # count -> id
         }else{
-          $REF{$id}{order} = (scalar keys %{$REFASSIGN{$type}}) + 1;
-          $REFASSIGN{$type}{$id} = 1;
+          (defined $ref_cnt{$type}) or $ref_cnt{$type}=1;
+          while(defined $REFASSIGN{$type}{$ref_cnt{$type}}){
+            $ref_cnt{$type}++;
+          }
+          $REF{$id}{order} = $ref_cnt{$type};
+          $REFASSIGN{$type}{$ref_cnt{$type}} = $id;
         }
       }
       txt("ref_${type}", $lang, {n=>$REF{$id}{order}});
@@ -843,6 +849,7 @@ sub deref{
   !ge;
   return($r);
 } # sub deref
+}
 
 sub whole_html{
   my($x, $title, $opt) = @_;

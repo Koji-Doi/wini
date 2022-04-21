@@ -16,7 +16,7 @@ init();
 
 sub std{
   my($x)=@_;
-  $x=~s/[\n\r]+/\n/g;
+  $x=~s/[\n\r]//g;
   $x=~s/> */>/g;
   $x=~s/\s{2,}/ /g;
   $x=~s/ +</</g;
@@ -90,33 +90,33 @@ EOC
 
 my $p = <<EOC;
 
-<table id="id1" class="mgtable" style="border-collapse: collapse; ">
+<table id="id1" class="mgtable" style="border-collapse: collapse; border-left: solid 2px; border-right: solid 2px; border-bottom: solid 2px; border-top: solid 2px; ">
 <caption>
 Table 1: Here is a caption</caption>
 <tbody>
 <tr><td> a </td><td> b </td></tr>
 </tbody>
 </table>
-<table id="tbl2" class="mgtable" style="border-collapse: collapse; ">
+<table id="tbl2" class="mgtable" style="border-collapse: collapse; border-left: solid 2px; border-right: solid 2px; border-bottom: solid 2px; border-top: solid 2px; ">
 <caption>
 Table 2:</caption>
 <tbody>
 <tr><td> c </td><td> d </td></tr>
 </tbody>
 </table>
-<table class="mgtable" style="border-collapse: collapse; ">
+<table class="mgtable" style="border-collapse: collapse; border-left: solid 2px; border-right: solid 2px; border-bottom: solid 2px; border-top: solid 2px; ">
 <tbody>
 <tr><td> e</td><td> f</td></tr>
 </tbody>
 </table>
-<table id="id2" class="mgtable" style="border-collapse: collapse; ">
+<table id="id2" class="mgtable" style="border-collapse: collapse; border-left: solid 2px; border-right: solid 2px; border-bottom: solid 2px; border-top: solid 2px; ">
 <caption>
 Table 3:</caption>
 <tbody>
 <tr><td> g </td><td> h </td></tr>
 </tbody>
 </table>
-<table id="tbl100" class="mgtable" style="border-collapse: collapse; ">
+<table id="tbl100" class="mgtable" style="border-collapse: collapse; border-left: solid 2px; border-right: solid 2px; border-bottom: solid 2px; border-top: solid 2px; ">
 <caption>
 Table 100:</caption>
 <tbody>
@@ -128,11 +128,11 @@ This is main.</p>
 
 
 <p>
-表1 = id1 ja (mainsect: option ja in macro)</p>
+表1： = id1 ja (mainsect: option ja in macro)</p>
 
 
 <p>
-Table 1 = id1 en (mainsect: option en in macro)
+Table 1: = id1 en (mainsect: option en in macro)
 </p>
 
 <section class="mg" id="sect1">
@@ -144,9 +144,9 @@ Table 1 = id1 en (mainsect: option en in macro)
 This is sub.</p>
 
 
-<table id="id3" class="mgtable" style="border-collapse: collapse; ">
+<table id="id3" class="mgtable" style="border-collapse: collapse; border-left: solid 2px; border-right: solid 2px; border-bottom: solid 2px; border-top: solid 2px; ">
 <caption>
-Table 6: Here is a caption, which shold be in Ja</caption>
+表4： Here is a caption, which should be in Ja</caption>
 <tbody>
 <tr><td> a </td><td> b </td></tr>
 </tbody>
@@ -160,11 +160,11 @@ Table 1: = id1 en (subsect: option en in macro)</p>
 
 
 <p>
-Table 1: = id1 ja from section val</p>
+表1： = id1 ja from section val</p>
 
 
 <p>
-Table 6 = id3 ja from section val
+表4： = id3 ja from section val
 </p>
 </section> <!-- end of "sect1" d=ld=1 lastdepth=1 -->
 
@@ -174,11 +174,11 @@ Table 6 = id3 ja from section val
 
 
 <p>
-Table 3 = id2 en from section val</p>
+Table 3: = id2 en from section val</p>
 
 
 <p>
-Table 1 = id1 en from section val
+Table 1: = id1 en from section val
 </p>
 
 </section>
