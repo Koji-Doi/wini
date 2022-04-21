@@ -92,34 +92,33 @@ my $p = <<EOC;
 
 <table id="id1" class="mgtable" style="border-collapse: collapse; ">
 <caption>
-Table 1  Here is a caption</caption>
+Table 1: Here is a caption</caption>
 <tbody>
 <tr><td> a </td><td> b </td></tr>
 </tbody>
 </table>
 <table id="tbl2" class="mgtable" style="border-collapse: collapse; ">
 <caption>
-Table 2</caption>
+Table 2:</caption>
 <tbody>
 <tr><td> c </td><td> d </td></tr>
 </tbody>
 </table>
 <table class="mgtable" style="border-collapse: collapse; ">
-<caption></caption>
 <tbody>
 <tr><td> e</td><td> f</td></tr>
 </tbody>
 </table>
 <table id="id2" class="mgtable" style="border-collapse: collapse; ">
 <caption>
-Table 3</caption>
+Table 3:</caption>
 <tbody>
 <tr><td> g </td><td> h </td></tr>
 </tbody>
 </table>
 <table id="tbl100" class="mgtable" style="border-collapse: collapse; ">
 <caption>
-Table 100</caption>
+Table 100:</caption>
 <tbody>
 <tr><td> i </td><td> j </td></tr>
 </tbody>
@@ -147,21 +146,21 @@ This is sub.</p>
 
 <table id="id3" class="mgtable" style="border-collapse: collapse; ">
 <caption>
-Table 6  Here is a caption, which shold be in Ja</caption>
+Table 6: Here is a caption, which shold be in Ja</caption>
 <tbody>
 <tr><td> a </td><td> b </td></tr>
 </tbody>
 </table>
 <p>
-表1 = id1 ja (subsect: option ja in macro)</p>
+表1： = id1 ja (subsect: option ja in macro)</p>
 
 
 <p>
-Table 1 = id1 en (subsect: option en in macro)</p>
+Table 1: = id1 en (subsect: option en in macro)</p>
 
 
 <p>
-Table 1 = id1 ja from section val</p>
+Table 1: = id1 ja from section val</p>
 
 
 <p>
@@ -187,7 +186,8 @@ Table 1 = id1 en from section val
 EOC
 
   # $o must be decoded.
-  is std(encode('utf-8',$o)), std($p);
+  is std($o), std($p);
+#  is std(decode('utf-8',$o)), std($p);
 }
 
 

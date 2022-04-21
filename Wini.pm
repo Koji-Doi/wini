@@ -1337,7 +1337,7 @@ sub cit{
     return($tmptxt);
   }else{ # is already defined id (for bib, fig, table ...)
     my $reftype = $REF{$id}{type} || $pars->{type}[-1];
-    print STDERR "id=$id, lang=$lang id2=".($pars->{id2}[0]||"?")."\nopt: ", Dumper $opt;
+    #print STDERR "id=$id, lang=$lang id2=".($pars->{id2}[0]||"?")."\nopt: ", Dumper $opt;
     return(ref_tmp_txt("id=$id", "type=$reftype", "lang=$lang", "dup=ok"));
   }
 }
