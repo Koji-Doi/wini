@@ -9,6 +9,17 @@ use lib '.';
 use Wini;
 Text::Markup::Wini::init();
 
+sub std{
+  my($x)=@_;
+  $x=~s/[\n\r]//g;
+  $x=~s/> */>/g;
+  $x=~s/\s{2,}/ /g;
+  $x=~s/ +</</g;
+  $x=~s/> +/>/g;
+  $x=~s{(</\w+>)}{$1\n}g;
+  return($x);
+}
+
 my @indata;
 my $i=0;
 my $mode="";
@@ -21,9 +32,9 @@ while(<DATA>){
 
 for(my $i=1; $i<=$#indata; $i++){
   my($o1) = Text::Markup::Wini::to_html($indata[$i]{mg});
-  $o1              =~s/[\s\n]//g;
-  $indata[$i]{html}=~s/[\s\n]//g;
-  is $o1, $indata[$i]{html};
+#  $o1              =~s/[\s\n]//g;
+#  $indata[$i]{html}=~s/[\s\n]//g;
+  is std($o1), std($indata[$i]{html});
 }
 1;
 done_testing;
@@ -33,7 +44,7 @@ __DATA__
 
 Reference 1: {{cit|kirk2022|au='James, T. Kirk'|ye=2022|ti='XXX'}}
 
-Referene 2: {{cit|gal2021|au='Kadotani, Anzu'|au='Koyama, Yuzuko'|au='Kawashima, Momo'|yr=2021|ti='Practice of Senshado in High School Club Activities'}}
+Reference 2: {{cit|gal2021|au='Kadotani, Anzu'|au='Koyama, Yuzuko'|au='Kawashima, Momo'|ye=2021|ti='Practice of Senshado in High School Club Activities'}}
 
 aaa {{ref|kirk2022}}, {{ref|gal2021}}.
 

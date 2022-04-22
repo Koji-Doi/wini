@@ -687,8 +687,6 @@ sub to_html{
     return(deref($tmpltxt));
   }else{ # non-template
     (defined $opt->{whole}) and $htmlout = whole_html($htmlout, $opt->{title}, $opt);
-    $DB::single=$DB::single=1;
-1;
     return(deref($htmlout), \@html);
   }
 } # sub to_html
@@ -821,11 +819,16 @@ sub deref{
   $r=~s!${MI}([^${MI}${MO}]+)(?:${MI}t=([^${MI}${MO}]+))?(?:${MI}l=([^${MI}${MO}]+))?${MO}!
     my($id, $type, $lang) = ($1, $2, $3);
     if($type eq 'citlist'){
-      my $o = qq{<ul class="reflist">\n};
+      my $o = qq{<ul class="mglist reflist">\n};
       my @citids = grep {$REF{$_}{type} eq 'cit'} keys %REF;
       foreach my $id (sort {$REF{$a}{order} <=> $REF{$b}{order}} @citids){
-        $o .= sprintf("<li> %s %s\n", (txt('cit', $lang, {n=>$REF{$id}{order}||''}), ($REF{$id}{text}||'')));
+#  {au=>['Kirk, James T.', 'Tanaka, Taro', 'Yamada-Suzuki, Hanako', 'McDonald, Ronald'], ti=>'XXX', ye=>2021}
+        
+        $o .= sprintf("<li>%s %s</li>\n",
+                  txt('cit', $lang, {n=>$REF{$id}{order}||''}), ($REF{$id}{text}||'')
+              );
       }
+      $DB::single=$DB::single=1;
       $o.="</ul>\n";
     }else{
       if(not $type and not $REF{$id}){
@@ -1202,8 +1205,6 @@ aaa 1:{{ref|kirk2022}}, 2:{{ref|gal2021a}} 2:{{ref|gal2021a}}.
 EOD
   init();
   my($html) = to_html($x);
-  $DB::single=$DB::single=1;
-  1;
 print STDERR "\n\n----------------\n";
 print STDERR "*** REF\n", Dumper %REF;
 print STDERR "*** REFASSIGN\n", Dumper %REFASSIGN;
@@ -1361,7 +1362,7 @@ sub ref_tmp_txt{
   my $type1 = ($type eq '') ? '' : "${MI}t=${type}";
   my   $out = "${MI}${id}${type1}${lang1}${MO}";
   ($dup ne 'ok') and (exists $REF{$id}) and mes(txt('did', $lang, {id=>$id}), {err=>1});
-  (defined $type) and $REF{$id} = {type=>$type};
+  (defined $type) and (not defined $REF{$id}) and $REF{$id} = {type=>$type};
   return($out);
 }
 
