@@ -15,39 +15,19 @@ binmode STDOUT, ':utf8';
 binmode STDERR, ':utf8';
 
 my $infile = $ARGV[0]; # "t/test.t"
-my $res = `perl $infile 2>&1`;
-$res = decode('utf-8', $res);
-my($got, $expected) = ('', '');
-foreach my $l (split(/\n/, $res)){
-  $l=~s/^# //;
-  if($l=~/^\s*got: / .. $l=~/^'$/){
-    $l=~/^\s*got: / and next;
-    $l=~/^'$/       and next;
-    $l=~s/[\n\r]*$//;
-    $got .= $l;
+my %res;
+($res{got}, $res{exp}) = ('', '');
+my $r = decode('utf-8', `perl $infile 2>&1`);
+($res{got}) = $r=~/got:\s*'(.*)'\n#\s*expected:/s;
+($res{exp}) = $r=~/expected:\s*'(.*)/s;
+$res{exp} =~ s/'.*//s;
+
+foreach my $mode (qw/got exp/){
+  open(my $fho, '>:utf8', "${mode}.html") or die;
+  my @lines = grep {/./} split(/(<.*?>)/, $res{$mode});
+  foreach my $l (@lines){
+    chomp $l;
+    print {$fho} "$l\n";
   }
-  if($l=~/^\s*expected: / .. $l=~/^'$/){
-    $l=~/^\s*expected: / and next;
-    $l=~/^'$/            and next;
-    $l=~s/[\n\r]*$//;
-    $expected .= $l;
-  }
-
+  close $fho;
 }
-my @got      = grep {/./} split(/(<.*?>)/, $got);
-my @expected = grep {/./} split(/(<.*?>)/, $expected);
-
-open(my $fho_g, '>:utf8', "got.html") or die;
-open(my $fho_e, '>:utf8', "exp.html") or die;
-for(my $i=0; $i<=$#got; $i++){
-  my $g = $got[$i]      || '';
-  my $e = $expected[$i] || '';
-  my $r = ($g eq $e)?1:0;
-# print "$i>>$r>> $g\t$e\n";
-  print {$fho_g} "$g\n";
-  print {$fho_e} "$e\n";
-}
-close $fho_g;
-close $fho_e;
-
-

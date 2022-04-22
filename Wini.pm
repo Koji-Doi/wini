@@ -687,6 +687,8 @@ sub to_html{
     return(deref($tmpltxt));
   }else{ # non-template
     (defined $opt->{whole}) and $htmlout = whole_html($htmlout, $opt->{title}, $opt);
+    $DB::single=$DB::single=1;
+1;
     return(deref($htmlout), \@html);
   }
 } # sub to_html
@@ -832,7 +834,7 @@ sub deref{
       if(defined $REF{$id}{order}){
         $type = $REF{$id}{type} || mes(txt('idnd', '', {id=>$id}), {err=>1});
       }else{
-        if(my($type1, $id1)=$id=~/^(fig|tbl|cit|h|s)(\d+)$/){
+        if(my($type1, $id1)=$id=~/^(fig|tbl|cit|h|s)(\d+)$/){ # when the reference No. is already determined
           $REF{$id}{order}        = $id1; # id -> count
           $REFASSIGN{$type}{$id1} = $id;  # count -> id
         }else{
@@ -2051,7 +2053,7 @@ __DATA__
 |Message|Message|メッセージ|
 |mt|{{col}}{{mestype}}{{reset}} at line {{ln}}. |{{reset}}{{ln}}行目にて{{col}}{{mestype}}{{reset}}：|
 |opf|File {{f}} is opened in utf8|{{f}}をutf-8ファイルとして開きます|
-|ref_cit|[{{id}}]|[{{id}}|
+|ref_cit|[{{n}}]|[{{n}}|
 |ref_fig|Fig. {{n}}: |図{{n}}：|
 |ref_tbl|Table {{n}}: |表{{n}}：|
 |rout|Output:  STDOUT|出力先: 標準出力|

@@ -13,7 +13,6 @@ my @indata;
 my $i=0;
 my $mode="";
 while(<DATA>){
-#  print STDERR "$i:$mode: $_";
   /^---start mg/   and ($i++, $mode='mg', next);
   /^---start html/ and ($mode='html', next);
   /^---end/ and last;
@@ -26,11 +25,12 @@ for(my $i=1; $i<=$#indata; $i++){
   $indata[$i]{html}=~s/[\s\n]//g;
   is $o1, $indata[$i]{html};
 }
-
+1;
 done_testing;
 
 __DATA__
 ---start mg
+
 Reference 1: {{cit|kirk2022|au='James, T. Kirk'|ye=2022|ti='XXX'}}
 
 Referene 2: {{cit|gal2021|au='Kadotani, Anzu'|au='Koyama, Yuzuko'|au='Kawashima, Momo'|yr=2021|ti='Practice of Senshado in High School Club Activities'}}
