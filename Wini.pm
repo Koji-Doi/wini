@@ -1276,7 +1276,8 @@ sub cittxt_vals{ # subst. "[...]" in reference format to final value
       # j;&: a; b & c
       # je2: a et al.
       # je3: a, b et al.
-      my($is_c, $is_s, $and, $amp, $etal) = map {$f=~/$_/ or 0} (',', qw/; a & e\d/);
+      my $f1 = $1;
+      my($is_c, $is_s, $and, $amp, $etal) = map {$f1=~/$_/ or 0} (',', qw/; a & e\d/);
       my $sep = ($is_c) ? ', ' : ($is_s) ? '; ' : ' ';
       if($etal){
         ($etal) = $f=~/e(\d+)/;
@@ -2022,7 +2023,7 @@ __DATA__
 |cft|Cannot find template {{t}} in {{d}}|テンプレートファイル{{t}}はディレクトリ{{d}}内に見つかりません|
 |cit| [{{n}}] | [{{n}}] |
 |cit_inline| ({{au}}, {{ye}}) | ({{au}}, {{ye}})|
-!cit_form! [au|lf|je2] [ye] [ti] [jo] [vo][is|p()] ! [au|lf|je2] [ye] [ti] [jo] [vo][is|p()] !
+!cit_form! [au|if|lf|je,2] [ye] [ti] [jo] [vo][is|p()] ! [au|if|lf|je,2] [ye] [ti] [jo] [vo][is|p()] !
 |cno|Could not open {{f}}|{{f}}を開けません|
 |conv|Conv {{from}} -> {{to}}|変換 {{from}} -> {{to}}|
 |date|%Y-%m-%d|%Y年%m月%d日|

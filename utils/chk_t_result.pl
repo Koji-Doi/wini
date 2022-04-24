@@ -20,10 +20,10 @@ my %res;
 my $r = decode('utf-8', `perl $infile 2>&1`);
 ($res{got}) = $r=~/got:\s*'(.*)'\n#\s*expected:/s;
 ($res{exp}) = $r=~/expected:\s*'(.*)/s;
-$res{exp} =~ s/'.*//s;
-
 foreach my $mode (qw/got exp/){
   open(my $fho, '>:utf8', "${mode}.html") or die;
+  $res{$mode} =~ s/^# *//gm;
+  $res{$mode} =~ s/'.*//s;
   my @lines = grep {/./} split(/(<.*?>)/, $res{$mode});
   foreach my $l (@lines){
     chomp $l;
