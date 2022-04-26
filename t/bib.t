@@ -56,11 +56,11 @@ Reference 1:  [1] </p>
 
 
 <p>
-Referene 2:  [2] </p>
+Reference 2:  [2] </p>
 
 
 <p>
-aaa  [1] ,  [2] .</p>
+aaa  [1],  [2].</p>
 
 
 

@@ -217,7 +217,8 @@ our $CSS = {
   '.f-p'       => {'color' => $purple, 'border-color' => 'black'},
   '.tategaki'  => {'-ms-writing-mode' => 'tb-rl', 'writing-mode' => 'vertical-rl', '-webkit-text-orientation' => 'mixed',   'text-orientation' => 'mixed'},
   '.tatetate'  => {'-ms-writing-mode' => 'tb-rl', 'writing-mode' => 'vertical-rl', '-webkit-text-orientation' => 'upright', 'text-orientation' => 'upright'},
-  '.yokoyoko'  => {'-ms-writing-mode' => 'tb-rl', 'writing-mode' => 'vertical-rl', '-webkit-text-orientation' => 'sideways', 'text-orientation' => 'sideways'}
+  '.yokoyoko'  => {'-ms-writing-mode' => 'tb-rl', 'writing-mode' => 'vertical-rl', '-webkit-text-orientation' => 'sideways', 'text-orientation' => 'sideways'},
+  '.reflist'   => {'list-style-type: none; margin: 0; padding: 0;'}
 };
 
 __PACKAGE__->stand_alone() if !caller() || caller() eq 'PAR';
@@ -1234,7 +1235,7 @@ sub cittxt_vals{ # subst. "[...]" in reference format to final value
       $y = [scalar @$y];
     }elsif($f=~/^morethan(\d+)/){ # if list size is not more than $1, the list is canceled.
       ($1 > scalar @$y) and return([]);
-    }elsif($f=~/^i[afl]?$/){ # take first letter and capitalize. This should be used before 'fl' or 'fli' filter
+    }elsif($f=~/^i[afl]$/){ # take first letter and capitalize. This should be used before 'fl' or 'fli' filter
       my $y0=$y; #test
       $y = [map {
         my($last, $first) = /([^,]*), *(.*)/;
@@ -1301,12 +1302,15 @@ sub cittxt_vals{ # subst. "[...]" in reference format to final value
       my($o, $c) = ($1 eq '' and $2 eq '') ? qw/( )/ : ($1, $2);
       $y = [ map {$1 . $_ . $2} @$y];
     }elsif($f eq 'b'){
-      $y = [ map {qq{<span style="font-weight:bold">$_</span>}} @$y];
+      $y = [ map {qq{&nbsp;<span style="font-weight:bold">$_</span>}} @$y];
     }elsif($f eq 'i'){
-      $y = [ map {qq{<span style="font-style:italic">$_</span>}} @$y];
+      $y = [ map {qq{&nbsp;<span style="font-style:italic">$_</span>}} @$y];
     }elsif($f=~/^etal(\d*)$/){
     }
   } # foreach @filter
+  if($form=~/jo/){
+    $DB::single=$DB::single=1;
+  }
   return($y->[-1]);
 } 
 
@@ -2023,7 +2027,7 @@ __DATA__
 |cft|Cannot find template {{t}} in {{d}}|テンプレートファイル{{t}}はディレクトリ{{d}}内に見つかりません|
 |cit| [{{n}}] | [{{n}}] |
 |cit_inline| ({{au}}, {{ye}}) | ({{au}}, {{ye}})|
-!cit_form! [au|if|lf|je,2] [ye] [ti] [jo] [vo][is|p()] ! [au|if|lf|je,2] [ye] [ti] [jo] [vo][is|p()] !
+!cit_form! [au|if|lf|je,2] [ye] [ti]. [jo|i] [vo][is|p()] ! [au|if|lf|je,2] [ye] [ti] [jo|i] [vo][is|p()] !
 |cno|Could not open {{f}}|{{f}}を開けません|
 |conv|Conv {{from}} -> {{to}}|変換 {{from}} -> {{to}}|
 |date|%Y-%m-%d|%Y年%m月%d日|
