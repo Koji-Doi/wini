@@ -256,7 +256,7 @@ sub init{
 # Following function is executed when this script is called as stand-alone script
 sub stand_alone{
   init();
-  my(@input, $output, $fhi, $title, $cssfile, $test, $whole, @cssflameworks);
+  my(@input, $output, $fhi, $title, $cssfile, $test, $whole, @cssflameworks, $bibfile);
   GetOptions(
     "h|help"         => sub {help()},
     "v|version"      => sub {print STDERR "Wini.pm $VERSION\n"; exit()},
@@ -273,6 +273,7 @@ sub stand_alone{
     "cssflamework:s" => \@cssflameworks,
     "template=s"     => \$TEMPLATE,
     "templatedir=s"  => \$TEMPLATEDIR,
+    "bib=s"          => \$bibfile,
     "force"          => \$FORCE,
     "quiet"          => \$QUIET
   );
@@ -284,6 +285,9 @@ sub stand_alone{
     my $r = eval{load($lib)};
     mes((defined $r) ? txt('ll', undef, {lib=>$lib}) : txt('llf', undef, {lib=>$lib}));
   }
+
+  # bibliography
+  (defined $bibfile) and read_bib($bibfile);
 
   #test
   if($test){
@@ -356,6 +360,59 @@ sub stand_alone{
 #  print STDERR "dump for refcount: ", Dumper %REFCOUNT;
 #  print STDERR "dump for refassign: ", Dumper %REFASSIGN;
 } # sub stand_alone
+
+sub read_bib{
+  my($bibfile) = @_;
+  my($ref, %au_ye) = ([], ());
+  open(my $fhi, '<:utf8', $bibfile) or mes(txt('fnf').": $bibfile", {err=>1});
+  while(<$fhi>){
+    s/[\n\r]*$//g;
+    /^%/ or next;
+    my($type, $cont) = split(/\s/, $_, 2);
+    if($type eq '%0'){ # new article
+      push(@$ref, {type=>$cont});
+    }elsif($type eq '%A'){
+      push(@{$ref->[-1]{au}}, $cont);
+    }elsif($type eq '%D'){
+      push(@{$ref->[-1]{ye}}, $cont);
+    }elsif($type eq '%8'){
+      push(@{$ref->[-1]{da}}, $cont);
+    }elsif($type eq '%T'){
+      push(@{$ref->[-1]{ti}}, $cont);
+    }elsif($type eq '%B'){
+      push(@{$ref->[-1]{jo}}, $cont);
+    }elsif($type eq '%R'){
+      push(@{$ref->[-1]{doi}}, $cont);
+    }elsif($type eq '%V'){ # volume
+      push(@{$ref->[-1]{vo}}, $cont);
+    }elsif($type eq '%N'){ # issue
+      push(@{$ref->[-1]{is}}, $cont);
+    }elsif($type eq '%P'){ # page
+      my($from, $to) = $cont=~/(\d+)(?:-(\d+))/;
+      push(@{$ref->[-1]{pa_begin}}, $from);
+      push(@{$ref->[-1]{pa_end}}, $to);
+    }elsif($type eq '%U'){ # pubmed ID can be found here
+      push(@{$ref->[-1]{url}}, $cont);
+      my($pmid) = $cont=~m{/pubmed/(\d+)};
+      ($pmid) and push(@{$ref->[-1]{pmid}}, $pmid);
+    }elsif($type eq '%2'){ # PMCID can be found here
+      push(@{$ref->[-1]{pmcid}}, $cont);
+    }elsif($type eq '%@'){
+        push(@{$ref->[-1]{issn}}, $cont);
+    }
+  }
+  foreach my $x (@$ref){
+    my($au) = $x->{au}[0]=~/^(\w+)/;
+    my $au_ye0 = $au . ($ref->[-1]{ye}[0]||'');
+    $au_ye{$au_ye0}++;
+    my $id = $au_ye0 . (('', '', 'a'..'z', 'aa'..'zz')[$au_ye{$au_ye0}]);
+    foreach my $k (grep {$_ ne 'type'} keys %$x){
+      map { push(@{$REF{$id}{$k}}, $_) } @{$x->{$k}};
+    }
+  }
+  print Dumper %REF;
+  exit();
+}
 
 sub txt{ # multilingual text from text id
   my($id, $lang, $par) = @_;
