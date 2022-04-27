@@ -127,6 +127,10 @@ Specify template file written in html.
 
 Specify directory where template files exist.
 
+=item B<--bib> I<[bibliography list file]>
+
+Specify name of file exported from Endnote Basic.
+
 =item B<--quiet>
 
 Suppress additional message output
@@ -403,7 +407,8 @@ sub read_bib{
   }
   foreach my $x (@$ref){
     my($au) = $x->{au}[0]=~/^(\w+)/;
-    my $au_ye0 = $au . ($ref->[-1]{ye}[0]||'');
+    (scalar @{$x->{au}} > 1) and $au .=' et al.';
+    my $au_ye0 = "$au " . ($ref->[-1]{ye}[0]||'');
     $au_ye{$au_ye0}++;
     my $id = $au_ye0 . (('', '', 'a'..'z', 'aa'..'zz')[$au_ye{$au_ye0}]);
     foreach my $k (grep {$_ ne 'type'} keys %$x){
