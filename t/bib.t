@@ -23,6 +23,7 @@ sub std{
 my @indata;
 my $i=0;
 my $mode="";
+$_=<DATA>;
 while(<DATA>){
   /^---start mg/   and ($i++, $mode='mg', next);
   /^---start html/ and ($mode='html', next);
@@ -40,6 +41,7 @@ for(my $i=1; $i<=$#indata; $i++){
 done_testing;
 
 __DATA__
+"
 ---start mg
 
 Reference 1: {{cit|kirk2022|au='James, T. Kirk'|ye=2022|ti='XXX'}}
@@ -72,5 +74,13 @@ aaa  [1],  [2].</p>
  gal2021
 </li>
 </ul>
+
+---start mg
+
+{{rr|Nollet et al. 2022}}.
+
+{{citlist}}
+
+---start html
 
 ---end

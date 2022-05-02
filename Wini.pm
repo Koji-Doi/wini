@@ -415,8 +415,7 @@ sub read_bib{
       map { push(@{$REF{$id}{$k}}, $_) } @{$x->{$k}};
     }
   }
-  print Dumper %REF;
-  exit();
+#  print STDERR Dumper %REF;
 }
 
 sub txt{ # multilingual text from text id
@@ -750,6 +749,7 @@ sub to_html{
     return(deref($tmpltxt));
   }else{ # non-template
     (defined $opt->{whole}) and $htmlout = whole_html($htmlout, $opt->{title}, $opt);
+print STDERR Dumper %REF;
     return(deref($htmlout), \@html);
   }
 } # sub to_html
