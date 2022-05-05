@@ -8,7 +8,7 @@ use Time::Piece;
 use Test::More;
 
 use lib '.';
-use wini;
+use Wini;
 
 binmode STDIN, ':utf8';
 binmode STDERR,':utf8';
