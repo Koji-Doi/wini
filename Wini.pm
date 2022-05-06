@@ -170,6 +170,7 @@ use Time::Piece;
 use Module::Load qw( load );
 #load('YAML::Tiny');
 
+our %LATIN;
 our $ENVNAME;
 #our %EXT;
 our $LANG;
@@ -404,11 +405,13 @@ sub read_bib{
     }elsif($type eq '%@'){
         push(@{$ref->[-1]{issn}}, $cont);
     }
-  }
+  } # <$fhi>
   foreach my $x (@$ref){
     my($au) = $x->{au}[0]=~/^(\w+)/;
     (scalar @{$x->{au}} > 1) and $au .=' et al.';
-    my $au_ye0 = "$au " . ($ref->[-1]{ye}[0]||'');
+    my $au_ye0 = $au;
+    $au_ye0=~tr{}{};
+    $au_ye0 .= ($ref->[-1]{ye}[0]||'');
     $au_ye{$au_ye0}++;
     my $id = $au_ye0 . (('', '', 'a'..'z', 'aa'..'zz')[$au_ye{$au_ye0}]);
     foreach my $k (grep {$_ ne 'type'} keys %$x){
@@ -1173,6 +1176,7 @@ sub call_macro{
 #    return(($class_id) ? qq!<span${class_id}>$f[0]</span>! : $f[0]);
   }
   (defined $MACROS{$macroname})   and return($MACROS{$macroname}(@f));
+  ($macroname=~m{^[a-zA-Z][-^~"%'`:,.</]{1,2}$}) and return(latin($macroname));
   ($macroname=~/^l$/i)            and return('&#x7b;'); # {
   ($macroname=~/^bar$/i )         and return('&#x7c;'); # |
   ($macroname=~/^r$/i)            and return('&#x7d;'); # }
@@ -2092,6 +2096,293 @@ sub array{
   return(undef);
 }
 } # val env
+
+sub testlatin{
+  init();
+  my $x='Boström';
+  my $y=latin2ascii($x);
+  print "from: $x\n";
+  print "  to: $y\n";
+}
+
+sub latin2ascii{
+# ö -> o
+  my($x) = @_;
+  $x=~s/([^-=,.a-zA-Z0-9])/latin($1, {ascii=>1})/ge;
+  return($x);
+}
+
+sub latin{
+# https://www.codetable.net/
+# https://www.benricho.org/symbol/tokusyu_10_accent.html
+  my($x, $o) = @_;
+  # $o: 'ascii': ö -> o; undef: ö -> &#246;
+  if((scalar keys %LATIN)==0){
+=begin c
+'  acute accent
+=  breve accent
+<  caron accent
+,  cedilla accent
+^  circumflex accent
+:  dieresis or umlaut mark
+.  dot accent
+`  grave accent
+-  Hook
+-  Icelandic
+-  macron accent
+,, ogonek accent
+/  slash
+-  stroke accent
+~  tilde
+=end c
+=cut
+
+  my $x0 =<<'EOD';
+À 192 A A`
+Á 193 A A'
+Â 194 A A^
+Ã 195 A A~
+Ä 196 A A:
+Å 197 A A%
+Æ 198 AE AE
+Ç 199 C C,
+È 200 E E`
+É 201 E E'
+Ê 202 E E^
+Ë 203 E E:
+Ì 204 I I`
+Í 205 I I'
+Î 206 I I^
+Ï 207 I I:
+Ð 208 E ETH
+Ñ 209 N N~
+Ò 210 O O`
+Ó 211 O O'
+Ô 212 O O^
+Õ 213 O O~
+Ö 214 O O:
+Ø 216 O O/
+Ù 217 U U`
+Ú 218 U U'
+Û 219 U U^
+Ü 220 U U:
+Ý 221 Y Y`
+Þ 222 p P-
+ß 223 s s-
+à 224 a a`
+á 225 a a'
+â 226 a a^
+ã 227 a a~
+ä 228 a a:
+å 229 a a%
+æ 230 ae ae
+ç 231 c c,
+è 232 e e`
+é 233 e e'
+ê 234 e e^
+ë 235 e e:
+ì 236 i i`
+í 237 i i'
+î 238 i i^
+ï 239 i i:
+ð 240 e eth
+ñ 241 n n~
+ò 242 o o`
+ó 243 o o'
+ô 244 o o^
+õ 245 o o~
+ö 246 o o:
+ø 248 o o/
+ù 249 u u`
+ú 250 u u'
+û 251 u u^
+ü 252 u u:
+ý 253 y y'
+þ 254 p p-
+ÿ 255 y y:
+Ā 256 A A-
+ā 257 a a-
+Ă 258 A A=
+ă 259 a a=
+Ą 260 A A,
+ą 261 a a,
+Ć 262 C C'
+ć 263 c c'
+Ĉ 264 C C^
+ĉ 265 c c^
+Ċ 266 C C.
+ċ 267 c c.
+Č 268 C C<
+č 269 c c<
+Ď 270 D D<
+ď 271 d d<
+Đ 272 D D-
+đ 273 d d-
+Ē 274 E E-
+ē 275 e e-
+Ĕ 276 E E=
+ĕ 277 e e=
+Ė 278 E E.
+ė 279 e e.
+Ę 280 E E,
+ę 281 e e,
+Ě 282 E E<
+ě 283 e e<
+Ĝ 284 G G^
+ĝ 285 g g^
+Ğ 286 G G=
+ğ 287 g g=
+Ġ 288 G G.
+ġ 289 g g.
+Ģ 290 G G,
+ģ 291 g g,
+Ĥ 292 H H^
+ĥ 293 h h^
+Ħ 294 H H-
+ħ 295 h h-
+Ĩ 296 I I~
+ĩ 297 i i~
+Ī 298 I I-
+ī 299 i i-
+Ĭ 300 I I=
+ĭ 301 i i=
+Į 302 I I,,
+į 303 i i,,
+İ 304 I I.
+ı 305 i i.
+Ĳ 306 IJ IJ
+ĳ 307 ij ij
+Ĵ 308 j J^
+ĵ 309 j j^
+Ķ 310 K K,
+ķ 311 k k,
+ĸ 312 k kk
+Ĺ 313 l L'
+ĺ 314 l l'
+Ļ 315 L L,
+ļ 316 l l,
+Ľ 317 L L<
+ľ 318 l l<
+Ŀ 319 L L.
+ŀ 320 l l.
+Ł 321 L L-
+ł 322 l l-
+Ń 323 N N'
+ń 324 n n'
+Ņ 325 N N,
+ņ 326 n n,
+Ň 327 N N<
+ň 328 n n<
+ŉ 329 n 'n
+Ŋ 330 N Eng
+ŋ 331 n eng
+Ō 332 O O-
+ō 333 o o-
+Ŏ 334 O O=
+ŏ 335 o o=
+Ő 336 O O"
+ő 337 o o"
+Œ 338 CE CE
+œ 339 ce ce
+Ŕ 340 R R'
+ŕ 341 r r'
+Ŗ 342 R R,
+ŗ 343 r r,
+Ř 344 R R<
+ř 345 r r<
+Ś 346 S S'
+ś 347 s s'
+Ŝ 348 S S^
+ŝ 349 s s^
+Ş 350 S S,
+ş 351 s s,
+Š 352 S S<
+š 353 s s<
+Ţ 354 T T,
+ţ 355 t t,
+Ť 356 T T<
+ť 357 t t<
+Ŧ 358 T T-
+ŧ 359 t t-
+Ũ 360 U U~
+ũ 361 u u~
+Ū 362 U U-
+ū 363 u u-
+Ŭ 364 U U=
+ŭ 365 u u=
+Ů 366 U U%
+ů 367 u u%
+Ű 368 U U"
+ű 369 u u"
+Ų 370 U U,
+ų 371 u u,
+Ŵ 372 W W^
+ŵ 373 w w^
+Ŷ 374 Y Y^
+ŷ 375 y y^
+Ÿ 376 Y Y:
+Ź 377 Z Z'
+ź 378 z z'
+Ż 379 Z Z.
+ż 380 z z.
+Ž 381 Z Z<
+ž 382 z z<
+ſ 383 S ss
+ƒ 402 f f-
+Ơ 416 O O''
+ơ 417 o o''
+Ư 431 U U''
+ư 432 u u''
+Ǎ 461 A A<
+ǎ 462 a a<
+Ǐ 463 I I<
+ǐ 464 i i<
+Ǒ 465 O O<
+ǒ 466 o o<
+Ǔ 467 U U<
+ǔ 468 u u<
+Ǖ 469 U U:-
+ǖ 470 u u:-
+Ǘ 471 U U:'
+ǘ 472 u u:'
+Ǚ 473 U U:<
+ǚ 474 u u:<
+Ǜ 475 U U:`
+ǜ 476 u u:`
+Ǻ 506 A A%'
+ǻ 507 a a%'
+Ǽ 508 AE AE'
+ǽ 509 ae ae'
+Ǿ 510 O O/'
+ǿ 511 o o/'
+Ά 902 A 'A
+· 903 . gat
+Έ 904 E 'E
+Ή 905 H 'H
+Ί 906 I 'I
+Ό 908 O 'oO
+Ύ 910 Y 'Y
+Ώ 911 O 'OO
+ΐ 912 i i:'
+EOD
+    foreach my $x1 (split(/\n/, $x0)){
+      my(@f) = split(/\s+/, $x1);
+      $LATIN{$f[0]} = {n=>$f[1], ascii=>$f[2], mg=>$f[3]};
+      $LATIN{$f[3]} = $f[1];
+    }
+  }
+
+  if(exists $LATIN{$x}){
+    if(defined $o and $o->{ascii}){
+      return($LATIN{$x}{ascii});
+    }else{
+      print STDERR "$x -> $LATIN{$x}{n};\n";
+      return(sprintf('&#%d;', $LATIN{$x}{n}));
+    }
+  }else{
+    return(undef);
+  }
+}
 
 1;
 
