@@ -415,7 +415,7 @@ sub read_bib{
       map { push(@{$REF{$id}{$k}}, $_) } @{$x->{$k}};
     }
   }
-#  print STDERR Dumper %REF;
+  print STDERR Dumper %REF;
 }
 
 sub txt{ # multilingual text from text id
@@ -912,6 +912,10 @@ sub deref{
           $REFASSIGN{$type}{$ref_cnt{$type}} = $id;
         }
       }
+      if(not defined $type){
+        $DB::single=$DB::single=1;
+      }
+      1;
       txt("ref_${type}", $lang, {n=>$REF{$id}{order}});
     }
   !ge;
@@ -1178,7 +1182,7 @@ sub call_macro{
     return('&#x'.unpack('H*',$macroname).';'); # char -> ascii code
   ($macroname=~/^\@$/)            and return(term(\@f));
   ($macroname=~/^(rr|ref|cit)$/i) and return(cit(\@f, $opt->{_v}));
-  ($macroname=~/^citlist$/i)      and return("${MI}###${MI}t=citlist${MO}");
+  ($macroname=~/^(cit|ref)list$/i)  and return("${MI}###${MI}t=citlist${MO}");
   ($macroname=~/^(date|time|dt)$/i) and return(date([@f, "type=$1"],  $opt->{_v}));
   ($macroname=~/^calc$/i)         and return(ev(\@f, $opt->{_v}));
   ($macroname=~/^va$/i)           and return(
@@ -1408,16 +1412,22 @@ sub cit{
     # is newly defined bibliography
     (defined $REF{$id}) and mes(txt('did', {id=>$id}), {err=>1});
     my $tmptxt = ref_tmp_txt("id=$id", "type=cit", "lang=$lang");
+    foreach my $i (grep {$_ ne 'lang' and $_ ne 'id'} keys %$pars){
+      foreach my $x (@{$pars->{$i}}){
+        (defined $x) and push(@{$REF{$id}{$i}}, $x);
+      }
+    }
     $REF{$id}{inline_id} = txt('cit_inline', $lang, {au=>$pars->{au}[0], ye=>$pars->{ye}[-1]})||''; # printf("%s, %s", $au1, ($pars->{yr}[-1]||''));
     $REF{$id}{text}      = cittxt($pars, txt('cit_form')); # sprintf("%s, %s", $au1, ($pars->{yr}[-1]||''));  }
     $REF{$id}{type}      = 'cit';
     return($tmptxt);
   }else{ # is already defined id (for bib, fig, table ...)
+    (defined $REF{$id}) or mes(txt('udrefid', undef, {id=>$id}), {err=>1});
     my $reftype = $REF{$id}{type} || $pars->{type}[-1];
     #print STDERR "id=$id, lang=$lang id2=".($pars->{id2}[0]||"?")."\nopt: ", Dumper $opt;
     return(ref_tmp_txt("id=$id", "type=$reftype", "lang=$lang", "dup=ok"));
   }
-}
+} # sub cit
 
 sub ref_tmp_txt{
   # make temporal ref template, "${MI}id.*{MO}"
@@ -2134,6 +2144,7 @@ __DATA__
 |timedowtrad|%H:%M:%S|%H時%M分%S秒|
 |ttap|trying to add {{path}} into library directory|{{path}}のライブラリディレクトリへの追加を試みます|
 |ut|undefined text|未定義のテキスト|
+|udrefid|undefined reference ID: {{id}}|未定義の参照ID: {{id}}|
 |uref|undefined label|未定義のラベル|
 |vnd|Variable '{{v}}' not defined|変数{{v}}が定義されていません|
 |Warning|Warning|警告|
