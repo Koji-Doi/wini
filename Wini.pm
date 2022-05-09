@@ -409,13 +409,14 @@ sub read_bib{
         push(@{$ref->[-1]{issn}}, $cont);
     }
   } # <$fhi>
+  ((scalar @$ref) > 0) and push(@{$ref->[-1]{id}}, read_bib_id($ref));
   open(my $fho, '>:utf8', $outbibfile) or die txt('cno', undef, {f=>$outbibfile});
   foreach my $x (@$ref){
     my $id = $x->{id}[0];
     foreach my $k (grep {$_ ne 'type'} keys %$x){
       map { push(@{$REF{$id}{$k}}, $_) } @{$x->{$k}};
     }
-    print {$fho} join("\t", $id, $x->{au}[0], $x->{ye}[0], $x->{ti}[0]), "\n";
+    print {$fho} join("\t", $id, join(' & ', @{$x->{au}}), $x->{ye}[0], $x->{ti}[0]), "\n";
   }
   close $fho;
 }
@@ -1356,7 +1357,7 @@ sub cittxt_vals{ # subst. "[...]" in reference format to final value
     }elsif($f=~/^(\d)+(?:-(\d+))?$/){ # list slice
       my($first,$last) = ($1-1, ($2||scalar @$y)-1);
       $y = [grep {defined $_ and $_ ne ''} @$y[$first..$last]];
-    }elsif($f=~/^j(.*)$/){
+    }elsif($f=~/^j(.*)$/){ #join
       # j, : a, b, c,
       # j; : a; b; c;
       # ja : a, b and c
@@ -1388,6 +1389,8 @@ sub cittxt_vals{ # subst. "[...]" in reference format to final value
     }elsif($f=~/^br(.)?(.)?$/){ # "abc"|br() -> "(abc)"
       my($o, $c) = ($1 eq '' and $2 eq '') ? qw/( )/ : ($1, $2);
       $y = [ map {$1 . $_ . $2} @$y];
+    }elsif($f eq '.'){
+      (defined $y->[-1]) and $y->[-1] .= '.';
     }elsif($f eq 'b'){
       $y = [ map {qq{&nbsp;<span style="font-weight:bold">$_</span>}} @$y];
     }elsif($f eq 'i'){
@@ -2114,17 +2117,9 @@ sub array{
 }
 } # val env
 
-sub testlatin{
-  init();
-  my $x='Boström';
-  my $y=latin2ascii($x);
-  print "from: $x\n";
-  print "  to: $y\n";
-}
-
 sub latin2ascii{
 # ö -> o
-  my($x) = @_;
+  my($x) = @_; # $x should be decoded by utf-8
   $x=~s/([^-=,.a-zA-Z0-9])/latin($1, {ascii=>1})/ge;
   return($x);
 }
@@ -2133,7 +2128,7 @@ sub latin{
 # https://www.codetable.net/
 # https://www.benricho.org/symbol/tokusyu_10_accent.html
   my($x, $o) = @_;
-  # $o: 'ascii': ö -> o; undef: ö -> &#246;
+  # $o->{'ascii'}: ö -> o; undef: ö -> &#246;
   if((scalar keys %LATIN)==0){
 =begin c
 '  acute accent
@@ -2390,8 +2385,9 @@ EOD
   }
 
   if(exists $LATIN{$x}){
-    if(defined $o and $o->{ascii}){
-      return($LATIN{$x}{ascii});
+    if(defined $o){
+      $o->{ascii} and return($LATIN{$x}{ascii});
+      $o->{mg}    and return($LATIN{$x}{mg});
     }else{
       print STDERR "$x -> $LATIN{$x}{n};\n";
       return(sprintf('&#%d;', $LATIN{$x}{n}));
@@ -2409,7 +2405,7 @@ __DATA__
 |cft|Cannot find template {{t}} in {{d}}|テンプレートファイル{{t}}はディレクトリ{{d}}内に見つかりません|
 |cit| [{{n}}] | [{{n}}] |
 |cit_inline| ({{au}}, {{ye}}) | ({{au}}, {{ye}})|
-!cit_form! [au|if|lf|je,2] [ye] [ti]. [jo|i] [vo][is|p()] ! [au|if|lf|je,2] [ye] [ti] [jo|i] [vo][is|p()] !
+!cit_form! [au|if|lf|je,2] ([ye]) [ti|.] [jo|i] [vo][is|p()] ! [au|if|lf|je,2] [ye] [ti|.] [jo|i] [vo][is|p()] !
 |cno|Could not open {{f}}|{{f}}を開けません|
 |conv|Conv {{from}} -> {{to}}|変換 {{from}} -> {{to}}|
 |date|%Y-%m-%d|%Y年%m月%d日|
