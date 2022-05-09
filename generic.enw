@@ -1,0 +1,36 @@
+%0 Journal Article
+%T Enrichr: interactive and collaborative HTML5 gene list enrichment analysis tool
+%A Chen, Edward Y
+%A Tan, Christopher M
+%A Kou, Yan
+%A Duan, Qiaonan
+%A Wang, Zichen
+%A Meirelles, Gabriela Vaz
+%A Clark, Neil R
+%A Ma’ayan, Avi
+%J BMC bioinformatics
+%V 14
+%N 1
+%P 1-14
+%@ 1471-2105
+%D 2013
+%I BioMed Central
+
+%0 Generic
+%T Mojolicious. Real-time web framework
+%A Riedel, Sebastian
+%D 2008
+
+%0 Conference Proceedings
+%T P2P media streaming with HTML5 and WebRTC
+%A Nurminen, Jukka K
+%A Meyn, Antony JR
+%A Jalonen, Eetu
+%A Raivio, Yrjo
+%A Marrero, Raul Garc?a
+%B 2013 IEEE Conference on Computer Communications Workshops (INFOCOM WKSHPS)
+%P 63-64
+%@ 1479900567
+%D 2013
+%I IEEE
+

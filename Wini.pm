@@ -370,11 +370,14 @@ sub read_bib{
   my($bibfile) = @_;
   my($ref, %au_ye) = ([], ());
   open(my $fhi, '<:utf8', $bibfile) or mes(txt('fnf').": $bibfile", {err=>1});
+  my $outbibfile = $bibfile.".ref";
+  #my %au_ye; # author+year, as stem of ref ID
   while(<$fhi>){
     s/[\n\r]*$//g;
     /^%/ or next;
     my($type, $cont) = split(/\s/, $_, 2);
     if($type eq '%0'){ # new article
+      ((scalar @$ref) > 0) and push(@{$ref->[-1]{id}}, read_bib_id($ref));
       push(@$ref, {type=>$cont});
     }elsif($type eq '%A'){
       push(@{$ref->[-1]{au}}, $cont);
@@ -406,19 +409,33 @@ sub read_bib{
         push(@{$ref->[-1]{issn}}, $cont);
     }
   } # <$fhi>
+  open(my $fho, '>:utf8', $outbibfile) or die txt('cno', undef, {f=>$outbibfile});
   foreach my $x (@$ref){
-    my($au) = $x->{au}[0]=~/^(\w+)/;
-    (scalar @{$x->{au}} > 1) and $au .=' et al.';
-    my $au_ye0 = $au;
-    $au_ye0=~tr{}{};
-    $au_ye0 .= ($ref->[-1]{ye}[0]||'');
-    $au_ye{$au_ye0}++;
-    my $id = $au_ye0 . (('', '', 'a'..'z', 'aa'..'zz')[$au_ye{$au_ye0}]);
+    my $id = $x->{id}[0];
     foreach my $k (grep {$_ ne 'type'} keys %$x){
       map { push(@{$REF{$id}{$k}}, $_) } @{$x->{$k}};
     }
+    print {$fho} join("\t", $id, $x->{au}[0], $x->{ye}[0], $x->{ti}[0]), "\n";
   }
-  print STDERR Dumper %REF;
+  close $fho;
+}
+
+{
+my  %au_ye;
+sub read_bib_id{
+  my($ref) = @_;
+  if((scalar @$ref)>0){
+    my $id0 = latin2ascii($ref->[-1]{au}[0]);
+    $id0=~s/[, ].*//;
+    $id0 .= ($ref->[-1]{ye}[0]);
+    $au_ye{$id0}++;
+    my $id = $id0 . (('', '', 'a'..'z', 'aa'..'zz')[$au_ye{$id0}]);
+#    push(@{$ref->[-1]{id}}, $id);
+    print STDERR "id0=$id0: id=$id\n";
+    return($id);
+  }
+  return(undef);
+}
 }
 
 sub txt{ # multilingual text from text id
