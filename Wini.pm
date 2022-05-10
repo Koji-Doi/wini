@@ -368,16 +368,18 @@ sub stand_alone{
 
 sub read_bib{
   my($bibfile) = @_;
-  my($ref, %au_ye) = ([], ());
+  my($ref) = [];
   open(my $fhi, '<:utf8', $bibfile) or mes(txt('fnf').": $bibfile", {err=>1});
   my $outbibfile = $bibfile.".ref";
-  #my %au_ye; # author+year, as stem of ref ID
   while(<$fhi>){
     s/[\n\r]*$//g;
     /^%/ or next;
     my($type, $cont) = split(/\s/, $_, 2);
     if($type eq '%0'){ # new article
-      ((scalar @$ref) > 0) and push(@{$ref->[-1]{id}}, read_bib_id($ref));
+      if((scalar @$ref) > 0){
+        push(@{$ref->[-1]{id}}, read_bib_id($ref));
+      }
+      $cont = 'cit'; # temp 220510
       push(@$ref, {type=>$cont});
     }elsif($type eq '%A'){
       push(@{$ref->[-1]{au}}, $cont);
@@ -406,7 +408,9 @@ sub read_bib{
     }elsif($type eq '%2'){ # PMCID can be found here
       push(@{$ref->[-1]{pmcid}}, $cont);
     }elsif($type eq '%@'){
-        push(@{$ref->[-1]{issn}}, $cont);
+      $cont=~s/\D//g;
+      (length($cont)==8)                       and push(@{$ref->[-1]{issn}}, $cont);
+      (length($cont)==10 or length($cont)==13) and push(@{$ref->[-1]{isbn}}, $cont);
     }
   } # <$fhi>
   ((scalar @$ref) > 0) and push(@{$ref->[-1]{id}}, read_bib_id($ref));
@@ -416,6 +420,7 @@ sub read_bib{
     foreach my $k (grep {$_ ne 'type'} keys %$x){
       map { push(@{$REF{$id}{$k}}, $_) } @{$x->{$k}};
     }
+    $REF{$id}{type} = 'cit'; # 220510 temp (book, proceedings...?)
     print {$fho} join("\t", $id, join(' & ', @{$x->{au}}), $x->{ye}[0], $x->{ti}[0]), "\n";
   }
   close $fho;
@@ -426,7 +431,7 @@ my  %au_ye;
 sub read_bib_id{
   my($ref) = @_;
   if((scalar @$ref)>0){
-    my $id0 = latin2ascii($ref->[-1]{au}[0]);
+    my $id0 = lc latin2ascii($ref->[-1]{au}[0]);
     $id0=~s/[, ].*//;
     $id0 .= ($ref->[-1]{ye}[0]);
     $au_ye{$id0}++;
@@ -770,7 +775,6 @@ sub to_html{
     return(deref($tmpltxt));
   }else{ # non-template
     (defined $opt->{whole}) and $htmlout = whole_html($htmlout, $opt->{title}, $opt);
-print STDERR Dumper %REF;
     return(deref($htmlout), \@html);
   }
 } # sub to_html
@@ -904,7 +908,7 @@ sub deref{
     my($id, $type, $lang) = ($1, $2, $3);
     if($type eq 'citlist'){
       my $o = qq{<ul class="mglist reflist">\n};
-      my @citids = grep {$REF{$_}{type} eq 'cit'} keys %REF;
+      my @citids = grep {($REF{$_}{type} eq 'cit') and ($REF{$_}{order}>0)} keys %REF;
       foreach my $id (sort {$REF{$a}{order} <=> $REF{$b}{order}} @citids){
 #  {au=>['Kirk, James T.', 'Tanaka, Taro', 'Yamada-Suzuki, Hanako', 'McDonald, Ronald'], ti=>'XXX', ye=>2021}
         
@@ -1202,8 +1206,8 @@ sub call_macro{
                                   and return(arrow($macroname, @f));
   ($macroname=~m{^[!-/:-@\[-~]$}) and (not defined $f[0]) and 
     return('&#x'.unpack('H*',$macroname).';'); # char -> ascii code
-  ($macroname=~/^\@$/)            and return(term(\@f));
-  ($macroname=~/^(rr|ref|cit)$/i) and return(cit(\@f, $opt->{_v}));
+  ($macroname=~/^\@$/)            and return(term(\@f)); # abbr
+  ($macroname=~/^(rr|ref|cit)$/i) and return(cit(\@f, $opt->{_v})); # reference
   ($macroname=~/^(cit|ref)list$/i)  and return("${MI}###${MI}t=citlist${MO}");
   ($macroname=~/^(date|time|dt)$/i) and return(date([@f, "type=$1"],  $opt->{_v}));
   ($macroname=~/^calc$/i)         and return(ev(\@f, $opt->{_v}));
@@ -1282,6 +1286,8 @@ Reference 1: {{cit|kirk2022|au='James, T. Kirk'|ye=2022|ti='XXX'}}
 
 Referene 2: {{cit|gal2021a|au='Kadotani, Anzu'|au='Koyama, Yuzuko'|au='Kawashima, Momo'|ye=2021|ti='Practice of Senshado in High School Club Activities'|jo="Reseach by Highschool Students"}}
 
+from ext bib list: Wahlstrom2022={{rr|wahlstrom2022}}
+
 [!example1.png|#figx]
 [!example2.png|#figy]
 
@@ -1292,11 +1298,10 @@ aaa 1:{{ref|kirk2022}}, 2:{{ref|gal2021a}} 2:{{ref|gal2021a}}.
 {{citlist}}
 
 EOD
-  init();
   my($html) = to_html($x);
 print STDERR "\n\n----------------\n";
-print STDERR "*** REF\n", Dumper %REF;
-print STDERR "*** REFASSIGN\n", Dumper %REFASSIGN;
+#print STDERR "*** REF\n", Dumper %REF;
+#print STDERR "*** REFASSIGN\n", Dumper %REFASSIGN;
 print STDERR "----------------\n\n";
   return($html);
 }
@@ -1398,11 +1403,8 @@ sub cittxt_vals{ # subst. "[...]" in reference format to final value
     }elsif($f=~/^etal(\d*)$/){
     }
   } # foreach @filter
-  if($form=~/jo/){
-    $DB::single=$DB::single=1;
-  }
   return($y->[-1]);
-} 
+} # cittxt_val()
 
 sub join_and{ # qw/a b c/ -> "a, b and c"
   my($l, $sep, $and, $lastsep) = @_;
@@ -1446,6 +1448,10 @@ sub cit{
     $REF{$id}{type}      = 'cit';
     return($tmptxt);
   }else{ # is already defined id (for bib, fig, table ...)
+    unless(defined $REF{$id}){
+print STDERR "NOref! [$id]\n";
+      $DB::single=$DB::single=1;
+    }
     (defined $REF{$id}) or mes(txt('udrefid', undef, {id=>$id}), {err=>1});
     my $reftype = $REF{$id}{type} || $pars->{type}[-1];
     #print STDERR "id=$id, lang=$lang id2=".($pars->{id2}[0]||"?")."\nopt: ", Dumper $opt;
