@@ -4,6 +4,8 @@
 use strict;
 use warnings;
 use Test::More;
+use utf8;
+use Data::Dumper;
 
 use lib '.';
 use Wini;
@@ -20,18 +22,35 @@ sub std{
   return($x);
 }
 
+our %REF;
 my @indata;
 my $i=0;
 my $mode="";
+my @reflist;
 $_=<DATA>;
 while(<DATA>){
-  /^---start mg/   and ($i++, $mode='mg', next);
-  /^---start html/ and ($mode='html', next);
-  /^---end/ and last;
-  $indata[$i]{$mode} .= $_;
+  if(/^---start reflist/ .. /---end reflist/){
+    /^---/ or push(@reflist, $_);
+  }else{
+    /^---start mg/   and ($i++, $mode='mg', next);
+    /^---start html/ and ($mode='html', next);
+    /^---end/ and last;
+    $indata[$i]{$mode} .= $_;
+  }
 }
 
 for(my $i=1; $i<=$#indata; $i++){
+  undef %Text::Markup::Wini::REF;
+  if((scalar @reflist)>0){
+    my $tmpreffile = "tempref.$$.enw";
+    open(my $fho, '>:utf8', $tmpreffile) or die "Cannot create tempfile: $tmpreffile";
+    print {$fho} join('', @reflist);
+    close $fho;
+    Text::Markup::Wini::read_bib($tmpreffile);
+    unlink $tmpreffile;
+    print ">>>>$i>>>>", Dumper %Text::Markup::Wini::REF;
+  }
+
   my($o1) = Text::Markup::Wini::to_html($indata[$i]{mg});
 #  $o1              =~s/[\s\n]//g;
 #  $indata[$i]{html}=~s/[\s\n]//g;
@@ -42,6 +61,44 @@ done_testing;
 
 __DATA__
 "
+---start reflist
+%0 Journal Article
+%T Enrichr: interactive and collaborative HTML5 gene list enrichment analysis tool
+%A Chen, Edward Y
+%A Tan, Christopher M
+%A Kou, Yan
+%A Duan, Qiaonan
+%A Wang, Zichen
+%A Meirelles, Gabriela Vaz
+%A Clark, Neil R
+%A Ma’ayan, Avi
+%J BMC bioinformatics
+%V 14
+%N 1
+%P 1-14
+%@ 1471-2105
+%D 2013
+%I BioMed Central
+
+%0 Generic
+%T Mojolicious. Real-time web framework
+%A Riedel, Sebastian
+%D 2008
+
+%0 Conference Proceedings
+%T P2P media streaming with HTML5 and WebRTC
+%A Nurminen, Jukka K
+%A Meyn, Antony JR
+%A Jalonen, Eetu
+%A Raivio, Yrjo
+%A Marrero, Raul Garc?a
+%B 2013 IEEE Conference on Computer Communications Workshops (INFOCOM WKSHPS)
+%P 63-64
+%@ 1479900567
+%D 2013
+%I IEEE
+---end reflist
+
 ---start mg
 
 Reference 1: {{cit|kirk2022|au='James, T. Kirk'|ye=2022|ti='XXX'}}
@@ -77,7 +134,7 @@ aaa  [1],  [2].</p>
 
 ---start mg
 
-{{rr|Nollet et al. 2022}}.
+{{rr|chen2013}}.
 
 {{citlist}}
 

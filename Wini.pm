@@ -377,7 +377,7 @@ sub read_bib{
     my($type, $cont) = split(/\s/, $_, 2);
     if($type eq '%0'){ # new article
       if((scalar @$ref) > 0){
-        push(@{$ref->[-1]{id}}, read_bib_id($ref));
+        push(@{$ref->[-1]{id}}, bib_id($ref->[-1]));
       }
       $cont = 'cit'; # temp 220510
       push(@$ref, {type=>$cont});
@@ -413,7 +413,7 @@ sub read_bib{
       (length($cont)==10 or length($cont)==13) and push(@{$ref->[-1]{isbn}}, $cont);
     }
   } # <$fhi>
-  ((scalar @$ref) > 0) and push(@{$ref->[-1]{id}}, read_bib_id($ref));
+  ((scalar @$ref) > 0) and push(@{$ref->[-1]{id}}, bib_id($ref->[-1]));
   open(my $fho, '>:utf8', $outbibfile) or die txt('cno', undef, {f=>$outbibfile});
   foreach my $x (@$ref){
     my $id = $x->{id}[0];
@@ -428,15 +428,15 @@ sub read_bib{
 
 {
 my  %au_ye;
-sub read_bib_id{
-  my($ref) = @_;
-  if((scalar @$ref)>0){
-    my $id0 = lc latin2ascii($ref->[-1]{au}[0]);
+sub bib_id{
+  my($ref) = @_; # $r: hash reference
+  ((scalar keys %REF)==0) and undef %au_ye;
+  if((scalar keys %$ref)>0){
+    my $id0 = lc latin2ascii($ref->{au}[0]);
     $id0=~s/[, ].*//;
-    $id0 .= ($ref->[-1]{ye}[0]);
+    $id0 .= ($ref->{ye}[0]);
     $au_ye{$id0}++;
     my $id = $id0 . (('', '', 'a'..'z', 'aa'..'zz')[$au_ye{$id0}]);
-#    push(@{$ref->[-1]{id}}, $id);
     print STDERR "id0=$id0: id=$id\n";
     return($id);
   }
@@ -477,7 +477,9 @@ sub mes{ # display guide, warning etc. to STDERR
   if((not exists $o->{q}) and $QUIET==0){
     ($ln) and $ln1 = " at line $ln";
     my $i = 1; my @subs;
-    while ( my($pack, $file, $line, $subname, $hasargs, $wantarray, $evaltext, $is_require) = caller( $i++) ){push(@subs, "$line\[$subname]")}
+    while ( my($pack, $file, $line, $subname, $hasargs, $wantarray, $evaltext, $is_require) = caller( $i++) ){
+      push(@subs, "$line\[$subname]\@$file")
+    }
     $mes = txt('mt', undef, {col=>$col, reset=>"\e[0m", mestype=>txt($mestype), ln=>$ln}) . join(' <- ', @subs);
     print STDERR "${col}$mes\e[0m\n";
     $ind='  ';
@@ -1288,6 +1290,8 @@ Referene 2: {{cit|gal2021a|au='Kadotani, Anzu'|au='Koyama, Yuzuko'|au='Kawashima
 
 from ext bib list: Wahlstrom2022={{rr|wahlstrom2022}}
 
+meaningless bib id: {{rr|arienaiID}}
+
 [!example1.png|#figx]
 [!example2.png|#figy]
 
@@ -1447,14 +1451,10 @@ sub cit{
     $REF{$id}{text}      = cittxt($pars, txt('cit_form')); # sprintf("%s, %s", $au1, ($pars->{yr}[-1]||''));  }
     $REF{$id}{type}      = 'cit';
     return($tmptxt);
-  }else{ # is already defined id (for bib, fig, table ...)
-    unless(defined $REF{$id}){
-print STDERR "NOref! [$id]\n";
-      $DB::single=$DB::single=1;
-    }
-    (defined $REF{$id}) or mes(txt('udrefid', undef, {id=>$id}), {err=>1});
+  }else{ # the ids should already be defined (for bib, fig, table ...)
+    ((scalar keys %{$REF{$id}})==0) and mes(txt('udrefid', undef, {id=>$id}), {err=>1});
+    (defined $REF{$id})             or  mes(txt('udrefid', undef, {id=>$id}), {err=>1});
     my $reftype = $REF{$id}{type} || $pars->{type}[-1];
-    #print STDERR "id=$id, lang=$lang id2=".($pars->{id2}[0]||"?")."\nopt: ", Dumper $opt;
     return(ref_tmp_txt("id=$id", "type=$reftype", "lang=$lang", "dup=ok"));
   }
 } # sub cit
