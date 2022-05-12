@@ -370,6 +370,7 @@ sub read_bib{
   my($bibfile) = @_;
   my($ref) = [];
   open(my $fhi, '<:utf8', $bibfile) or mes(txt('fnf').": $bibfile", {err=>1});
+  bib_id(); # reset ID
   my $outbibfile = $bibfile.".ref";
   while(<$fhi>){
     s/[\n\r]*$//g;
@@ -430,16 +431,17 @@ sub read_bib{
 my  %au_ye;
 sub bib_id{
   my($ref) = @_; # $r: hash reference
-  ((scalar keys %REF)==0) and undef %au_ye;
   if((scalar keys %$ref)>0){
     my $id0 = lc latin2ascii($ref->{au}[0]);
     $id0=~s/[, ].*//;
+    ((scalar @{$ref->{au}})>1) and $id0 .= '_';
     $id0 .= ($ref->{ye}[0]);
     $au_ye{$id0}++;
     my $id = $id0 . (('', '', 'a'..'z', 'aa'..'zz')[$au_ye{$id0}]);
     print STDERR "id0=$id0: id=$id\n";
     return($id);
   }
+  undef %au_ye;
   return(undef);
 }
 }

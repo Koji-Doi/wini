@@ -48,7 +48,9 @@ for(my $i=1; $i<=$#indata; $i++){
     close $fho;
     Text::Markup::Wini::read_bib($tmpreffile);
     unlink $tmpreffile;
-    print ">>>>$i>>>>", Dumper %Text::Markup::Wini::REF;
+    #print STDERR Dumper %Text::Markup::Wini::REF;
+    $DB::single=$DB::single=1;
+1;
   }
 
   my($o1) = Text::Markup::Wini::to_html($indata[$i]{mg});
@@ -62,6 +64,25 @@ done_testing;
 __DATA__
 "
 ---start reflist
+%0 Journal Article
+%T sample 1 title
+%A Kadotani, A
+%J sample 1 journal
+%D 2022
+
+%0 Journal Article
+%T sample 2 title
+%A Kadotani, A
+%J sample 2 journal
+%D 2022
+
+%0 Journal Article
+%T sample 3 title
+%A Kadotani, A
+%A Koyama, Y
+%J sample 3 journal
+%D 2022
+
 %0 Journal Article
 %T Enrichr: interactive and collaborative HTML5 gene list enrichment analysis tool
 %A Chen, Edward Y
