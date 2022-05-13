@@ -380,8 +380,7 @@ sub read_bib{
       if((scalar @$ref) > 0){
         push(@{$ref->[-1]{id}}, bib_id($ref->[-1]));
       }
-      $cont = 'cit'; # temp 220510
-      push(@$ref, {type=>$cont});
+      push(@$ref, {type=>'cit', cittype=>$cont});
     }elsif($type eq '%A'){
       push(@{$ref->[-1]{au}}, $cont);
     }elsif($type eq '%D'){
@@ -414,18 +413,23 @@ sub read_bib{
       (length($cont)==10 or length($cont)==13) and push(@{$ref->[-1]{isbn}}, $cont);
     }
   } # <$fhi>
+  for(my $i=0; $i<=$#$ref; $i++){
+    my($au, $ye) = ($ref->[$i]{au}, $ref->[$i]{ye});
+    my $id = cittxt({au=>$au, ye=>$ye}, 'cit_form');
+  }
   ((scalar @$ref) > 0) and push(@{$ref->[-1]{id}}, bib_id($ref->[-1]));
   open(my $fho, '>:utf8', $outbibfile) or die txt('cno', undef, {f=>$outbibfile});
   foreach my $x (@$ref){
     my $id = $x->{id}[0];
-    foreach my $k (grep {$_ ne 'type'} keys %$x){
+    foreach my $k (grep {$_ ne 'type' and $_ ne 'cittype'} keys %$x){
       map { push(@{$REF{$id}{$k}}, $_) } @{$x->{$k}};
     }
     $REF{$id}{type} = 'cit'; # 220510 temp (book, proceedings...?)
+    $REF{$id}{cittype} = $x->{cittype};
     print {$fho} join("\t", $id, join(' & ', @{$x->{au}}), $x->{ye}[0], $x->{ti}[0]), "\n";
   }
   close $fho;
-}
+} # read_bib
 
 {
 my  %au_ye;
@@ -1290,9 +1294,11 @@ Reference 1: {{cit|kirk2022|au='James, T. Kirk'|ye=2022|ti='XXX'}}
 
 Referene 2: {{cit|gal2021a|au='Kadotani, Anzu'|au='Koyama, Yuzuko'|au='Kawashima, Momo'|ye=2021|ti='Practice of Senshado in High School Club Activities'|jo="Reseach by Highschool Students"}}
 
-from ext bib list: Wahlstrom2022={{rr|wahlstrom2022}}
-
-meaningless bib id: {{rr|arienaiID}}
+from ext bib list:
+* kadotani2022={{rr|kadotani2022}}
+* kadotani2022={{rr|kadotani2022}}
+* kadotani2022={{rr|kadotani2022b}} should be kadotani(2022a)
+* kadotani2022={{rr|kadotani_2022}}
 
 [!example1.png|#figx]
 [!example2.png|#figy]
@@ -1313,11 +1319,11 @@ print STDERR "----------------\n\n";
 }
 
 sub cittxt{ # format text with '[]' -> matured reference text
-  my($x, $f) = @_; # $x: hash ref representing a cit; $f: format
+  my($x, $f0) = @_; # $x: hash ref representing a cit; $f: format
   (defined $x) or $x = {au=>['Kirk, James T.', 'Tanaka, Taro', 'Yamada-Suzuki, Hanako', 'McDonald, Ronald'], ti=>'XXX', ye=>2021}; # test
   #  (defined $f) or $f = "[au|1|lf][au|2-3|lf|l; |j] [au|4-|etal|r;] [ye]. [ti]. {{/|[jo]}} [vo][issue|p()]:[pp].";
   #(defined $f) or $f = '[au|j;&e2] %%%% [au|i]'."\n";
-  (defined $f) or $f = '[au|i]'."\n";
+  my $f = (defined $f0) ? txt($f0) : '[au|i]'."\n";
   $f=~s/\[(.*?)\]/cittxt_vals($x, $1)/ge;
   return($f);
 }
@@ -1450,7 +1456,7 @@ sub cit{
       }
     }
     $REF{$id}{inline_id} = txt('cit_inline', $lang, {au=>$pars->{au}[0], ye=>$pars->{ye}[-1]})||''; # printf("%s, %s", $au1, ($pars->{yr}[-1]||''));
-    $REF{$id}{text}      = cittxt($pars, txt('cit_form')); # sprintf("%s, %s", $au1, ($pars->{yr}[-1]||''));  }
+    $REF{$id}{text}      = cittxt($pars, 'cit_form'); # sprintf("%s, %s", $au1, ($pars->{yr}[-1]||''));  }
     $REF{$id}{type}      = 'cit';
     return($tmptxt);
   }else{ # the ids should already be defined (for bib, fig, table ...)
