@@ -415,7 +415,10 @@ sub read_bib{
   } # <$fhi>
   for(my $i=0; $i<=$#$ref; $i++){
     my($au, $ye) = ($ref->[$i]{au}, $ref->[$i]{ye});
-    my $id = cittxt({au=>$au, ye=>$ye}, 'cit_form');
+#    my $id = cittxt({au=>$au, ye=>$ye}, 'cit_form');
+print STDERR '$$$$$$ ',    $ref->[$i]{id}[0]   = bib_id($ref->[$i]);
+print STDERR "\n";
+    $ref->[$i]{text}[0] = cittxt($ref->[$i], 'cit_form');
   }
   ((scalar @$ref) > 0) and push(@{$ref->[-1]{id}}, bib_id($ref->[-1]));
   open(my $fho, '>:utf8', $outbibfile) or die txt('cno', undef, {f=>$outbibfile});
@@ -435,6 +438,7 @@ sub read_bib{
 my  %au_ye;
 sub bib_id{
   my($ref) = @_; # $r: hash reference
+mes('bib_idxxxx');
   if((scalar keys %$ref)>0){
     my $id0 = lc latin2ascii($ref->{au}[0]);
     $id0=~s/[, ].*//;
