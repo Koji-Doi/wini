@@ -261,7 +261,7 @@ sub init{
 # Following function is executed when this script is called as stand-alone script
 sub stand_alone{
   init();
-  my(@input, $output, $fhi, $title, $cssfile, $test, $whole, @cssflameworks, $bibfile);
+  my(@input, $output, $fhi, $title, $cssfile, $test, $whole, @cssflameworks, $bibfile, $bibonly);
   GetOptions(
     "h|help"         => sub {help()},
     "v|version"      => sub {print STDERR "Wini.pm $VERSION\n"; exit()},
@@ -279,6 +279,7 @@ sub stand_alone{
     "template=s"     => \$TEMPLATE,
     "templatedir=s"  => \$TEMPLATEDIR,
     "bib=s"          => \$bibfile,
+    "bibonly"        => \$bibonly,
     "force"          => \$FORCE,
     "quiet"          => \$QUIET
   );
@@ -292,7 +293,13 @@ sub stand_alone{
   }
 
   # bibliography
-  (defined $bibfile) and read_bib($bibfile);
+  if(defined $bibfile){
+    read_bib($bibfile);
+    if($bibonly){
+      mes(txt('chkbibfile', undef, {f=>"$bibfile.ref"}), {q=>1});
+      exit();
+    }
+  }
 
   #test
   if($test){
@@ -371,15 +378,15 @@ sub read_bib{
   my($ref) = [];
   open(my $fhi, '<:utf8', $bibfile) or mes(txt('fnf').": $bibfile", {err=>1});
   bib_id(); # reset ID
-  my $outbibfile = $bibfile.".ref";
+  my $outbibfile = "$bibfile.ref";
   while(<$fhi>){
     s/[\n\r]*$//g;
     /^%/ or next;
     my($type, $cont) = split(/\s/, $_, 2);
     if($type eq '%0'){ # new article
-      if((scalar @$ref) > 0){
-        push(@{$ref->[-1]{id}}, bib_id($ref->[-1]));
-      }
+#      if((scalar @$ref) > 0){
+#        push(@{$ref->[-1]{id}}, bib_id($ref->[-1], {n=>1}));
+#      }
       push(@$ref, {type=>'cit', cittype=>$cont});
     }elsif($type eq '%A'){
       push(@{$ref->[-1]{au}}, $cont);
@@ -414,17 +421,18 @@ sub read_bib{
     }
   } # <$fhi>
   for(my $i=0; $i<=$#$ref; $i++){
-    my($au, $ye) = ($ref->[$i]{au}, $ref->[$i]{ye});
-#    my $id = cittxt({au=>$au, ye=>$ye}, 'cit_form');
-print STDERR '$$$$$$ ',    $ref->[$i]{id}[0]   = bib_id($ref->[$i]);
-print STDERR "\n";
-    $ref->[$i]{text}[0] = cittxt($ref->[$i], 'cit_form');
+    my($au, $ye)     = ($ref->[$i]{au}, $ref->[$i]{ye});
+    $ref->[$i]{id}   = bib_id($ref->[$i], {n=>1});
+    $ref->[$i]{text} = cittxt($ref->[$i], 'cit_form');
   }
-  ((scalar @$ref) > 0) and push(@{$ref->[-1]{id}}, bib_id($ref->[-1]));
+  #if((scalar @$ref) > 0){
+  #  push(@{$ref->[-1]{id}}, bib_id($ref->[-1], {n=>1}));
+  #}
   open(my $fho, '>:utf8', $outbibfile) or die txt('cno', undef, {f=>$outbibfile});
-  foreach my $x (@$ref){
-    my $id = $x->{id}[0];
-    foreach my $k (grep {$_ ne 'type' and $_ ne 'cittype'} keys %$x){
+  foreach my $x (sort {$a->{id} cmp $b->{id}} @$ref){
+    my $id = $x->{id};
+    foreach my $k (grep {$_ ne 'id' and $_ ne 'type' and $_ ne 'cittype'} keys %$x){
+      (ref $REF{$id}{$k} ne 'HASH') and next;
       map { push(@{$REF{$id}{$k}}, $_) } @{$x->{$k}};
     }
     $REF{$id}{type} = 'cit'; # 220510 temp (book, proceedings...?)
@@ -437,15 +445,18 @@ print STDERR "\n";
 {
 my  %au_ye;
 sub bib_id{
-  my($ref) = @_; # $r: hash reference
-mes('bib_idxxxx');
+  my($ref, $opt)  = @_; # $r: hash reference
+  my($pre, $post) = ($opt->{post} || '', $opt->{post} || '');
   if((scalar keys %$ref)>0){
     my $id0 = lc latin2ascii($ref->{au}[0]);
     $id0=~s/[, ].*//;
     ((scalar @{$ref->{au}})>1) and $id0 .= '_';
     $id0 .= ($ref->{ye}[0]);
     $au_ye{$id0}++;
-    my $id = $id0 . (('', '', 'a'..'z', 'aa'..'zz')[$au_ye{$id0}]);
+    my $id = $pre . $id0 . ((defined $opt->{n})
+      ? '_' . (('000'...'999')[$au_ye{$id0}])
+      : (('', '', 'a'..'z', 'aa'..'zz')[$au_ye{$id0}])
+    ) . $post;
     print STDERR "id0=$id0: id=$id\n";
     return($id);
   }
@@ -923,8 +934,10 @@ sub deref{
       my @citids = grep {($REF{$_}{type} eq 'cit') and ($REF{$_}{order}>0)} keys %REF;
       foreach my $id (sort {$REF{$a}{order} <=> $REF{$b}{order}} @citids){
 #  {au=>['Kirk, James T.', 'Tanaka, Taro', 'Yamada-Suzuki, Hanako', 'McDonald, Ronald'], ti=>'XXX', ye=>2021}
-        
-        $o .= sprintf("<li>%s %s</li>\n",
+        if(ref $REF{$id}{text} ne ''){
+          $DB::single=$DB::single=1;
+        }
+        $o .= sprintf("<li>%s, %s</li>\n",
                   txt('cit', $lang, {n=>$REF{$id}{order}||''}), ($REF{$id}{text}||'')
               );
       }
@@ -935,7 +948,7 @@ sub deref{
         mes(txt('idnd', '', {id=>$id}), {err=>1});
       }
       if(defined $REF{$id}{order}){
-        $type = $REF{$id}{type} || mes(txt('idnd', '', {id=>$id}), {err=>1});
+        $type = $REF{$id}{type} || mes(txt('idnd', '', {id=>$id}), {warn=>1});
       }else{
         if(my($type1, $id1)=$id=~/^(fig|tbl|cit|h|s)(\d+)$/){ # when the reference No. is already determined
           $REF{$id}{order}        = $id1; # id -> count
@@ -949,11 +962,9 @@ sub deref{
           $REFASSIGN{$type}{$ref_cnt{$type}} = $id;
         }
       }
-      if(not defined $type){
-        $DB::single=$DB::single=1;
+      if($type){
+        txt("ref_${type}", $lang, {n=>$REF{$id}{order}});
       }
-      1;
-      txt("ref_${type}", $lang, {n=>$REF{$id}{order}});
     }
   !ge;
   return($r);
@@ -1299,10 +1310,10 @@ Reference 1: {{cit|kirk2022|au='James, T. Kirk'|ye=2022|ti='XXX'}}
 Referene 2: {{cit|gal2021a|au='Kadotani, Anzu'|au='Koyama, Yuzuko'|au='Kawashima, Momo'|ye=2021|ti='Practice of Senshado in High School Club Activities'|jo="Reseach by Highschool Students"}}
 
 from ext bib list:
-* kadotani2022={{rr|kadotani2022}}
-* kadotani2022={{rr|kadotani2022}}
-* kadotani2022={{rr|kadotani2022b}} should be kadotani(2022a)
-* kadotani2022={{rr|kadotani_2022}}
+* kadotani2022={{rr|kadotani2022_001}}
+* kadotani2022={{rr|kadotani2022_001}}
+* kadotani2022={{rr|kadotani2022_002}} should be kadotani(2022a)
+* kadotani2022={{rr|kadotani_2022_001}}
 
 [!example1.png|#figx]
 [!example2.png|#figy]
@@ -1464,8 +1475,8 @@ sub cit{
     $REF{$id}{type}      = 'cit';
     return($tmptxt);
   }else{ # the ids should already be defined (for bib, fig, table ...)
-    ((scalar keys %{$REF{$id}})==0) and mes(txt('udrefid', undef, {id=>$id}), {err=>1});
-    (defined $REF{$id})             or  mes(txt('udrefid', undef, {id=>$id}), {err=>1});
+    ((scalar keys %{$REF{$id}})==0) and mes(txt('udrefid', undef, {id=>$id}), {warn=>1});
+    (defined $REF{$id})             or  mes(txt('udrefid', undef, {id=>$id}), {warn=>1});
     my $reftype = $REF{$id}{type} || $pars->{type}[-1];
     return(ref_tmp_txt("id=$id", "type=$reftype", "lang=$lang", "dup=ok"));
   }
@@ -2421,6 +2432,7 @@ __DATA__
 " <- dummy quotation mark to cancel meddling emacs cperl-mode auto indentation
 |LOCALE|en_US.utf8|ja_JP.utf8|
 |cft|Cannot find template {{t}} in {{d}}|テンプレートファイル{{t}}はディレクトリ{{d}}内に見つかりません|
+|chkbibfile| Check reference ID list ({{f}}) | リファレンスID対応表（{{f}}）を確認してください|
 |cit| [{{n}}] | [{{n}}] |
 |cit_inline| ({{au}}, {{ye}}) | ({{au}}, {{ye}})|
 !cit_form! [au|if|lf|je,2] ([ye]) [ti|.] [jo|i] [vo][is|p()] ! [au|if|lf|je,2] [ye] [ti|.] [jo|i] [vo][is|p()] !
