@@ -421,9 +421,9 @@ sub read_bib{
     }
   } # <$fhi>
   for(my $i=0; $i<=$#$ref; $i++){
-    my($au, $ye)     = ($ref->[$i]{au}, $ref->[$i]{ye});
-    $ref->[$i]{id}   = bib_id($ref->[$i], {n=>1});
-    $ref->[$i]{text} = cittxt($ref->[$i], 'cit_form');
+    my($au, $ye)        = ($ref->[$i]{au}, $ref->[$i]{ye});
+    $ref->[$i]{id}      = bib_id($ref->[$i], {n=>1});
+    $ref->[$i]{text}    = cittxt($ref->[$i], 'cit_form');
   }
   #if((scalar @$ref) > 0){
   #  push(@{$ref->[-1]{id}}, bib_id($ref->[-1], {n=>1}));
@@ -431,12 +431,14 @@ sub read_bib{
   open(my $fho, '>:utf8', $outbibfile) or die txt('cno', undef, {f=>$outbibfile});
   foreach my $x (sort {$a->{id} cmp $b->{id}} @$ref){
     my $id = $x->{id};
-    foreach my $k (grep {$_ ne 'id' and $_ ne 'type' and $_ ne 'cittype'} keys %$x){
-      (ref $REF{$id}{$k} ne 'HASH') and next;
+    foreach my $k (grep {$_ ne 'text' and $_ ne 'id' and $_ ne 'type' and $_ ne 'cittype'} keys %$x){
+print STDERR "obj ref type: $k .", ref $REF{$id}{$k}, ".\n";
+      (ref $x->{$k} ne 'ARRAY') and next;
       map { push(@{$REF{$id}{$k}}, $_) } @{$x->{$k}};
     }
     $REF{$id}{type} = 'cit'; # 220510 temp (book, proceedings...?)
     $REF{$id}{cittype} = $x->{cittype};
+    $REF{$id}{text}    = $x->{text};
     print {$fho} join("\t", $id, join(' & ', @{$x->{au}}), $x->{ye}[0], $x->{ti}[0]), "\n";
   }
   close $fho;
@@ -934,9 +936,10 @@ sub deref{
       my @citids = grep {($REF{$_}{type} eq 'cit') and ($REF{$_}{order}>0)} keys %REF;
       foreach my $id (sort {$REF{$a}{order} <=> $REF{$b}{order}} @citids){
 #  {au=>['Kirk, James T.', 'Tanaka, Taro', 'Yamada-Suzuki, Hanako', 'McDonald, Ronald'], ti=>'XXX', ye=>2021}
-        if(ref $REF{$id}{text} ne ''){
+        unless($REF{$id}{text}){
           $DB::single=$DB::single=1;
         }
+        
         $o .= sprintf("<li>%s, %s</li>\n",
                   txt('cit', $lang, {n=>$REF{$id}{order}||''}), ($REF{$id}{text}||'')
               );
@@ -1389,23 +1392,24 @@ sub cittxt_vals{ # subst. "[...]" in reference format to final value
     }elsif($f=~/^(\d)+(?:-(\d+))?$/){ # list slice
       my($first,$last) = ($1-1, ($2||scalar @$y)-1);
       $y = [grep {defined $_ and $_ ne ''} @$y[$first..$last]];
-    }elsif($f=~/^j(.*)$/){ #join
+    }elsif($f=~/^j([,;])?([a&])?(\d*)(e)?$/){ #join
       # j, : a, b, c,
       # j; : a; b; c;
       # ja : a, b and c
-      # j& : a, b & c
+      # j,&: a, b & c
       # j;&: a; b & c
-      # je2: a et al.
-      # je3: a, b et al.
-      my $f1 = $1;
-      my($is_c, $is_s, $and, $amp, $etal) = map {$f1=~/$_/ or 0} (',', qw/; a & e\d/);
-      my $sep = ($is_c) ? ', ' : ($is_s) ? '; ' : ' ';
-      if($etal){
-        ($etal) = $f=~/e(\d+)/;
-        $y = [join($sep, @$y[0..($etal-1)]) . ' et al.'];
-      }else{
-        $y = [ join($sep, @$y) ];
-      }
+      # je2: a, b et al.
+      # je3: a, b, c et al.
+      my $sep = ($1) ? "$1 " : ', ';
+      my $and = ($2 eq '') ? undef : ($2 eq 'a') ? ' and ' : ' &amp; ';
+      my $n   = ($3 and $3<scalar @$y) ? $3 : scalar @$y;
+      my $etal= $4;
+      my $yy  = ($n) ? [(@$y)[0..($n-1)]] : $y;
+      my $j   = ($and) ? (($#$yy) ? join($sep, @$yy[0..$#$yy-1]) . $and . $yy->[-1]
+                                  : $yy->[0])
+                       : join($sep, @$yy);
+      ($etal) and (scalar @$y > $n) and $j .= ' et al.';
+      $y      = [$j];
     }elsif($f=~/^l(.*)$/){ # "abc"|l* -> "*abc"
       my $p = $1;
       $y = [map {s/^\s*//; "$p$_"} @$y];
@@ -1427,7 +1431,6 @@ sub cittxt_vals{ # subst. "[...]" in reference format to final value
       $y = [ map {qq{&nbsp;<span style="font-weight:bold">$_</span>}} @$y];
     }elsif($f eq 'i'){
       $y = [ map {qq{&nbsp;<span style="font-style:italic">$_</span>}} @$y];
-    }elsif($f=~/^etal(\d*)$/){
     }
   } # foreach @filter
   return($y->[-1]);
