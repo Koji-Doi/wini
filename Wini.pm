@@ -1341,6 +1341,7 @@ sub cittxt{ # format text with '[]' -> matured reference text
   (defined $x) or $x = {au=>['Kirk, James T.', 'Tanaka, Taro', 'Yamada-Suzuki, Hanako', 'McDonald, Ronald'], ti=>'XXX', ye=>2021}; # test
   #  (defined $f) or $f = "[au|1|lf][au|2-3|lf|l; |j] [au|4-|etal|r;] [ye]. [ti]. {{/|[jo]}} [vo][issue|p()]:[pp].";
   #(defined $f) or $f = '[au|j;&e2] %%%% [au|i]'."\n";
+  ($x->{au}) or $x->{au} = [qq!"$x->{ti}"!]; # no author -> use title instead
   my $f = (defined $f0) ? txt($f0) : '[au|i]'."\n";
   $f=~s/\[(.*?)\]/cittxt_vals($x, $1)/ge;
   return($f);
@@ -2438,7 +2439,7 @@ __DATA__
 |chkbibfile| Check reference ID list ({{f}}) | リファレンスID対応表（{{f}}）を確認してください|
 |cit| [{{n}}] | [{{n}}] |
 |cit_inline| ({{au}}, {{ye}}) | ({{au}}, {{ye}})|
-!cit_form! [au|if|lf|je,2] ([ye]) [ti|.] [jo|i] [vo][is|p()] ! [au|if|lf|je,2] [ye] [ti|.] [jo|i] [vo][is|p()] !
+!cit_form! [au|if|lf|j,a2e] ([ye]) [ti|.] [jo|i] [vo][is|p()] ! [au|if|lf|je,2] [ye] [ti|.] [jo|i] [vo][is|p()] !
 |cno|Could not open {{f}}|{{f}}を開けません|
 |conv|Conv {{from}} -> {{to}}|変換 {{from}} -> {{to}}|
 |date|%Y-%m-%d|%Y年%m月%d日|
@@ -2470,7 +2471,7 @@ __DATA__
 |Message|Message|メッセージ|
 |mt|{{col}}{{mestype}}{{reset}} at line {{ln}}. |{{reset}}{{ln}}行目にて{{col}}{{mestype}}{{reset}}：|
 |opf|File {{f}} is opened in utf8|{{f}}をutf-8ファイルとして開きます|
-|ref_cit|[{{n}}]|[{{n}}|
+|ref_cit| ({{n}}) | ({{n}}) |
 |ref_fig|Fig. {{n}}: |図{{n}}：|
 |ref_tbl|Table {{n}}: |表{{n}}：|
 |rout|Output:  STDOUT|出力先: 標準出力|
