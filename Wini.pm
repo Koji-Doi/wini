@@ -303,7 +303,9 @@ sub stand_alone{
 
   #test
   if($test){
-    print STDERR "WWWW>>> ", my $out=bibtest();
+    init();
+    read_bib('pubmed-rna-seq-set.nbib');
+#    print STDERR "WWWW>>> ", my $out=bibtest();
     $DB::single=$DB::single=1;
     1;
     exit;
@@ -375,51 +377,135 @@ sub stand_alone{
 
 sub read_bib{
   my($bibfile) = @_;
-  my($ref) = [];
+  my($ref, $fileformat) = []; # fileformat: endnote(default) or pubmed
   open(my $fhi, '<:utf8', $bibfile) or mes(txt('fnf').": $bibfile", {err=>1});
+  ($fileformat) or $fileformat = ($bibfile=~/.nbib$/) ? 'pubmed' : 'endnote';
   bib_id(); # reset ID
   my $outbibfile = "$bibfile.ref";
-  while(<$fhi>){
-    s/[\n\r]*$//g;
-    /^%/ or next;
-    my($type, $cont) = split(/\s/, $_, 2);
-    if($type eq '%0'){ # new article
-#      if((scalar @$ref) > 0){
-#        push(@{$ref->[-1]{id}}, bib_id($ref->[-1], {n=>1}));
-#      }
-      push(@$ref, {type=>'cit', cittype=>$cont});
-    }elsif($type eq '%A'){
-      push(@{$ref->[-1]{au}}, $cont);
-    }elsif($type eq '%D'){
-      push(@{$ref->[-1]{ye}}, $cont);
-    }elsif($type eq '%8'){
-      push(@{$ref->[-1]{da}}, $cont);
-    }elsif($type eq '%T'){
-      push(@{$ref->[-1]{ti}}, $cont);
-    }elsif($type eq '%B'){
-      push(@{$ref->[-1]{jo}}, $cont);
-    }elsif($type eq '%R'){
-      push(@{$ref->[-1]{doi}}, $cont);
-    }elsif($type eq '%V'){ # volume
-      push(@{$ref->[-1]{vo}}, $cont);
-    }elsif($type eq '%N'){ # issue
-      push(@{$ref->[-1]{is}}, $cont);
-    }elsif($type eq '%P'){ # page
-      my($from, $to) = $cont=~/(\d+)(?:-(\d+))/;
-      push(@{$ref->[-1]{pa_begin}}, $from);
-      push(@{$ref->[-1]{pa_end}}, $to);
-    }elsif($type eq '%U'){ # pubmed ID can be found here
-      push(@{$ref->[-1]{url}}, $cont);
-      my($pmid) = $cont=~m{/pubmed/(\d+)};
-      ($pmid) and push(@{$ref->[-1]{pmid}}, $pmid);
-    }elsif($type eq '%2'){ # PMCID can be found here
-      push(@{$ref->[-1]{pmcid}}, $cont);
-    }elsif($type eq '%@'){
-      $cont=~s/\D//g;
-      (length($cont)==8)                       and push(@{$ref->[-1]{issn}}, $cont);
-      (length($cont)==10 or length($cont)==13) and push(@{$ref->[-1]{isbn}}, $cont);
+  if($fileformat eq 'endnote'){
+
+= begin c
+%A 	Author 	
+%B 	Secondary title 	of a book or conference name
+%C 	Place published 	
+%D 	Year 	
+%E 	Editor/Secondary author 	
+%F 	Label 	
+%G 	Language 	
+%H 	Translated author 	
+%I 	Publisher 	
+%J 	Journal name 	
+%K 	Keywords 	
+%L 	Call number 	
+%M 	Accession number 	
+%N 	Number 	or issue
+%O 	Alternate title 	
+%P 	Pages 	
+%Q 	Translated title 	
+%R 	DOI 	digital object identifier
+%S 	Tertiary title 	
+%T 	Title 	
+%U 	URL 	
+%V 	Volume 	
+%W 	Database provider 	
+%X 	Abstract 	
+%Y 	Tertiary author/Translator 	
+%Z 	Notes 	
+%0 	Reference type 	see right table
+%1 	Custom 1 	
+%2 	Custom 2 	
+%3 	Custom 3 	
+%4 	Custom 4 	
+%6 	Number of volumes 	
+%7 	Edition 	
+%8 	Date 	
+%9 	Type of work 	
+%? 	Subsidiary author 	
+%@ 	ISBN/ISSN 	ISBN or ISSN number
+%! 	Short title 	
+%# 	Custom 5 	
+%$ 	Custom 6 	
+%] 	Custom 7 	
+%& 	Section 	
+%( 	Original publication 	
+%) 	Reprint edition 	
+%* 	Reviewed item 	
+%+ 	Author address 	
+%^ 	Caption 	
+%> 	File attachments 	
+%< 	Research notes 	
+%[ 	Access date 	
+%= 	Custom 8 	
+%~ 	Name of database
+=end c
+=cut
+
+    while(<$fhi>){
+      s/[\n\r]*$//g;
+      /^%/ or next;
+      my($type, $cont) = split(/\s/, $_, 2);
+      if($type eq '%0'){ # new article
+        push(@$ref, {type=>'cit', cittype=>$cont});
+      }elsif($type eq '%A'){
+        push(@{$ref->[-1]{au}}, $cont);
+      }elsif($type eq '%D'){
+        push(@{$ref->[-1]{ye}}, $cont);
+      }elsif($type eq '%8'){
+        push(@{$ref->[-1]{da}}, $cont);
+      }elsif($type eq '%T'){
+        push(@{$ref->[-1]{ti}}, $cont);
+      }elsif($type eq '%B'){
+        push(@{$ref->[-1]{jo}}, $cont);
+      }elsif($type eq '%I'){ # publisher
+        push(@{$ref->[-1]{pu}}, $cont);
+      }elsif($type eq '%R'){
+        push(@{$ref->[-1]{doi}}, $cont);
+      }elsif($type eq '%V'){ # volume
+        push(@{$ref->[-1]{vo}}, $cont);
+      }elsif($type eq '%N'){ # issue
+        push(@{$ref->[-1]{is}}, $cont);
+      }elsif($type eq '%P'){ # page
+        my($from, $to) = $cont=~/(\d+)(?:-(\d+))/;
+        push(@{$ref->[-1]{pa_begin}}, $from);
+        push(@{$ref->[-1]{pa_end}}, $to);
+      }elsif($type eq '%U'){ # pubmed ID can be found here
+        push(@{$ref->[-1]{url}}, $cont);
+        my($pmid) = $cont=~m{/pubmed/(\d+)};
+        ($pmid) and push(@{$ref->[-1]{pmid}}, $pmid);
+      }elsif($type eq '%2'){ # PMCID can be found here
+        push(@{$ref->[-1]{pmcid}}, $cont);
+      }elsif($type eq '%@'){
+        $cont=~s/\D//g;
+        (length($cont)==8)                       and push(@{$ref->[-1]{issn}}, $cont);
+        (length($cont)==10 or length($cont)==13) and push(@{$ref->[-1]{isbn}}, $cont);
+      }
+    } # <$fhi>
+  }else{ # for pubmed file
+    my $itemname;
+    my @itemnames;
+    my %item;
+    while(<$fhi>){
+      s/[\n\r]*$//;
+      /^\s*$/ and last;
+      my($itemname0, $cont) = /(?:([^- ]*?) *- )?(.*)\s*$/;
+      if($itemname0=~/\S/){
+        $itemname = $itemname0;
+        push(@itemnames, $itemname);
+        push(@{$item{$itemname}}, $cont);
+print ">> $.. $itemname\n";
+      }else{
+        $cont=~s/^\s*//;
+        $item{$itemname}[-1] .= $cont;
+      }
+    } # <$fhi>
+    foreach my $itemname (@itemnames){
+      for(my $i=0; $i<=$#{$item{$itemname}}; $i++){
+        print "$itemname $i: $item{$itemname}[$i]\n";
+      }
     }
-  } # <$fhi>
+    exit();
+  }
+  close $fhi;
   for(my $i=0; $i<=$#$ref; $i++){
     my($au, $ye)        = ($ref->[$i]{au}, $ref->[$i]{ye});
     $ref->[$i]{id}      = bib_id($ref->[$i], {n=>1});
@@ -2438,8 +2524,16 @@ __DATA__
 |cft|Cannot find template {{t}} in {{d}}|テンプレートファイル{{t}}はディレクトリ{{d}}内に見つかりません|
 |chkbibfile| Check reference ID list ({{f}}) | リファレンスID対応表（{{f}}）を確認してください|
 |cit| [{{n}}] | [{{n}}] |
-|cit_inline| ({{au}}, {{ye}}) | ({{au}}, {{ye}})|
+## jornal article, in-line citation
+|cit_inline_ar| ({{au}}, {{ye}}) | ({{au}}, {{ye}})|
 !cit_form! [au|if|lf|j,a2e] ([ye]) [ti|.] [jo|i] [vo][is|p()] ! [au|if|lf|je,2] [ye] [ti|.] [jo|i] [vo][is|p()] !
+## journal article, citation in reference list
+!cit_form_ja! [au|if|lf|j,&2e] ([ye]) [ti|.] [jo|i] [vo][is|p()] ! [au|if|lf|je,2] [ye] [ti|.] [jo|i] [vo][is|p()] !
+## book chapter, citation in reference list
+!cit_form_bc! [au|if|lf|j,&2e] ([ye]) [ti|.] In [bo] [p()] [pl] [] ! [au|if|lf|je,2] [ye] [ti|.] [jo|i] [vo][is|p()] !
+## web site, citation in reference list
+!cit_form_ws! [au|if|lf|j,&2e] ([ye]) [ti|.] [jo|i] in [] eds. [] ! [au|if|lf|je,2] [ye] [ti|.] [jo|i] [vo][is|p()] !
+##
 |cno|Could not open {{f}}|{{f}}を開けません|
 |conv|Conv {{from}} -> {{to}}|変換 {{from}} -> {{to}}|
 |date|%Y-%m-%d|%Y年%m月%d日|
