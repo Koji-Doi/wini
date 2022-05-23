@@ -304,8 +304,8 @@ sub stand_alone{
   #test
   if($test){
     init();
-    read_bib('pubmed-rna-seq-set.nbib');
-#    print STDERR "WWWW>>> ", my $out=bibtest();
+    read_bib('generic.enw');
+    print STDERR "WWWW>>> ", my $out=bibtest();
     $DB::single=$DB::single=1;
     1;
     exit;
@@ -384,7 +384,7 @@ sub read_bib{
   my $outbibfile = "$bibfile.ref";
   if($fileformat eq 'endnote'){
 
-= begin c
+=begin c
 %A 	Author 	
 %B 	Secondary title 	of a book or conference name
 %C 	Place published 	
@@ -445,7 +445,11 @@ sub read_bib{
       /^%/ or next;
       my($type, $cont) = split(/\s/, $_, 2);
       if($type eq '%0'){ # new article
-        push(@$ref, {type=>'cit', cittype=>$cont});
+        my $cont1 = ($cont eq 'Conference Proceedings') ? 'pc'
+                  : ($cont eq 'Book section') ? 'bs'
+                  : ($cont eq 'Web page') ? 'wp'
+                  : ($cont eq 'Journal Article') ? 'ja' : '';
+        push(@$ref, {type=>'cit', cittype=>$cont1});
       }elsif($type eq '%A'){
         push(@{$ref->[-1]{au}}, $cont);
       }elsif($type eq '%D'){
@@ -518,7 +522,7 @@ print ">> $.. $itemname\n";
   foreach my $x (sort {$a->{id} cmp $b->{id}} @$ref){
     my $id = $x->{id};
     foreach my $k (grep {$_ ne 'text' and $_ ne 'id' and $_ ne 'type' and $_ ne 'cittype'} keys %$x){
-print STDERR "obj ref type: $k .", ref $REF{$id}{$k}, ".\n";
+printf STDERR "obj ref type: $k, .%s. cittype: %s\n", ref $REF{$id}{$k}, $REF{$id}{cittype};
       (ref $x->{$k} ne 'ARRAY') and next;
       map { push(@{$REF{$id}{$k}}, $_) } @{$x->{$k}};
     }
@@ -536,7 +540,7 @@ sub bib_id{
   my($ref, $opt)  = @_; # $r: hash reference
   my($pre, $post) = ($opt->{post} || '', $opt->{post} || '');
   if((scalar keys %$ref)>0){
-    my $id0 = lc latin2ascii($ref->{au}[0]);
+    my $id0 = ($ref->{au}[0]=~/^["?]/) ? '?' : (lc latin2ascii($ref->{au}[0]));
     $id0=~s/[, ].*//;
     ((scalar @{$ref->{au}})>1) and $id0 .= '_';
     $id0 .= ($ref->{ye}[0]);
@@ -1545,7 +1549,7 @@ sub cit{
 # inline_id: "Suzuki, 2022"
   # text:  "Suzuki, T., et al 2022. Koraeshou no Kenkyu. Journal of Pseudoscience 10:100-110."
   my($pars0, $opt) = @_;
-  my($pars)        = readpars($pars0, qw/id type au ye jo vo is pp title pu lang url doi form/);
+  my($pars)        = readpars($pars0, qw/id type cittype au ye jo vo is pp title pu lang url doi form/);
   my $lang         = $pars->{lang}[-1] || $opt->{lang} || $LANG || 'en';
   my $id           = $pars->{id}[-1];
   my @bibopts = grep {!/^(id\d*|type|lang)$/ and defined $pars->{$_}[0]} keys %$pars;
@@ -1563,6 +1567,7 @@ sub cit{
     $REF{$id}{inline_id} = txt('cit_inline', $lang, {au=>$pars->{au}[0], ye=>$pars->{ye}[-1]})||''; # printf("%s, %s", $au1, ($pars->{yr}[-1]||''));
     $REF{$id}{text}      = cittxt($pars, 'cit_form'); # sprintf("%s, %s", $au1, ($pars->{yr}[-1]||''));  }
     $REF{$id}{type}      = 'cit';
+    $REF{$id}{cittype}   = $pars->{cittype}[-1] || '';
     return($tmptxt);
   }else{ # the ids should already be defined (for bib, fig, table ...)
     ((scalar keys %{$REF{$id}})==0) and mes(txt('udrefid', undef, {id=>$id}), {warn=>1});
