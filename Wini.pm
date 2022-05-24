@@ -261,7 +261,7 @@ sub init{
 # Following function is executed when this script is called as stand-alone script
 sub stand_alone{
   init();
-  my(@input, $output, $fhi, $title, $cssfile, $test, $whole, @cssflameworks, $bibfile, $bibonly);
+  my(@input, $output, $fhi, $title, $cssfile, $test, $whole, @cssflameworks, @bibfiles, $bibonly);
   GetOptions(
     "h|help"         => sub {help()},
     "v|version"      => sub {print STDERR "Wini.pm $VERSION\n"; exit()},
@@ -278,7 +278,7 @@ sub stand_alone{
     "cssflamework:s" => \@cssflameworks,
     "template=s"     => \$TEMPLATE,
     "templatedir=s"  => \$TEMPLATEDIR,
-    "bib=s"          => \$bibfile,
+    "bib=s"          => \@bibfiles,
     "bibonly"        => \$bibonly,
     "force"          => \$FORCE,
     "quiet"          => \$QUIET
@@ -293,10 +293,9 @@ sub stand_alone{
   }
 
   # bibliography
-  if(defined $bibfile){
-    read_bib($bibfile);
+  if(defined $bibfiles[0]){
+    read_bib(@bibfiles);
     if($bibonly){
-      mes(txt('chkbibfile', undef, {f=>"$bibfile.ref"}), {q=>1});
       exit();
     }
   }
@@ -306,6 +305,7 @@ sub stand_alone{
     init();
     read_bib('generic.enw');
     print STDERR "WWWW>>> ", my $out=bibtest();
+    save_bib();
     $DB::single=$DB::single=1;
     1;
     exit;
@@ -376,13 +376,14 @@ sub stand_alone{
 } # sub stand_alone
 
 sub read_bib{
-  my($bibfile) = @_;
-  my($ref, $fileformat) = []; # fileformat: endnote(default) or pubmed
-  open(my $fhi, '<:utf8', $bibfile) or mes(txt('fnf').": $bibfile", {err=>1});
-  ($fileformat) or $fileformat = ($bibfile=~/.nbib$/) ? 'pubmed' : 'endnote';
-  bib_id(); # reset ID
-  my $outbibfile = "$bibfile.ref";
-  if($fileformat eq 'endnote'){
+  my(@bibfiles) = @_;
+  for(my $i=0; $i<=$#bibfiles; $i++){
+    my($ref, $fileformat) = []; # fileformat: endnote(default) or pubmed
+    open(my $fhi, '<:utf8', $bibfiles[$i]) or mes(txt('fnf').": $bibfiles[$i]", {err=>1});
+    ($fileformat) or $fileformat = ($bibfiles[$i]=~/.nbib$/) ? 'pubmed' : 'endnote';
+    bib_id(); # reset ID
+    my $outbibfile = "$bibfiles[$i].ref";
+    if($fileformat eq 'endnote'){
 
 =begin c
 %A 	Author 	
@@ -440,98 +441,98 @@ sub read_bib{
 =end c
 =cut
 
-    while(<$fhi>){
-      s/[\n\r]*$//g;
-      /^%/ or next;
-      my($type, $cont) = split(/\s/, $_, 2);
-      if($type eq '%0'){ # new article
-        my $cont1 = ($cont eq 'Conference Proceedings') ? 'pc'
-                  : ($cont eq 'Book section') ? 'bs'
-                  : ($cont eq 'Web page') ? 'wp'
-                  : ($cont eq 'Journal Article') ? 'ja' : '';
-        push(@$ref, {type=>'cit', cittype=>$cont1});
-      }elsif($type eq '%A'){
-        push(@{$ref->[-1]{au}}, $cont);
-      }elsif($type eq '%D'){
-        push(@{$ref->[-1]{ye}}, $cont);
-      }elsif($type eq '%8'){
-        push(@{$ref->[-1]{da}}, $cont);
-      }elsif($type eq '%T'){
-        push(@{$ref->[-1]{ti}}, $cont);
-      }elsif($type eq '%B'){
-        push(@{$ref->[-1]{jo}}, $cont);
-      }elsif($type eq '%I'){ # publisher
-        push(@{$ref->[-1]{pu}}, $cont);
-      }elsif($type eq '%R'){
-        push(@{$ref->[-1]{doi}}, $cont);
-      }elsif($type eq '%V'){ # volume
-        push(@{$ref->[-1]{vo}}, $cont);
-      }elsif($type eq '%N'){ # issue
-        push(@{$ref->[-1]{is}}, $cont);
-      }elsif($type eq '%P'){ # page
-        my($from, $to) = $cont=~/(\d+)(?:-(\d+))/;
-        push(@{$ref->[-1]{pa_begin}}, $from);
-        push(@{$ref->[-1]{pa_end}}, $to);
-      }elsif($type eq '%U'){ # pubmed ID can be found here
-        push(@{$ref->[-1]{url}}, $cont);
-        my($pmid) = $cont=~m{/pubmed/(\d+)};
-        ($pmid) and push(@{$ref->[-1]{pmid}}, $pmid);
-      }elsif($type eq '%2'){ # PMCID can be found here
-        push(@{$ref->[-1]{pmcid}}, $cont);
-      }elsif($type eq '%@'){
-        $cont=~s/\D//g;
-        (length($cont)==8)                       and push(@{$ref->[-1]{issn}}, $cont);
-        (length($cont)==10 or length($cont)==13) and push(@{$ref->[-1]{isbn}}, $cont);
-      }
-    } # <$fhi>
-  }else{ # for pubmed file
-    my $itemname;
-    my @itemnames;
-    my %item;
-    while(<$fhi>){
-      s/[\n\r]*$//;
-      /^\s*$/ and last;
-      my($itemname0, $cont) = /(?:([^- ]*?) *- )?(.*)\s*$/;
-      if($itemname0=~/\S/){
-        $itemname = $itemname0;
-        push(@itemnames, $itemname);
-        push(@{$item{$itemname}}, $cont);
-print ">> $.. $itemname\n";
-      }else{
-        $cont=~s/^\s*//;
-        $item{$itemname}[-1] .= $cont;
-      }
-    } # <$fhi>
-    foreach my $itemname (@itemnames){
-      for(my $i=0; $i<=$#{$item{$itemname}}; $i++){
-        print "$itemname $i: $item{$itemname}[$i]\n";
-      }
+      my %item = qw/A au C pp D ye 8 da T ti I pu R doi V vo N is U url/;
+      while(<$fhi>){
+        s/[\n\r]*$//g;
+        /^%/ or next;
+        my($type, $cont) = split(/\s/, $_, 2);
+        my $type1 = substr($type, 1);
+        if($type eq '%0'){ # new article
+          my $cont1 = ($cont eq 'Conference Proceedings') ? 'pc'
+                    : ($cont eq 'Book section') ? 'bs'
+                    : ($cont eq 'Web page') ? 'wp'
+                    : ($cont eq 'Journal Article') ? 'ja' : '';
+          push(@$ref, {type=>'cit', cittype=>$cont1});
+        }elsif(exists $item{$type1}){
+          push(@{$ref->[-1]{$item{$type1}}}, $cont);
+
+=begin c
+        }elsif($type eq '%A'){
+          push(@{$ref->[-1]{au}}, $cont);
+        }elsif($type eq '%D'){
+          push(@{$ref->[-1]{ye}}, $cont);
+        }elsif($type eq '%8'){
+          push(@{$ref->[-1]{da}}, $cont);
+        }elsif($type eq '%T'){
+          push(@{$ref->[-1]{ti}}, $cont);
+        }elsif($type eq '%B'){
+          push(@{$ref->[-1]{jo}}, $cont);
+        }elsif($type eq '%I'){ # publisher
+          push(@{$ref->[-1]{pu}}, $cont);
+        }elsif($type eq '%R'){
+          push(@{$ref->[-1]{doi}}, $cont);
+        }elsif($type eq '%V'){ # volume
+          push(@{$ref->[-1]{vo}}, $cont);
+        }elsif($type eq '%N'){ # issue
+          push(@{$ref->[-1]{is}}, $cont);
+=end c
+=cut
+
+        }elsif($type eq '%P'){ # page
+          my($from, $to) = $cont=~/(\d+)(?:-(\d+))/;
+          push(@{$ref->[-1]{pa_begin}}, $from);
+          push(@{$ref->[-1]{pa_end}}, $to);
+        }elsif($type eq '%U'){ # pubmed ID can be found here
+          push(@{$ref->[-1]{url}}, $cont);
+          my($pmid) = $cont=~m{/pubmed/(\d+)};
+          ($pmid) and push(@{$ref->[-1]{pmid}}, $pmid);
+        }elsif($type eq '%2'){ # PMCID can be found here
+          push(@{$ref->[-1]{pmcid}}, $cont);
+        }elsif($type eq '%@'){
+          $cont=~s/\D//g;
+          (length($cont)==8)                       and push(@{$ref->[-1]{issn}}, $cont);
+          (length($cont)==10 or length($cont)==13) and push(@{$ref->[-1]{isbn}}, $cont);
+        }
+      } # <$fhi>
+    }else{ # for pubmed file
+      my $itemname;
+      my @itemnames;
+      my %item;
+      while(<$fhi>){
+        s/[\n\r]*$//;
+        /^\s*$/ and last;
+        my($itemname0, $cont) = /(?:([^- ]*?) *- )?(.*)\s*$/;
+        if($itemname0=~/\S/){
+          $itemname = $itemname0;
+          push(@itemnames, $itemname);
+          push(@{$item{$itemname}}, $cont);
+        }else{
+          $cont=~s/^\s*//;
+          $item{$itemname}[-1] .= $cont;
+        }
+      } # <$fhi>
     }
-    exit();
-  }
-  close $fhi;
-  for(my $i=0; $i<=$#$ref; $i++){
-    my($au, $ye)        = ($ref->[$i]{au}, $ref->[$i]{ye});
-    $ref->[$i]{id}      = bib_id($ref->[$i], {n=>1});
-    $ref->[$i]{text}    = cittxt($ref->[$i], 'cit_form');
-  }
-  #if((scalar @$ref) > 0){
-  #  push(@{$ref->[-1]{id}}, bib_id($ref->[-1], {n=>1}));
-  #}
-  open(my $fho, '>:utf8', $outbibfile) or die txt('cno', undef, {f=>$outbibfile});
-  foreach my $x (sort {$a->{id} cmp $b->{id}} @$ref){
-    my $id = $x->{id};
-    foreach my $k (grep {$_ ne 'text' and $_ ne 'id' and $_ ne 'type' and $_ ne 'cittype'} keys %$x){
-printf STDERR "obj ref type: $k, .%s. cittype: %s\n", ref $REF{$id}{$k}, $REF{$id}{cittype};
-      (ref $x->{$k} ne 'ARRAY') and next;
-      map { push(@{$REF{$id}{$k}}, $_) } @{$x->{$k}};
+    close $fhi;
+    for(my $i=0; $i<=$#$ref; $i++){
+      my($au, $ye)        = ($ref->[$i]{au}, $ref->[$i]{ye});
+      $ref->[$i]{id}      = bib_id($ref->[$i], {n=>1});
+      $ref->[$i]{text}    = cittxt($ref->[$i], 'cit_form');
     }
-    $REF{$id}{type} = 'cit'; # 220510 temp (book, proceedings...?)
-    $REF{$id}{cittype} = $x->{cittype};
-    $REF{$id}{text}    = $x->{text};
-    print {$fho} join("\t", $id, join(' & ', @{$x->{au}}), $x->{ye}[0], $x->{ti}[0]), "\n";
-  }
-  close $fho;
+    open(my $fho, '>:utf8', $outbibfile) or die txt('cno', undef, {f=>$outbibfile});
+    foreach my $x (sort {$a->{id} cmp $b->{id}} @$ref){
+      my $id = $x->{id};
+      foreach my $k (grep {$_ ne 'text' and $_ ne 'id' and $_ ne 'type' and $_ ne 'cittype'} keys %$x){
+        (ref $x->{$k} ne 'ARRAY') and next;
+        map { push(@{$REF{$id}{$k}}, $_) } @{$x->{$k}};
+      }
+      $REF{$id}{source} = $i+1; # reference No. (1,2,3,...) refs from '{{ref|..}}' should be 0.
+      $REF{$id}{type} = 'cit'; # 220510 temp (book, proceedings...?)
+      $REF{$id}{cittype} = $x->{cittype};
+      $REF{$id}{text}    = $x->{text};
+      print {$fho} join("\t", $id, join(' & ', @{$x->{au}}), $x->{ye}[0], $x->{ti}[0]), "\n";
+    }
+    close $fho;
+  } #foreach @bibfiles
 } # read_bib
 
 {
@@ -555,6 +556,15 @@ sub bib_id{
   undef %au_ye;
   return(undef);
 }
+}
+
+sub save_bib{
+# final whole list of references
+  foreach my $type (qw/fig tbl cit/){
+    foreach my $refid (sort grep {$REF{$_}{type} eq $type} keys %REF){
+      print join("\t", $type, $refid, $REF{$refid}{source}, $REF{$refid}{au}[0]||'', $REF{$refid}{ye}[0]), "\n";
+    }
+  }
 }
 
 sub txt{ # multilingual text from text id
@@ -1402,11 +1412,11 @@ Reference 1: {{cit|kirk2022|au='James, T. Kirk'|ye=2022|ti='XXX'}}
 
 Referene 2: {{cit|gal2021a|au='Kadotani, Anzu'|au='Koyama, Yuzuko'|au='Kawashima, Momo'|ye=2021|ti='Practice of Senshado in High School Club Activities'|jo="Reseach by Highschool Students"}}
 
-from ext bib list:
-* kadotani2022={{rr|kadotani2022_001}}
-* kadotani2022={{rr|kadotani2022_001}}
-* kadotani2022={{rr|kadotani2022_002}} should be kadotani(2022a)
-* kadotani2022={{rr|kadotani_2022_001}}
+from ext bib list (generic.enw):
+* kadotani2022={{rr|chen_2013_001}}
+* kadotani2022={{rr|riedel2008_001}}
+* kadotani2022={{rr|riedel2008_001}} should be riedel(2008)
+* kadotani2022={{rr|nurminen_2013_001}}
 
 [!example1.png|#figx]
 [!example2.png|#figy]
@@ -1564,10 +1574,12 @@ sub cit{
         (defined $x) and push(@{$REF{$id}{$i}}, $x);
       }
     }
-    $REF{$id}{inline_id} = txt('cit_inline', $lang, {au=>$pars->{au}[0], ye=>$pars->{ye}[-1]})||''; # printf("%s, %s", $au1, ($pars->{yr}[-1]||''));
+    my $cittype = $REF{$id}{cittype} || 'ja';
+    $REF{$id}{inline_id} = txt("cit_inline_${cittype}", $lang, {au=>$pars->{au}[0], ye=>$pars->{ye}[-1]})||''; # printf("%s, %s", $au1, ($pars->{yr}[-1]||''));
     $REF{$id}{text}      = cittxt($pars, 'cit_form'); # sprintf("%s, %s", $au1, ($pars->{yr}[-1]||''));  }
     $REF{$id}{type}      = 'cit';
     $REF{$id}{cittype}   = $pars->{cittype}[-1] || '';
+    $REF{$id}{source}    = 0;
     return($tmptxt);
   }else{ # the ids should already be defined (for bib, fig, table ...)
     ((scalar keys %{$REF{$id}})==0) and mes(txt('udrefid', undef, {id=>$id}), {warn=>1});
@@ -2530,7 +2542,7 @@ __DATA__
 |chkbibfile| Check reference ID list ({{f}}) | リファレンスID対応表（{{f}}）を確認してください|
 |cit| [{{n}}] | [{{n}}] |
 ## jornal article, in-line citation
-|cit_inline_ar| ({{au}}, {{ye}}) | ({{au}}, {{ye}})|
+|cit_inline_ja| ({{au}}, {{ye}}) | ({{au}}, {{ye}})|
 !cit_form! [au|if|lf|j,a2e] ([ye]) [ti|.] [jo|i] [vo][is|p()] ! [au|if|lf|je,2] [ye] [ti|.] [jo|i] [vo][is|p()] !
 ## journal article, citation in reference list
 !cit_form_ja! [au|if|lf|j,&2e] ([ye]) [ti|.] [jo|i] [vo][is|p()] ! [au|if|lf|je,2] [ye] [ti|.] [jo|i] [vo][is|p()] !
