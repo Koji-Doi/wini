@@ -300,17 +300,6 @@ sub stand_alone{
     }
   }
 
-  #test
-  if($test){
-    init();
-    read_bib('generic.enw');
-    print STDERR "WWWW>>> ", my $out=bibtest();
-    save_bib();
-    $DB::single=$DB::single=1;
-    1;
-    exit;
-  }
-
   (defined $cssflameworks[0]) and ($cssflameworks[0] eq '') and $cssflameworks[0]='https://unpkg.com/mvp.css'; # 'https://newcss.net/new.min.css';
   ($test) and ($INFILE[0], $OUTFILE)=("test.wini", "test.html");
 
@@ -327,6 +316,20 @@ sub stand_alone{
   }
   
   (defined $cssfile) and ($cssfile eq '') and $cssfile="wini.css";
+
+  #test
+  if($test){
+    init();
+    read_bib('generic.enw');
+    print STDERR "WWWW>>> ", my $out=bibtest();
+    my $bibout = $outf->[0] || 'wini.bib';
+    $bibout=~s{\.\w*$}{.bib};
+    print STDERR "bibout=$bibout.\n";
+    save_bib($bibout);
+    $DB::single=$DB::single=1;
+    1;
+    exit;
+  }
 
   # output
   if(scalar @$outf>1){
@@ -441,7 +444,7 @@ sub read_bib{
 =end c
 =cut
 
-      my %item = qw/A au C pp D ye 8 da T ti I pu R doi V vo N is U url/;
+      my %item = qw/A au C pp D ye E ed 8 da T ti I pu J jo R doi V vo N is U url/;
       while(<$fhi>){
         s/[\n\r]*$//g;
         /^%/ or next;
@@ -453,31 +456,8 @@ sub read_bib{
                     : ($cont eq 'Web page') ? 'wp'
                     : ($cont eq 'Journal Article') ? 'ja' : '';
           push(@$ref, {type=>'cit', cittype=>$cont1});
-        }elsif(exists $item{$type1}){
+        }elsif(exists $item{$type1}){ # au, ti, etc.
           push(@{$ref->[-1]{$item{$type1}}}, $cont);
-
-=begin c
-        }elsif($type eq '%A'){
-          push(@{$ref->[-1]{au}}, $cont);
-        }elsif($type eq '%D'){
-          push(@{$ref->[-1]{ye}}, $cont);
-        }elsif($type eq '%8'){
-          push(@{$ref->[-1]{da}}, $cont);
-        }elsif($type eq '%T'){
-          push(@{$ref->[-1]{ti}}, $cont);
-        }elsif($type eq '%B'){
-          push(@{$ref->[-1]{jo}}, $cont);
-        }elsif($type eq '%I'){ # publisher
-          push(@{$ref->[-1]{pu}}, $cont);
-        }elsif($type eq '%R'){
-          push(@{$ref->[-1]{doi}}, $cont);
-        }elsif($type eq '%V'){ # volume
-          push(@{$ref->[-1]{vo}}, $cont);
-        }elsif($type eq '%N'){ # issue
-          push(@{$ref->[-1]{is}}, $cont);
-=end c
-=cut
-
         }elsif($type eq '%P'){ # page
           my($from, $to) = $cont=~/(\d+)(?:-(\d+))/;
           push(@{$ref->[-1]{pa_begin}}, $from);
@@ -560,11 +540,20 @@ sub bib_id{
 
 sub save_bib{
 # final whole list of references
+  my($outfile) = @_;
+  my $fho;
+  if($outfile){
+    open($fho, '>:utf8', $outfile)
+  }else{
+    $fho = *STDOUT;
+  }
+  print {$fho} join("\t", qw/type refid source url inline_id au ye ti/), "\n";
   foreach my $type (qw/fig tbl cit/){
     foreach my $refid (sort grep {$REF{$_}{type} eq $type} keys %REF){
-      print join("\t", $type, $refid, $REF{$refid}{source}, $REF{$refid}{au}[0]||'', $REF{$refid}{ye}[0]), "\n";
+      print {$fho} join("\t", $type, $refid, $REF{$refid}{source}, $REF{$refid}{url}[0]||'', $REF{$refid}{inline_id}||'', $REF{$refid}{au}[0]||'', $REF{$refid}{ye}[0], $REF{$refid}{ti}[0]||''), "\n";
     }
   }
+  ($outfile) and close $fho;
 }
 
 sub txt{ # multilingual text from text id
@@ -1044,7 +1033,6 @@ sub deref{
                   txt('cit', $lang, {n=>$REF{$id}{order}||''}), ($REF{$id}{text}||'')
               );
       }
-      $DB::single=$DB::single=1;
       $o.="</ul>\n";
     }else{
       if(not $type and not $REF{$id}){
@@ -1066,7 +1054,7 @@ sub deref{
         }
       }
       if($type){
-        txt("ref_${type}", $lang, {n=>$REF{$id}{order}});
+        $REF{$id}{inline_id} = txt("ref_${type}", $lang, {n=>$REF{$id}{order}});
       }
     }
   !ge;
@@ -1575,7 +1563,7 @@ sub cit{
       }
     }
     my $cittype = $REF{$id}{cittype} || 'ja';
-    $REF{$id}{inline_id} = txt("cit_inline_${cittype}", $lang, {au=>$pars->{au}[0], ye=>$pars->{ye}[-1]})||''; # printf("%s, %s", $au1, ($pars->{yr}[-1]||''));
+    #$REF{$id}{inline_cit_id} = txt("cit_inline_${cittype}", $lang, {au=>$pars->{au}[0], ye=>$pars->{ye}[-1]})||''; # printf("%s, %s", $au1, ($pars->{yr}[-1]||''));
     $REF{$id}{text}      = cittxt($pars, 'cit_form'); # sprintf("%s, %s", $au1, ($pars->{yr}[-1]||''));  }
     $REF{$id}{type}      = 'cit';
     $REF{$id}{cittype}   = $pars->{cittype}[-1] || '';
@@ -1699,7 +1687,7 @@ sub anchor{
     if(defined $id){
       my $img_id0 = $id; # temp_id;
       $img_id0=~s{^(\d)}{fig$1}; # img_id0: "fig111"
-      (exists $REF{$img_id0} and $text) and mes(txt('did', undef, {id=>$id}), {q=>1,err=>1});
+#      (exists $REF{$img_id0} and $text) and mes(txt('did', undef, {id=>$id}), {q=>1,err=>1});
       my $reftxt = ref_tmp_txt($id, 'fig', $lang);
       $text       = "$reftxt $text";
 #      $REF{$id}   = {type=>'fig', desc => ($text||undef)};
