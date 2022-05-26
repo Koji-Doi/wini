@@ -324,8 +324,13 @@ sub stand_alone{
     print STDERR "WWWW>>> ", my $out=bibtest();
     my $bibout = $outf->[0] || 'wini.bib';
     $bibout=~s{\.\w*$}{.bib};
+    my($date) = call_macro('','date');
+    open(my $fho, '>:utf8', "test$date.html") or die;
+    $date=~s/\D//g;
     print STDERR "bibout=$bibout.\n";
     save_bib($bibout);
+    print {$fho} "$out\n";
+    close $fho;
     $DB::single=$DB::single=1;
     1;
     exit;
@@ -911,6 +916,7 @@ sub markgaab{
   # nocr: whether CRs are conserved in result text. 0(default): conserved, 1: not conserved
   # table: table-mode, where footnote macro is effective. $opt->{table} must be a table ID. Footnote texts are set to @{$opt->{footnote}}
   my($t0, $opt) = @_;
+print ">>>>>>$t0>>>>>\n";
   (defined $t0) and $t0=~s/\r(?=\n)//g; # cr/lf -> lf
   (defined $t0) and $t0=~s/(?!\n)$/\n/s;
   ($t0) or return('');
@@ -1024,20 +1030,15 @@ sub deref{
       my $o = qq{<ul class="mglist reflist">\n};
       my @citids = grep {($REF{$_}{type} eq 'cit') and ($REF{$_}{order}>0)} keys %REF;
       foreach my $id (sort {$REF{$a}{order} <=> $REF{$b}{order}} @citids){
-#  {au=>['Kirk, James T.', 'Tanaka, Taro', 'Yamada-Suzuki, Hanako', 'McDonald, Ronald'], ti=>'XXX', ye=>2021}
-        unless($REF{$id}{text}){
-          $DB::single=$DB::single=1;
-        }
-        
-        $o .= sprintf("<li>%s, %s</li>\n",
-                  txt('cit', $lang, {n=>$REF{$id}{order}||''}), ($REF{$id}{text}||'')
+        $o .= sprintf(qq{<li id="#reflist_${id}"><a href="#%s">%s</a>%s</li>\n},
+                  $id,
+                  txt('cit', $lang, {n=>$REF{$id}{order}||''}),
+                  ($REF{$id}{text}||'')
               );
       }
       $o.="</ul>\n";
     }else{
-      if(not $type and not $REF{$id}){
-        mes(txt('idnd', '', {id=>$id}), {err=>1});
-      }
+      (not $type and not $REF{$id}) and mes(txt('idnd', '', {id=>$id}), {err=>1});
       if(defined $REF{$id}{order}){
         $type = $REF{$id}{type} || mes(txt('idnd', '', {id=>$id}), {warn=>1});
       }else{
@@ -1055,6 +1056,8 @@ sub deref{
       }
       if($type){
         $REF{$id}{inline_id} = txt("ref_${type}", $lang, {n=>$REF{$id}{order}});
+        my $x = qq{<span id="$id">$REF{$id}{inline_id}</span>};
+        ($type eq 'cit') and qq{<a href="#reflist_${id}">$x</a>};
       }
     }
   !ge;
@@ -1398,7 +1401,7 @@ sub bibtest{
   my $x = <<"EOD";
 Reference 1: {{cit|kirk2022|au='James, T. Kirk'|ye=2022|ti='XXX'}}
 
-Referene 2: {{cit|gal2021a|au='Kadotani, Anzu'|au='Koyama, Yuzuko'|au='Kawashima, Momo'|ye=2021|ti='Practice of Senshado in High School Club Activities'|jo="Reseach by Highschool Students"}}
+Reference 2: {{cit|gal2021a|au='Kadotani, Anzu'|au='Koyama, Yuzuko'|au='Kawashima, Momo'|ye=2021|ti='Practice of Senshado in High School Club Activities'|jo="Reseach by Highschool Students"}}
 
 from ext bib list (generic.enw):
 * kadotani2022={{rr|chen_2013_001}}
@@ -1409,7 +1412,7 @@ from ext bib list (generic.enw):
 [!example1.png|#figx]
 [!example2.png|#figy]
 
-Referene 3: {{cit|gal2021b|au='Kadotani, Anzu'|au='Koyama, Yuzuko'|au='Kawashima, Momo'|ye=2021|ti='Practice of Senshado in High School Club Activities 2'}}
+Reference 3: {{cit|gal2021b|au='Kadotani, Anzu'|au='Koyama, Yuzuko'|au='Kawashima, Momo'|ye=2021|ti='Practice of Senshado in High School Club Activities 2'}}
 
 aaa 1:{{ref|kirk2022}}, 2:{{ref|gal2021a}} 2:{{ref|gal2021a}}.
 
@@ -1547,7 +1550,7 @@ sub cit{
 # inline_id: "Suzuki, 2022"
   # text:  "Suzuki, T., et al 2022. Koraeshou no Kenkyu. Journal of Pseudoscience 10:100-110."
   my($pars0, $opt) = @_;
-  my($pars)        = readpars($pars0, qw/id type cittype au ye jo vo is pp title pu lang url doi form/);
+  my($pars)        = readpars($pars0, qw/id type cittype au ye jo vo is pp ti pu lang url doi accessdate form/);
   my $lang         = $pars->{lang}[-1] || $opt->{lang} || $LANG || 'en';
   my $id           = $pars->{id}[-1];
   my @bibopts = grep {!/^(id\d*|type|lang)$/ and defined $pars->{$_}[0]} keys %$pars;
