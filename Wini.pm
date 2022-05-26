@@ -916,7 +916,6 @@ sub markgaab{
   # nocr: whether CRs are conserved in result text. 0(default): conserved, 1: not conserved
   # table: table-mode, where footnote macro is effective. $opt->{table} must be a table ID. Footnote texts are set to @{$opt->{footnote}}
   my($t0, $opt) = @_;
-print ">>>>>>$t0>>>>>\n";
   (defined $t0) and $t0=~s/\r(?=\n)//g; # cr/lf -> lf
   (defined $t0) and $t0=~s/(?!\n)$/\n/s;
   ($t0) or return('');
@@ -1340,6 +1339,7 @@ sub call_macro{
   ($macroname eq 's')             and return(qq!<span${class_id} style="text-decoration: line-through;">$f[0]</span>!);
   ($macroname=~/^ruby$/i)         and return(ruby(@f));
   ($macroname=~/^v$/i)            and return(qq!<span class="tategaki">$f[0]</span>!);
+  ($macroname=~/^vv$/i)           and return(qq!<span class="tatetate">$f[0]</span>!);
 
   ($macroname=~m!([-_/*]+[-_/* ]*)!) and return(symmacro($1, $f[0]));
 
