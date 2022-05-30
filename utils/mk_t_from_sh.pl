@@ -21,7 +21,7 @@ binmode STDERR, ':utf8';
 # save STDERR to hoge.t.stderr
 # save new test script to hoge.t
 
-my $tempdir1 = tempdir('tXXXX') or die 'Failed to create temp dir';
+my $tempdir1 = tempdir('t_XXXX') or die 'Failed to create temp dir';
 chdir $tempdir1;
 my $fho;
 while(<DATA>){
