@@ -386,9 +386,11 @@ sub stand_alone{
 sub read_bib{
   my(@bibfiles) = @_;
   for(my $i=0; $i<=$#bibfiles; $i++){
-    my($ref, $fileformat) = []; # fileformat: endnote(default) or pubmed
+    my($ref, $fileformat) = ([], 'endnote'); # fileformat: endnote(default) or pubmed
     open(my $fhi, '<:utf8', $bibfiles[$i]) or mes(txt('fnf').": $bibfiles[$i]", {err=>1});
-    ($fileformat) or $fileformat = ($bibfiles[$i]=~/.nbib$/) ? 'pubmed' : 'endnote';
+    unless($fileformat){
+      ($bibfiles[$i]=~/.nbib$/) and $fileformat = 'pubmed';
+    }
     bib_id(); # reset ID
     my $outbibfile = "$bibfiles[$i].ref";
     if($fileformat eq 'endnote'){
@@ -450,35 +452,56 @@ sub read_bib{
 =cut
 
       my %item = qw/A au C pp D ye E ed 8 da T ti I pu J jo R doi V vo N is U url/;
+      my %current_rec;
       while(<$fhi>){
         s/[\n\r]*$//g;
-        /^%/ or next;
         my($type, $cont) = split(/\s/, $_, 2);
         my $type1 = substr($type, 1);
+        if(/^[\s\r]*$/){ # new record
+          push(@$ref, {type=>'cit'});
+          foreach my $k (keys %current_rec){
+            if(ref $current_rec{$k} eq 'ARRAY'){
+              @{$ref->[-1]{$k}} = @{$current_rec{$k}};
+            }else{
+              $ref->[-1]{$k} = $current_rec{$k};
+            }
+          }
+          undef %current_rec;
+        }
         if($type eq '%0'){ # new article
           my $cont1 = ($cont eq 'Conference Proceedings') ? 'pc'
                     : ($cont eq 'Book section') ? 'bs'
                     : ($cont eq 'Web page') ? 'wp'
                     : ($cont eq 'Journal Article') ? 'ja' : '';
-          push(@$ref, {type=>'cit', cittype=>$cont1});
+          $current_rec{cittype} = $cont1;
         }elsif(exists $item{$type1}){ # au, ti, etc.
-          push(@{$ref->[-1]{$item{$type1}}}, $cont);
+          push(@{$current_rec{$item{$type1}}}, $cont);
         }elsif($type eq '%P'){ # page
           my($from, $to) = $cont=~/(\d+)(?:-(\d+))/;
-          push(@{$ref->[-1]{pa_begin}}, $from);
-          push(@{$ref->[-1]{pa_end}}, $to);
+          push(@{$current_rec{pa_begin}}, $from);
+          push(@{$current_rec{pa_end}},   $to);
         }elsif($type eq '%U'){ # pubmed ID can be found here
-          push(@{$ref->[-1]{url}}, $cont);
+          push(@{$current_rec{url}}, $cont);
           my($pmid) = $cont=~m{/pubmed/(\d+)};
-          ($pmid) and push(@{$ref->[-1]{pmid}}, $pmid);
+          push(@{$current_rec{pmid}}, $pmid);
         }elsif($type eq '%2'){ # PMCID can be found here
-          push(@{$ref->[-1]{pmcid}}, $cont);
+          push(@{$current_rec{pmcid}}, $cont); # = $cont;
         }elsif($type eq '%@'){
           $cont=~s/\D//g;
-          (length($cont)==8)                       and push(@{$ref->[-1]{issn}}, $cont);
-          (length($cont)==10 or length($cont)==13) and push(@{$ref->[-1]{isbn}}, $cont);
+          (length($cont)==8)                       and push(@{$current_rec{issn}}, $cont);
+          (length($cont)==10 or length($cont)==13) and push(@{$current_rec{isbn}}, $cont);
         }
       } # <$fhi>
+      if(scalar keys %current_rec > 0){
+        push(@$ref, {type=>'cit'});
+        foreach my $k (keys %current_rec){
+          if(ref $current_rec{$k} eq 'ARRAY'){
+            @{$ref->[-1]{$k}} = @{$current_rec{$k}};
+          }else{
+            $ref->[-1]{$k} = $current_rec{$k};
+          }
+        }
+      }
     }else{ # for pubmed file
       my $itemname;
       my @itemnames;
@@ -2516,8 +2539,16 @@ EOD
       $o->{ascii} and return($LATIN{$x}{ascii});
       $o->{mg}    and return($LATIN{$x}{mg});
     }else{
-      print STDERR "$x -> $LATIN{$x}{n};\n";
-      return(sprintf('&#%d;', $LATIN{$x}{n}));
+      if(exists $LATIN{$x}){
+        if(ref $LATIN{$x} eq 'HASH'){
+          print STDERR "$x -> $LATIN{$x}{n};\n";
+          return(sprintf('&#%d;', $LATIN{$x}{n}));
+        }else{
+          return(sprintf('&#%d;', $LATIN{$x}));
+        }
+      }else{
+        return(undef);
+      }
     }
   }else{
     return(undef);
