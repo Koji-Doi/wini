@@ -324,7 +324,7 @@ sub stand_alone{
     print STDERR "WWWW>>> ", my $out=bibtest();
     my $bibout = $outf->[0] || 'wini.bib';
     $bibout=~s{\.\w*$}{.bib};
-    my($date) = call_macro('','date');
+    my($date) = call_macro('date');
     open(my $fho, '>:utf8', "test$date.html") or die;
     $date=~s/\D//g;
     print STDERR "bibout=$bibout.\n";
@@ -982,7 +982,7 @@ sub markgaab{
         $t =~ s!\[([^]]*?)\]!anchor($1, $baseurl, $lang)."\n"!esg or
         $t =~ s!(\{\{([^|]*?)(?:\|([^{}]*?))?}})!
         call_macro(
-          ((defined $1) ? $1 : ''),
+#          ((defined $1) ? $1 : ''),
           ((defined $2) ? $2 : ''),
           $opt,
           $baseurl,
@@ -1299,7 +1299,7 @@ smaller|larger| # relative kw
 }
 
 sub call_macro{
-  my($fulltext, $macroname, $opt, $baseurl, @f) = @_;
+  my($macroname, $opt, $baseurl, @f) = @_;
   # macroname: "macroname" or "add-in package name:macroname". e.g. "{{x|abc}}", "{{mypackage:x|abc}}"
   my(@class, @id);
   $macroname=~s/\.([^.#]+)/push(@id,    $1); ''/ge;
