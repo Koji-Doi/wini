@@ -65,11 +65,13 @@ If you succeed the install, you can use this script as follows:
 
 See section 'Options' to find out detail about advanced usage.
 
-=head2 WINI, a simple but useful markup language
+=head2 Markgaab, a lightweight but powerful markup language
 
-WINI stands for "WIki ni NIta nanika", which means "something like wiki" in Japanese. As suggested from this naming, WINI is designed with reference to wiki mark up.
+Markgaab is a novel lightweight language, developed to construct web contents in HTML Live Standard. The name stands for "Markup Going Above And Beyond".
 
-Strong points of WINI include:
+WINI is a markgaab supporting tool. The name stands for "WIki ni NIta nanika", which means "something like wiki" in Japanese. As suggested from this naming, WINI is designed with reference to wiki mark up.
+
+Strong points of Markgaab/WINI include:
 
 =over 4
 
@@ -97,7 +99,7 @@ Users can specify the output directory rather than the file. If -o value ends wi
 
 =item B<--whole>
 
-Add HTML5 headar and footer to output. The result output will be a complete HTML5 document.
+Add HTML Live Standard headar and footer to output. The result output will be a complete HTML5 document.
 
 =item B<--cssflamework> I<[url]>
 
@@ -129,7 +131,15 @@ Specify directory where template files exist.
 
 =item B<--bib> I<[bibliography list file]>
 
-Specify name of file exported from Endnote Basic.
+Specify name of file in ".enw" or "refer/bibIX" format, which might be exported from Endnote Basic etc.
+
+=item B<--bibonly>
+
+When the -bib option is specified, WINI only writes out the ref file and exits without processing markgaab data.
+
+=item B<--lang> I<[language]>
+
+The specified value is set to $LANG, to determine language. The default is 'en'. Error/Warning messages are printed in the specified language. This setting may also affect how typesetting is done.
 
 =item B<--quiet>
 
@@ -170,7 +180,6 @@ use Time::Piece;
 use Module::Load qw( load );
 #load('YAML::Tiny');
 
-our %LATIN;
 our $ENVNAME;
 #our %EXT;
 our $LANG;
@@ -541,7 +550,7 @@ sub read_bib{
     }
     close $fho;
   } #foreach @bibfiles
-} # read_bib
+} # sub read_bib
 
 {
 my  %au_ye;
@@ -564,7 +573,7 @@ sub bib_id{
   undef %au_ye;
   return(undef);
 }
-}
+} # env bib_id
 
 sub save_bib{
 # final whole list of references
@@ -1271,11 +1280,8 @@ sub term{
 }
 sub abbr{ # return abbr list
   my($t) = @_;
-  #my $o;
   (defined $t) and return($abbr{$t});
-      return([ map {{term=>$_, abbr=>$abbr{$_}}} keys %abbr ]);
-  #}
-#  return(\@o);
+  return([ map {{term=>$_, abbr=>$abbr{$_}}} keys %abbr ]);
 }
 } # term env
 
@@ -1337,7 +1343,9 @@ sub call_macro{
 #    return(($class_id) ? qq!<span${class_id}>$f[0]</span>! : $f[0]);
   }
   (defined $MACROS{$macroname})   and return($MACROS{$macroname}(@f));
-  ($macroname=~m{^[a-zA-Z][-^~"%'`:,.</]{1,2}$}) and return(latin($macroname));
+  (($macroname=~m{^[a-zA-Z][-^~"%'`:,.<=/]{1,2}$})     or
+  ($macroname=~m{^(AE|ETH|IJ|KK|Eng|CE|ss|AE'|gat)$}i) or
+  ($macroname=~m{^'[a-zA-Z]{1,2}$}))                   and return(latin($macroname));
   ($macroname=~/^l$/i)            and return('&#x7b;'); # {
   ($macroname=~/^bar$/i )         and return('&#x7c;'); # |
   ($macroname=~/^r$/i)            and return('&#x7d;'); # }
@@ -2274,12 +2282,9 @@ sub latin2ascii{
   return($x);
 }
 
-sub latin{
-# https://www.codetable.net/
-# https://www.benricho.org/symbol/tokusyu_10_accent.html
-  my($x, $o) = @_;
-  # $o->{'ascii'}: ö -> o; undef: ö -> &#246;
-  if((scalar keys %LATIN)==0){
+{
+my %latin;
+sub latin_init{
 =begin c
 '  acute accent
 =  breve accent
@@ -2527,25 +2532,27 @@ sub latin{
 Ώ 911 O 'OO
 ΐ 912 i i:'
 EOD
-    foreach my $x1 (split(/\n/, $x0)){
-      my(@f) = split(/\s+/, $x1);
-      $LATIN{$f[0]} = {n=>$f[1], ascii=>$f[2], mg=>$f[3]};
-      $LATIN{$f[3]} = $f[1];
-    }
+  foreach my $x1 (split(/\n/, $x0)){
+    my(@f) = split(/\s+/, $x1);
+    $latin{$f[0]} = {n=>$f[1], ascii=>$f[2], mg=>$f[3]};
+    $latin{$f[3]} = $f[1];
   }
+}  # sub latin_init
 
-  if(exists $LATIN{$x}){
+sub latin{
+# https://www.codetable.net/
+# https://www.benricho.org/symbol/tokusyu_10_accent.html
+  my($x, $o) = @_;
+  # $o->{'ascii'}: ö -> o; undef: ö -> &#246;
+  (scalar keys %latin == 0) and latin_init();
+
+  if(exists $latin{$x}){
     if(defined $o){
-      $o->{ascii} and return($LATIN{$x}{ascii});
-      $o->{mg}    and return($LATIN{$x}{mg});
+      $o->{ascii} and return($latin{$x}{ascii});
+      $o->{mg}    and return($latin{$x}{mg});
     }else{
-      if(exists $LATIN{$x}){
-        if(ref $LATIN{$x} eq 'HASH'){
-          print STDERR "$x -> $LATIN{$x}{n};\n";
-          return(sprintf('&#%d;', $LATIN{$x}{n}));
-        }else{
-          return(sprintf('&#%d;', $LATIN{$x}));
-        }
+      if(exists $latin{$x}){
+        return(sprintf('&#%d;', (ref $latin{$x} eq 'HASH') ? $latin{$x}{n} : $latin{$x}));
       }else{
         return(undef);
       }
@@ -2553,8 +2560,8 @@ EOD
   }else{
     return(undef);
   }
-}
-
+} # sub latin
+} # env latin
 1;
 
 __DATA__
