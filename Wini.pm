@@ -1,7 +1,7 @@
 #!/usr/bin/env perl
 =head1 NAME
 
-Text::Markup::Wini.pm - WIki markup ni NIta nanika (Japanese: "Something like wiki markup")
+Text::Markup::Wini.pm - WIki markup ni NIta nanika (Japanese: "Something like wiki") - The supporting tool of Markgaab, a novel lightweight markup language
 
 =head1 SYNOPSIS
 
@@ -42,7 +42,7 @@ Text::Markup::Wini.pm - WIki markup ni NIta nanika (Japanese: "Something like wi
 
 =head1 DESCRIPTION
 
-The script file Wini.pm is a perl module supporting Markgaab markup (formerly WINI markup). Markgaab (Markup Going Above And Beyond) is an advanced lightweight markup language, which allows users to make structured and multilingual documents in semantic HTML5.
+The script file Wini.pm is a perl module supporting Markgaab markup (formerly called WINI markup). Markgaab (Markup Going Above And Beyond) is an advanced lightweight markup language, which allows users to make structured and multilingual documents in semantic HTML5.
 
 Wini.pm can be used not only as perl module file but also as a stand-alone perl script. Users easily can generate HTML5 documents from Markgaab source texts, by using Wini.pm as a filter command. This script can be used as a static site generator as well.
 
