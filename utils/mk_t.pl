@@ -4,9 +4,9 @@ use strict;
 use warnings;
 use utf8;
 use Data::Dumper;
-use lib '/home/kdoi2/l';
-use mylib;
-use arg;
+#use lib '/home/kdoi2/l';
+#use mylib;
+use Getopt::Long;
 
 no warnings;
 *Data::Dumper::qquote = sub { return encode "utf8", shift } ;
@@ -17,16 +17,22 @@ binmode STDIN,  ':utf8';
 binmode STDOUT, ':utf8';
 binmode STDERR, ':utf8';
 
-# % this.pl 'sh script' file1 file2 ...
-my($sh, @files) = @ARGV;
-my $files = join(', ', map {qq!'$_'!} @files);
+# % this.pl -e 'sh script' -i file1 -o file2 ...
+my($sh, @infiles, @outfiles);
+GetOptions(
+  "i=s" => \@infiles,
+  "o=s" => \@outfiles,
+  "e=s" => \$sh
+);
+(defined $outfiles[0]) or die "Specify at least one outfile to be checked";
+my $files = join(', ', map {qq!'$_'!} @outfiles);
 while(<DATA>){
-  s/{{sh}}/$sh/ge;
-  s/{{files}}/$files/ge;
+  s/\{\{sh}}/$sh/ge;
+  s/\{\{files}}/$files/ge;
   print;
 }
 print "__DATA__\n";
-foreach my $file (@files){
+foreach my $file (@infiles, @outfiles){
   open(my $fhi, '<:utf8', $file) or die "$file not found";
   print "---start $file\n";
   print <$fhi>;
