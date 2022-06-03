@@ -460,7 +460,7 @@ sub read_bib{
 =end c
 =cut
 
-      my %item = qw/A au C pp D ye E ed 8 da T ti I pu J jo R doi V vo N is U url/;
+      my %item = qw/A au C pp D ye E ed G lang 8 da T ti H tau I pu J jo R doi V vo N is U url/;
       my %current_rec;
       while(<$fhi>){
         s/[\n\r]*$//g;
@@ -531,7 +531,6 @@ sub read_bib{
     }
     close $fhi;
     for(my $i=0; $i<=$#$ref; $i++){
-      my($au, $ye)        = ($ref->[$i]{au}, $ref->[$i]{ye});
       $ref->[$i]{id}      = bib_id($ref->[$i], {n=>1});
       $ref->[$i]{text}    = cittxt($ref->[$i], 'cit_form');
     }
@@ -542,11 +541,14 @@ sub read_bib{
         (ref $x->{$k} ne 'ARRAY') and next;
         map { push(@{$REF{$id}{$k}}, $_) } @{$x->{$k}};
       }
-      $REF{$id}{source} = $i+1; # reference No. (1,2,3,...) refs from '{{ref|..}}' should be 0.
-      $REF{$id}{type} = 'cit'; # 220510 temp (book, proceedings...?)
+      $REF{$id}{source}  = $i+1; # reference No. (1,2,3,...) refs from '{{ref|..}}' should be 0.
+      $REF{$id}{type}    = 'cit'; # 220510 temp (book, proceedings...?)
       $REF{$id}{cittype} = $x->{cittype};
       $REF{$id}{text}    = $x->{text};
-      print {$fho} join("\t", $id, join(' & ', @{$x->{au}}), $x->{ye}[0], $x->{ti}[0]), "\n";
+      (defined $REF{$id}{lang}) or $REF{$id}{lang}[0] = 'en';
+      my $au  = (defined $x->{au}[0])  ? join(' & ', grep {/\S/} @{$x->{au}})  : '';
+      my $tau = (defined $x->{tau}[0]) ? join(' & ', grep {/\S/} @{$x->{tau}}) : '';
+      print {$fho} join("\t", $id, $au, $tau, $x->{ye}[0]||'', $x->{ti}[0]||''), "\n";
     }
     close $fho;
   } #foreach @bibfiles
@@ -558,16 +560,17 @@ sub bib_id{
   my($ref, $opt)  = @_; # $r: hash reference
   my($pre, $post) = ($opt->{post} || '', $opt->{post} || '');
   if((scalar keys %$ref)>0){
-    my $id0 = ($ref->{au}[0]=~/^["?]/) ? '?' : (lc latin2ascii($ref->{au}[0]));
+    my $id0 = $ref->{tau}[0] || $ref->{au}[0];
+    $id0=~s/^["?].*//;
     $id0=~s/[, ].*//;
+    $id0 = ($id0 eq '') ? '?' : lc latin2ascii($id0);
     ((scalar @{$ref->{au}})>1) and $id0 .= '_';
     $id0 .= ($ref->{ye}[0]);
     $au_ye{$id0}++;
     my $id = $pre . $id0 . ((defined $opt->{n})
-      ? '_' . (('000'...'999')[$au_ye{$id0}])
+      ? sprintf('_%03d', $au_ye{$id0})
       : (('', '', 'a'..'z', 'aa'..'zz')[$au_ye{$id0}])
     ) . $post;
-    print STDERR "id0=$id0: id=$id\n";
     return($id);
   }
   undef %au_ye;
@@ -1052,6 +1055,7 @@ sub markgaab{
 
 {
 my %ref_cnt;
+my %id_cnt_in_text;
 sub deref{
   my($r) = @_;
   my $seq=0;
@@ -1087,7 +1091,10 @@ sub deref{
       }
       if($type){
         $REF{$id}{inline_id} = txt("ref_${type}", $lang, {n=>$REF{$id}{order}});
-        my $x = qq{<span id="$id">$REF{$id}{inline_id}</span>};
+        $id_cnt_in_text{$id}++;
+        my $title = $REF{$id}{text} || $REF{$id}{doi};
+        $title=~s/<.*?>//g;
+        my $x = qq{<span id="${id}_$id_cnt_in_text{$id}" title="$title">$REF{$id}{inline_id}</span>};
         ($type eq 'cit') and qq{<a href="#reflist_${id}">$x</a>};
       }
     }
@@ -1463,8 +1470,9 @@ sub cittxt{ # format text with '[]' -> matured reference text
   (defined $x) or $x = {au=>['Kirk, James T.', 'Tanaka, Taro', 'Yamada-Suzuki, Hanako', 'McDonald, Ronald'], ti=>'XXX', ye=>2021}; # test
   #  (defined $f) or $f = "[au|1|lf][au|2-3|lf|l; |j] [au|4-|etal|r;] [ye]. [ti]. {{/|[jo]}} [vo][issue|p()]:[pp].";
   #(defined $f) or $f = '[au|j;&e2] %%%% [au|i]'."\n";
-  ($x->{au}) or $x->{au} = [qq!"$x->{ti}"!]; # no author -> use title instead
+  (defined $x->{au}[0]) or $x->{au} = [qq!"$x->{ti}[0]"!]; # no author -> use title instead
   my $f = (defined $f0) ? txt($f0) : '[au|i]'."\n";
+print STDERR "*** id=$x->{id}.\n";
   $f=~s/\[(.*?)\]/cittxt_vals($x, $1)/ge;
   return($f);
 }
@@ -1475,6 +1483,7 @@ sub cittxt_vals{ # subst. "[...]" in reference format to final value
   my($valname, @filter) = split(/\|/, $form);
   my $y = (ref $x->{$valname} eq 'ARRAY') ? $x->{$valname} : [$x->{$valname}];
   foreach my $f (@filter){
+print STDERR "id=$x->{id} f=$f, y=$y->[0].\n";
     if($f eq '1'){
       $y = [$y->[0]];
     }elsif($f eq 'n'){
@@ -1485,29 +1494,35 @@ sub cittxt_vals{ # subst. "[...]" in reference format to final value
       my $y0=$y; #test
       $y = [map {
         my($last, $first) = /([^,]*), *(.*)/;
-        if($f ne 'il'){ # Initial for the first name
-          my(@first0) = $first=~/\b([A-Z])/g;
-          map {s/(\w)/$1./} @first0;
-          $first = join(' ', @first0);
-        }
-        if($f ne 'if'){ # Initial for the last name
-          if($last=~/([A-Z])\w*-([A-Z])\w/){ # Yamada-Suzuki -> Y-S.
-            $last = "$1-$2.";
-          }else{
-            my(@l) = $last=~/\b([A-Z])/g;
-            $last  = join(' ', map {($_ eq '') ? '' : "$_."} @l);
+        if(defined $last){
+          if($f ne 'il'){ # Initial for the first name
+            my(@first0) = $first=~/\b([A-Z])/g;
+            map {s/(\w)/$1./} @first0;
+            $first = join(' ', @first0) . '';
           }
+          if($f ne 'if'){ # Initial for the last name
+            if($last=~/([A-Z])\w*-([A-Z])\w/){ # Yamada-Suzuki -> Y-S.
+              $last = "$1-$2.";
+            }else{
+              my(@l) = $last=~/\b([A-Z])/g;
+              $last  = join(' ', map {($_ eq '') ? '' : "$_."} @l);
+            }
+          }
+          join(', ', grep {/\S/} ($last, $first));
+        }else{
+          ''
         }
-        "$last, $first";
       } @$y ];
+print STDERR "after filter=$f, y=", decode('utf-8', Dumper $y);
     }elsif($f eq 'lf' or $f eq 'lfi'){ # Last, First
-      $y = [map {
-       my($last, $first) = /([^,]*), *(.*)/;
+      ($y->[0]=~/^"/) or $y = [map {
+       my($last, $first) = /([^,]*)(?:, *(.*))?/;
+print STDERR "$_ >>>l=$last,f=$first.\n";
        ($f eq 'lfi') and ($last, $first) = ((uc substr($last,0,1)), (uc substr($first,0,1)));
-       "${last}, ${first}"
+       join(', ', grep {/\S/} ($last, $first));
       } @$y];
     }elsif($f eq 'fl' or $f eq 'fli'){ # First Last
-      $y = [map {my($last, $first) = /([^,]*), +(.*)/; "${first} ${last}"} @$y ];
+      ($y->[0]=~/^"/) or $y = [map {my($last, $first) = /([^,]*), +(.*)/; "${first} ${last}"} @$y ];
     }elsif($f eq 'uu'){
       $y = [map {uc $_} @$y];
     }elsif($f eq 'u'){
@@ -1518,11 +1533,11 @@ sub cittxt_vals{ # subst. "[...]" in reference format to final value
     }elsif($f=~/^j([,;])?([a&])?(\d*)(e)?$/){ #join
       # j, : a, b, c,
       # j; : a; b; c;
-      # ja : a, b and c
+      # j,a: a, b and c
       # j,&: a, b & c
       # j;&: a; b & c
-      # je2: a, b et al.
-      # je3: a, b, c et al.
+      # j2e: a, b et al.
+      # j3e: a, b, c et al.
       my $sep = ($1) ? "$1 " : ', ';
       my $and = ($2 eq '') ? undef : ($2 eq 'a') ? ' and ' : ' &amp; ';
       my $n   = ($3 and $3<scalar @$y) ? $3 : scalar @$y;
@@ -1607,7 +1622,8 @@ sub cit{
     ((scalar keys %{$REF{$id}})==0) and mes(txt('udrefid', undef, {id=>$id}), {warn=>1});
     (defined $REF{$id})             or  mes(txt('udrefid', undef, {id=>$id}), {warn=>1});
     my $reftype = $REF{$id}{type} || $pars->{type}[-1];
-    return(ref_tmp_txt("id=$id", "type=$reftype", "lang=$lang", "dup=ok"));
+    my $lang1 = $REF{$id}{lang}[0] || $lang;
+    return(ref_tmp_txt("id=$id", "type=$reftype", "lang=$lang1", "dup=ok"));
   }
 } # sub cit
 
