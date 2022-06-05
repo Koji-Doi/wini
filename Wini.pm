@@ -548,7 +548,7 @@ sub read_bib{
       (defined $REF{$id}{lang}) or $REF{$id}{lang}[0] = 'en';
       my $au  = (defined $x->{au}[0])  ? join(' & ', grep {/\S/} @{$x->{au}})  : '';
       my $tau = (defined $x->{tau}[0]) ? join(' & ', grep {/\S/} @{$x->{tau}}) : '';
-      print {$fho} join("\t", $id, $au, $tau, $x->{ye}[0]||'', $x->{ti}[0]||''), "\n";
+      print {$fho} join("\t", $id, $x->{lang}[0], $au, $tau, $x->{ye}[0]||'', $x->{ti}[0]||''), "\n";
     }
     close $fho;
   } #foreach @bibfiles
@@ -602,7 +602,7 @@ sub txt{ # multilingual text from text id
   #id: 'fin', lang:'ja'
   #$par: hash reference for paragraph
   $lang = $lang || $LANG || 'en';
-  (defined $TXT{$id}) or mes(txt('ut'). ": '$id'", {warn=>1});
+  (defined $TXT{$id}) or mes(txt('ut', $lang). ": '$id'", {warn=>1});
   my $t = $TXT{$id}{$lang} || $TXT{$id}{en} || '';
   $t=~s/\{\{(.*?)}}/
   (defined $par->{$1})        ? $par->{$1} : 'xxx'; 
@@ -1065,10 +1065,12 @@ sub deref{
       my $o = qq{<ul class="mglist reflist">\n};
       my @citids = grep {($REF{$_}{type} eq 'cit') and ($REF{$_}{order}>0)} keys %REF;
       foreach my $id (sort {$REF{$a}{order} <=> $REF{$b}{order}} @citids){
+        $lang = $REF{$id}{lang}[0] || $lang || 'en';
+        print STDERR "RRRRRR id=$id,lang=$lang.XXXXXX\n";
         $o .= sprintf(qq{<li id="#reflist_${id}"><a href="#%s">%s</a>%s</li>\n},
                   $id,
                   txt('cit', $lang, {n=>$REF{$id}{order}||''}),
-                  ($REF{$id}{text}||'')
+                  ($REF{$id}{text}||'') # todo220605- このtextはどこで生成されているか。そこでのlangの扱いは？？？
               );
       }
       $o.="</ul>\n";
@@ -1466,13 +1468,12 @@ print STDERR "----------------\n\n";
 }
 
 sub cittxt{ # format text with '[]' -> matured reference text
-  my($x, $f0) = @_; # $x: hash ref representing a cit; $f: format
+  my($x, $f0, $lang) = @_; # $x: hash ref representing a cit; $f: format
   (defined $x) or $x = {au=>['Kirk, James T.', 'Tanaka, Taro', 'Yamada-Suzuki, Hanako', 'McDonald, Ronald'], ti=>'XXX', ye=>2021}; # test
   #  (defined $f) or $f = "[au|1|lf][au|2-3|lf|l; |j] [au|4-|etal|r;] [ye]. [ti]. {{/|[jo]}} [vo][issue|p()]:[pp].";
   #(defined $f) or $f = '[au|j;&e2] %%%% [au|i]'."\n";
   (defined $x->{au}[0]) or $x->{au} = [qq!"$x->{ti}[0]"!]; # no author -> use title instead
-  my $f = (defined $f0) ? txt($f0) : '[au|i]'."\n";
-print STDERR "*** id=$x->{id}.\n";
+  my $f = (defined $f0) ? txt($f0, $lang) : "[au|i]\n";
   $f=~s/\[(.*?)\]/cittxt_vals($x, $1)/ge;
   return($f);
 }
@@ -2585,16 +2586,16 @@ __DATA__
 |LOCALE|en_US.utf8|ja_JP.utf8|
 |cft|Cannot find template {{t}} in {{d}}|テンプレートファイル{{t}}はディレクトリ{{d}}内に見つかりません|
 |chkbibfile| Check reference ID list ({{f}}) | リファレンスID対応表（{{f}}）を確認してください|
-|cit| [{{n}}] | [{{n}}] |
+|cit| [{{n}}] | jjj [{{n}}] |
 ## jornal article, in-line citation
-|cit_inline_ja| ({{au}}, {{ye}}) | ({{au}}, {{ye}})|
-!cit_form! [au|if|lf|j,a2e] ([ye]) [ti|.] [jo|i] [vo][is|p()] ! [au|if|lf|je,2] [ye] [ti|.] [jo|i] [vo][is|p()] !
+|cit_inline_ja| ({{au}}, {{ye}}) | jjj ({{au}}, {{ye}})|
+!cit_form! [au|if|lf|j,a2e] ([ye]) [ti|.] [jo|i] [vo][is|p()] ! jjj [au|if|lf|je,2] [ye] [ti|.] [jo|i] [vo][is|p()] !
 ## journal article, citation in reference list
-!cit_form_ja! [au|if|lf|j,&2e] ([ye]) [ti|.] [jo|i] [vo][is|p()] ! [au|if|lf|je,2] [ye] [ti|.] [jo|i] [vo][is|p()] !
+!cit_form_ja! [au|if|lf|j,&2e] ([ye]) [ti|.] [jo|i] [vo][is|p()] ! jjj [au|if|lf|je,2] [ye] [ti|.] [jo|i] [vo][is|p()] !
 ## book chapter, citation in reference list
-!cit_form_bc! [au|if|lf|j,&2e] ([ye]) [ti|.] In [bo] [p()] [pl] [] ! [au|if|lf|je,2] [ye] [ti|.] [jo|i] [vo][is|p()] !
+!cit_form_bc! [au|if|lf|j,&2e] ([ye]) [ti|.] In [bo] [p()] [pl] [] ! jjj [au|if|lf|je,2] [ye] [ti|.] [jo|i] [vo][is|p()] !
 ## web site, citation in reference list
-!cit_form_ws! [au|if|lf|j,&2e] ([ye]) [ti|.] [jo|i] in [] eds. [] ! [au|if|lf|je,2] [ye] [ti|.] [jo|i] [vo][is|p()] !
+!cit_form_ws! [au|if|lf|j,&2e] ([ye]) [ti|.] [jo|i] in [] eds. [] ! jjj [au|if|lf|je,2] [ye] [ti|.] [jo|i] [vo][is|p()] !
 ##
 |cno|Could not open {{f}}|{{f}}を開けません|
 |conv|Conv {{from}} -> {{to}}|変換 {{from}} -> {{to}}|
