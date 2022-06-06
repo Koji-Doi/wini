@@ -458,6 +458,7 @@ sub read_bib{
 %= 	Custom 8 	
 %~ 	Name of database
 =end c
+
 =cut
 
       my %item = qw/A au C pp D ye E ed G lang 8 da T ti H tau I pu J jo R doi V vo N is U url/;
@@ -1472,6 +1473,7 @@ sub cittxt{ # format text with '[]' -> matured reference text
   (defined $x) or $x = {au=>['Kirk, James T.', 'Tanaka, Taro', 'Yamada-Suzuki, Hanako', 'McDonald, Ronald'], ti=>'XXX', ye=>2021}; # test
   #  (defined $f) or $f = "[au|1|lf][au|2-3|lf|l; |j] [au|4-|etal|r;] [ye]. [ti]. {{/|[jo]}} [vo][issue|p()]:[pp].";
   #(defined $f) or $f = '[au|j;&e2] %%%% [au|i]'."\n";
+  ($lang) or $lang = $x->{lang}[0] || 'en';
   (defined $x->{au}[0]) or $x->{au} = [qq!"$x->{ti}[0]"!]; # no author -> use title instead
   my $f = (defined $f0) ? txt($f0, $lang) : "[au|i]\n";
   $f=~s/\[(.*?)\]/cittxt_vals($x, $1)/ge;
@@ -1491,6 +1493,10 @@ print STDERR "id=$x->{id} f=$f, y=$y->[0].\n";
       $y = [scalar @$y];
     }elsif($f=~/^morethan(\d+)/){ # if list size is not more than $1, the list is canceled.
       ($1 > scalar @$y) and return([]);
+    }elsif($f eq 'l'){
+      $y = [map {
+        s/([^,]*),.*/$1/;
+      } @$y ];
     }elsif($f=~/^i[afl]$/){ # take first letter and capitalize. This should be used before 'fl' or 'fli' filter
       my $y0=$y; #test
       $y = [map {
@@ -2319,6 +2325,7 @@ sub latin_init{
 -  stroke accent
 ~  tilde
 =end c
+
 =cut
 
   my $x0 =<<'EOD';
@@ -2586,10 +2593,10 @@ __DATA__
 |LOCALE|en_US.utf8|ja_JP.utf8|
 |cft|Cannot find template {{t}} in {{d}}|テンプレートファイル{{t}}はディレクトリ{{d}}内に見つかりません|
 |chkbibfile| Check reference ID list ({{f}}) | リファレンスID対応表（{{f}}）を確認してください|
-|cit| [{{n}}] | jjj [{{n}}] |
+|cit| [{{n}}] | [{{n}}] |
 ## jornal article, in-line citation
-|cit_inline_ja| ({{au}}, {{ye}}) | jjj ({{au}}, {{ye}})|
-!cit_form! [au|if|lf|j,a2e] ([ye]) [ti|.] [jo|i] [vo][is|p()] ! jjj [au|if|lf|je,2] [ye] [ti|.] [jo|i] [vo][is|p()] !
+|cit_inline_ja| ({{au}}, {{ye}}) | ({{au}}, {{ye}})|
+!cit_form! [au|if|lf|j,a2e] ([ye]) [ti|.] [jo|i] [vo][is|p()] ! [au|if|lf|je,2] [ye] [ti|.] [jo|i] [vo][is|p()] !
 ## journal article, citation in reference list
 !cit_form_ja! [au|if|lf|j,&2e] ([ye]) [ti|.] [jo|i] [vo][is|p()] ! jjj [au|if|lf|je,2] [ye] [ti|.] [jo|i] [vo][is|p()] !
 ## book chapter, citation in reference list
