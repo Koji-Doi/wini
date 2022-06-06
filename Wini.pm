@@ -1486,7 +1486,6 @@ sub cittxt_vals{ # subst. "[...]" in reference format to final value
   my($valname, @filter) = split(/\|/, $form);
   my $y = (ref $x->{$valname} eq 'ARRAY') ? $x->{$valname} : [$x->{$valname}];
   foreach my $f (@filter){
-print STDERR "id=$x->{id} f=$f, y=$y->[0].\n";
     if($f eq '1'){
       $y = [$y->[0]];
     }elsif($f eq 'n'){
@@ -1496,6 +1495,7 @@ print STDERR "id=$x->{id} f=$f, y=$y->[0].\n";
     }elsif($f eq 'l'){
       $y = [map {
         s/([^,]*),.*/$1/;
+        $_;
       } @$y ];
     }elsif($f=~/^i[afl]$/){ # take first letter and capitalize. This should be used before 'fl' or 'fli' filter
       my $y0=$y; #test
@@ -1504,8 +1504,10 @@ print STDERR "id=$x->{id} f=$f, y=$y->[0].\n";
         if(defined $last){
           if($f ne 'il'){ # Initial for the first name
             my(@first0) = $first=~/\b([A-Z])/g;
-            map {s/(\w)/$1./} @first0;
-            $first = join(' ', @first0) . '';
+            if($first0[0]){
+              map {s/(\w)/$1./} @first0;
+              $first = join(' ', @first0) . '';
+            }
           }
           if($f ne 'if'){ # Initial for the last name
             if($last=~/([A-Z])\w*-([A-Z])\w/){ # Yamada-Suzuki -> Y-S.
@@ -1520,11 +1522,9 @@ print STDERR "id=$x->{id} f=$f, y=$y->[0].\n";
           ''
         }
       } @$y ];
-print STDERR "after filter=$f, y=", decode('utf-8', Dumper $y);
     }elsif($f eq 'lf' or $f eq 'lfi'){ # Last, First
       ($y->[0]=~/^"/) or $y = [map {
        my($last, $first) = /([^,]*)(?:, *(.*))?/;
-print STDERR "$_ >>>l=$last,f=$first.\n";
        ($f eq 'lfi') and ($last, $first) = ((uc substr($last,0,1)), (uc substr($first,0,1)));
        join(', ', grep {/\S/} ($last, $first));
       } @$y];
@@ -1577,6 +1577,7 @@ print STDERR "$_ >>>l=$last,f=$first.\n";
     }elsif($f eq 'i'){
       $y = [ map {qq{&nbsp;<span style="font-style:italic">$_</span>}} @$y];
     }
+  #($valname eq 'au') and print STDERR __LINE__, qq! f="$f" !, decode('utf-8', Dumper $y);
   } # foreach @filter
   return($y->[-1]);
 } # cittxt_val()
@@ -2596,7 +2597,7 @@ __DATA__
 |cit| [{{n}}] | [{{n}}] |
 ## jornal article, in-line citation
 |cit_inline_ja| ({{au}}, {{ye}}) | ({{au}}, {{ye}})|
-!cit_form! [au|if|lf|j,a2e] ([ye]) [ti|.] [jo|i] [vo][is|p()] ! [au|if|lf|je,2] [ye] [ti|.] [jo|i] [vo][is|p()] !
+!cit_form! [au|if|lf|j,a2e] ([ye]) [ti|.] [jo|i] [vo][is|p()] ! [au|l|j,a2e] [ye] [ti|.] [jo|i] [vo][is|p()] !
 ## journal article, citation in reference list
 !cit_form_ja! [au|if|lf|j,&2e] ([ye]) [ti|.] [jo|i] [vo][is|p()] ! jjj [au|if|lf|je,2] [ye] [ti|.] [jo|i] [vo][is|p()] !
 ## book chapter, citation in reference list
