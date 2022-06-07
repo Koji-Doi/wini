@@ -40,7 +40,7 @@ Text::Markup::Wini.pm - WIki markup ni NIta nanika (Japanese: "Something like wi
  print {$fho} $htmltext;
  close $fho;
 
-=head1 DESCRIPTION
+=head1 USAGE
 
 The script file Wini.pm is a perl module supporting Markgaab markup (formerly called WINI markup). Markgaab (Markup Going Above And Beyond) is an advanced lightweight markup language, which allows users to make structured and multilingual documents in semantic HTML5.
 
@@ -67,23 +67,11 @@ See section 'Options' to find out detail about advanced usage.
 
 =head2 Markgaab, a lightweight but powerful markup language
 
-Markgaab is a novel lightweight language, developed to construct web contents in HTML Live Standard. The name stands for "Markup Going Above And Beyond".
+Markgaab is a novel lightweight language, developed to construct web contents in HTML Live Standard. The name stands for "Markup Going Above And Beyond". WINI is a markgaab supporting tool.
 
-WINI is a markgaab supporting tool. The name stands for "WIki ni NIta nanika", which means "something like wiki" in Japanese. As suggested from this naming, WINI is designed with reference to wiki mark up.
+Try "perl Wini.pm -h mg", and you can read a brief document about Markgaab.
 
-Strong points of Markgaab/WINI include:
-
-=over 4
-
-=item * B<Easiness to learn:>     WINI grammar is similar to that of wiki markup. The grammer is very simple. Not only persons with experience of wiki typesetting, but everyone can find out usage easily.
-
-=item * B<HTML5 compartibility:>  WINI is designed with a strong emphasis on affinity with HTML5 and easiness of complex HTML table construction.  WINI is a useful system to produce modern and valid HTML5 texts quickly.
-
-=back
-
-Today many people try to build and maintain blogs, wikipedia-like sites, etc. They produce or update a huge number of such pages daily within a time limit. For SEO, outputs should follow the valid html5 grammer. Complex data should be presented in complex HTML tables. Average writers must have a hard time to fulfill such requirements. WINI will resque all those people!
-
-=head1 Options
+=head1 OPTIONS
 
 =over 4
 
@@ -159,6 +147,133 @@ Show this help.
 
 =back
 
+=head1 MARKGAAB
+
+Here is brief description and examples of mg for quick start.
+
+=head2 Basics
+
+Write plain texts as they appear. Howerever, paragraphes must be separated by blank lines.
+
+---
+
+ This is the first sentence of the first paragraph. This is the second sentence of the first paragraph.
+ This is the third sentence of the first paragraph. Single line breaks are ignored.
+
+ This is the first sentence of the second paragraph, since it is prefaced by a blank line.
+
+---
+
+=head2 Text decoration
+
+superscripts: z^^2 = x^^2 + y^^2
+
+subscripts: H__2O
+
+bolds: {{b|bold text}}
+
+italics: {{i|italic text}}
+
+undelines: {{u|underlined text}}
+
+strikes: {{s|striked text}}
+
+=head3 Accents
+
+ {{A`}}  : À
+ {{A'}}  : Á
+ {{A^}}  : Â
+ {{A~}}  : Ã
+ {{A:}}  : Ä
+ {{A%}}  : Å
+ {{AE}}  : Æ
+ {{C,}}  : Ç
+ {{ETH}} : Ð
+ {{O/}}  : Ø
+ {{P-}}  : Þ
+ {{s-}}  : ß
+ {{C<}}  : Č
+ {{E=}}  : Ĕ
+ {{E.}}  : Ė
+ {{E,}}  : Ę
+ {{I,,}} : Į
+ {{'n}}  : ŉ
+ {{Eng}} : Ŋ
+ {{ss}}  : ſ
+ {{O''}} : Ơ
+ {{U:-}} : Ǖ
+ {{U:'}} : Ǘ
+ {{u:'}} : ǘ
+ {{U:<}} : Ǚ
+ {{U:`}} : Ǜ
+ {{A%'}} : Ǻ
+ {{AE'}} : Ǽ
+ {{O/'}} : Ǿ
+ {{'A}}  : Ά
+ {{gat}} : ·
+
+=head2 listing
+
+---
+
+ # ordered list item 1
+ # ordered list item 2
+ # ordered list item 3
+
+---
+
+ * non-ordered list item 1
+ * non-ordered list item 2
+ * non-ordered list item 3
+
+---
+
+ # nested list item 1
+ # nested list item 2
+ #* nested list item 2-1
+ #* nested list teim 2-2
+ # nested list item 3
+
+ ; description list item 1 title
+ : description list item 1 description
+ ; description list item 2 title
+ : description list item 2 description 1
+ : description list item 2 description 2
+
+---
+
+=head2 images and hyperlinks
+
+---
+
+ [http://example.com]                   : very simple hyperlink
+ [http://example.com damy description]  : hyperlink with description
+ [http://example.com|@@ description]    : hyperlink to be opened in new window ('_blank')
+ [http://example.com|@hoge description] : hyperlink to be opened in the window named 'hoge'
+ [#hoge text]                           : lyperlink within page
+
+---
+
+ [!sample.png]       : very simple in-line image
+ [!!sample.png]      : in-line image with figure tab
+ [!image.png|< text] : img with float:left
+ [!sample.png desc]  : in-line image with alternative text
+ [?sample.png]       : in-line image with hyperlink to the image file
+
+---
+
+=head2 table
+
+ |- table title | table option |
+ |!! col1 title                | col2 title | col3 title |
+ | data 1-1                    | data 1-2   | data 1-3   |
+ | data 2-1                    | data 2-2   | data 2-3   |
+ | data 3 (with colspan)       |-           |-           |
+ | data (4,5)-1 (with rowsapn) | data 4-2   | data 4-3   |
+ |^                            | data 5-2   | data 5-3   |
+ |<data6_1                     | data 6-2   | data 6-3   |
+ |data6_1 This is the content of the cell "data6_1". Any markgaab codes can be included here. |
+
 =cut
 
 package Text::Markup::Wini;
@@ -172,6 +287,7 @@ use Data::Dumper;
 use File::Basename;
 use File::Path 'mkpath';
 use FindBin;
+use Pod::Find qw(pod_where);
 use Pod::Usage;
 use Getopt::Long qw(:config no_ignore_case auto_abbrev);
 use Encode;
@@ -270,9 +386,9 @@ sub init{
 # Following function is executed when this script is called as stand-alone script
 sub stand_alone{
   init();
-  my(@input, $output, $fhi, $title, $cssfile, $test, $whole, @cssflameworks, @bibfiles, $bibonly);
+  my(@input, $output, $fhi, $title, $cssfile, $test, $whole, @cssflameworks, @bibfiles, $bibonly, $help);
   GetOptions(
-    "h|help"         => sub {help()},
+    "h|help:s"       => \$help,
     "v|version"      => sub {print STDERR "Wini.pm $VERSION\n"; exit()},
     "i=s"            => \@input,
     "o:s"            => \$output,
@@ -292,6 +408,8 @@ sub stand_alone{
     "force"          => \$FORCE,
     "quiet"          => \$QUIET
   );
+  (defined $help) and help($help);
+
   foreach my $i (@libpaths){
     mes(txt('ttap', undef, {path=>$i}), {ln=>__LINE__});
     (-d $i) ? push(@INC, $i) : mes(txt('elnf', undef, {d=>$i}), {warn=>1});
@@ -649,7 +767,29 @@ sub mes{ # display guide, warning etc. to STDERR
 } # sub mes
 
 sub help{
-  print pod2usage(-verbose => 2, -input => $FindBin::Bin . "/" . $FindBin::Script);
+  my($x) = @_;
+  $x= lc $x;
+  if($x eq ''){
+    print STDERR "Wini.pm - MARKGAAB handling tool $VERSION\n";
+    print STDERR << 'EOD';
+
+First of all, see online help:
+
+$ perl Wini.pm -h      : Show this brief help.
+$ perl Wini.pm -h wini : Show Wini.pm help.
+$ perl Wini.pm -h mg   : Show Markgaab quick-start guide and cheat sheet.
+EOD
+
+  }elsif($x eq 'wini'){
+    print pod2usage(-verbose => 1, -input => $FindBin::Bin . "/" . $FindBin::Script);
+  }else{
+    my $sect = [
+       ($x eq 'mg'  or $x eq 'markgaab') ? 'MARKGAAB'
+     : ($x eq 'opt' or $x eq 'opts')     ? 'OPTIONS' 
+     : qw(SYNOPSIS USAGE OPTIONS)
+    ];
+    print pod2usage(-verbose => 99,  -sections => $sect, -input => pod_where({-inc => 1}, __PACKAGE__) );
+  }
   exit();
 }
 
@@ -1067,11 +1207,10 @@ sub deref{
       my @citids = grep {($REF{$_}{type} eq 'cit') and ($REF{$_}{order}>0)} keys %REF;
       foreach my $id (sort {$REF{$a}{order} <=> $REF{$b}{order}} @citids){
         $lang = $REF{$id}{lang}[0] || $lang || 'en';
-        print STDERR "RRRRRR id=$id,lang=$lang.XXXXXX\n";
         $o .= sprintf(qq{<li id="#reflist_${id}"><a href="#%s">%s</a>%s</li>\n},
                   $id,
                   txt('cit', $lang, {n=>$REF{$id}{order}||''}),
-                  ($REF{$id}{text}||'') # todo220605- このtextはどこで生成されているか。そこでのlangの扱いは？？？
+                  ($REF{$id}{text}||'')
               );
       }
       $o.="</ul>\n";
@@ -1553,7 +1692,7 @@ sub cittxt_vals{ # subst. "[...]" in reference format to final value
       my $j   = ($and) ? (($#$yy) ? join($sep, @$yy[0..$#$yy-1]) . $and . $yy->[-1]
                                   : $yy->[0])
                        : join($sep, @$yy);
-      ($etal) and (scalar @$y > $n) and $j .= ' et al.';
+      ($etal) and (scalar @$y > $n) and $j .= txt('etal', $lang);
       $y      = [$j];
     }elsif($f=~/^l(.*)$/){ # "abc"|l* -> "*abc"
       my $p = $1;
@@ -1725,7 +1864,6 @@ sub anchor{
   ($url0) or ($prefix, $url0, $text) = $t=~m{([!?#]*)([^\s"]+)(?:\s+(.*))?}s;
   my($url, $opts) = (split(/\|/, $url0, 2), '', '');
   ($prefix eq '#') and $url=$prefix.$url;
-  #$text = escape($text) || $url;
   ($text) = markgaab($text, {nocr=>1, para=>'nb'});
   ($text eq '') and $text = $url;
 
@@ -1745,10 +1883,8 @@ sub anchor{
     if(defined $id){
       my $img_id0 = $id; # temp_id;
       $img_id0=~s{^(\d)}{fig$1}; # img_id0: "fig111"
-#      (exists $REF{$img_id0} and $text) and mes(txt('did', undef, {id=>$id}), {q=>1,err=>1});
       my $reftxt = ref_tmp_txt($id, 'fig', $lang);
       $text       = "$reftxt $text";
-#      $REF{$id}   = {type=>'fig', desc => ($text||undef)};
       $img_id     = qq! id="${img_id0}"!; # ID for <img ...>
     }
     if($prefix eq '!!'){
@@ -1830,7 +1966,6 @@ sub table{
         $htmlitem[0][0]{copt}{id}[0] = $tbl_id0;
         $tbl_id = sprintf(qq{ id="%s"}, $tbl_id0); # ref_tmp_txt($tbl_id0, undef, 'tbl')); # for table->caption tag
       }
-#      ($caption) or $caption = $c;
 
       while($o=~/\&([lrcjsebtm]+)/g){
         my $h = {qw/l left r right c center j justify s start e end/}->{$1};
@@ -2622,6 +2757,7 @@ __DATA__
 |din|Input:   STDIN|入力元: 標準入力|
 |elnf|{{d}} for extra library not found|{{d}}が見たらず、エキストラライブラリに登録できません|
 |Error|error|エラー|
+|etal|et al.|他|
 |fail|failed|失敗|
 |fci|File {{f}} is chosen as input|ファイル{{f}}が入力元ファイルです|
 |fin|completed|終了|
