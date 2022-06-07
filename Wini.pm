@@ -1615,12 +1615,12 @@ sub cittxt{ # format text with '[]' -> matured reference text
   ($lang) or $lang = $x->{lang}[0] || 'en';
   (defined $x->{au}[0]) or $x->{au} = [qq!"$x->{ti}[0]"!]; # no author -> use title instead
   my $f = (defined $f0) ? txt($f0, $lang) : "[au|i]\n";
-  $f=~s/\[(.*?)\]/cittxt_vals($x, $1)/ge;
+  $f=~s/\[(.*?)\]/cittxt_vals($x, $1, $lang)/ge;
   return($f);
 }
 
 sub cittxt_vals{ # subst. "[...]" in reference format to final value
-  my($x, $form) = @_;
+  my($x, $form, $lang) = @_;
   (defined $x and defined $form) or return();
   my($valname, @filter) = split(/\|/, $form);
   my $y = (ref $x->{$valname} eq 'ARRAY') ? $x->{$valname} : [$x->{$valname}];
