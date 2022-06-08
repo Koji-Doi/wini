@@ -1200,21 +1200,24 @@ my %id_cnt_in_text;
 sub deref{
   my($r) = @_;
   my $seq=0;
-  $r=~s!${MI}([^${MI}${MO}]+)(?:${MI}t=([^${MI}${MO}]+))?(?:${MI}l=([^${MI}${MO}]+))?${MO}!
-    my($id, $type, $lang) = ($1, $2, $3);
+  $r=~s!(${MI}([^${MI}${MO}]+)${MI}t=(?:(fig|tbl|cit))?(?:${MI}l=([^${MI}${MO}]+))?${MO})!
+    my($r0, $id, $type, $lang) = ($1, $2, $3, $4);
+
+=begin c
     if($type eq 'citlist'){
       my $o = qq{<ul class="mglist reflist">\n};
+$o.=qq{<div style="margin: 100vh;">xx</div>\n}; # test
       my @citids = grep {($REF{$_}{type} eq 'cit') and ($REF{$_}{order}>0)} keys %REF;
       foreach my $id (sort {$REF{$a}{order} <=> $REF{$b}{order}} @citids){
         $lang = $REF{$id}{lang}[0] || $lang || 'en';
-        $o .= sprintf(qq{<li id="#reflist_${id}"><a href="#%s">%s</a>%s</li>\n},
-                  $id,
-                  txt('cit', $lang, {n=>$REF{$id}{order}||''}),
-                  ($REF{$id}{text}||'')
-              );
+        $o .= qq{<li id="reflist_${id}">} ;
+        $o .= txt('cit', $lang, {n=>$REF{$id}{order}||''}) . ($REF{$id}{text}||'') . "</li>\n";
       }
       $o.="</ul>\n";
     }else{
+=end c
+
+=cut
       (not $type and not $REF{$id}) and mes(txt('idnd', '', {id=>$id}), {err=>1});
       if(defined $REF{$id}{order}){
         $type = $REF{$id}{type} || mes(txt('idnd', '', {id=>$id}), {warn=>1});
@@ -1239,8 +1242,26 @@ sub deref{
         my $x = qq{<span id="${id}_$id_cnt_in_text{$id}" title="$title">$REF{$id}{inline_id}</span>};
         ($type eq 'cit') and qq{<a href="#reflist_${id}">$x</a>};
       }
-    }
+   # }
   !ge;
+
+  $r=~s!${MI}([^${MI}${MO}]+)(?:${MI}t=citlist)?(?:${MI}l=([^${MI}${MO}]+))?${MO}!
+      my($id, $lang) = ($1, $2);
+      my $o = qq{<ul class="mglist reflist">\n};
+      $o.=qq{<div style="margin: 100vh;">xx</div>\n}; # test
+      my @citids = grep {($REF{$_}{type} eq 'cit') and ($REF{$_}{order}>0)} keys %REF;
+      foreach my $id (sort {$REF{$a}{order} <=> $REF{$b}{order}} @citids){
+        $lang = $REF{$id}{lang}[0] || $lang || 'en';
+        $o .= qq{<li id="reflist_${id}">} . txt('cit', $lang, {n=>$REF{$id}{order}||''}) . ' ';
+# links from mglist to text
+        for(my $i=1; $i<=$id_cnt_in_text{$id}; $i++){
+          $o .= sprintf(qq{<a href="#%s">%s</a>}, "${id}_$i", "^$i&nbsp; ");
+        }
+        $o .= ' ' . ($REF{$id}{text}||'') . "</li>\n";
+      }
+      $o.="</ul>\n";
+  !ge;
+
   return($r);
 } # sub deref
 }
@@ -1686,6 +1707,7 @@ sub cittxt_vals{ # subst. "[...]" in reference format to final value
       # j3e: a, b, c et al.
       my $sep = ($1) ? "$1 " : ', ';
       my $and = ($2 eq '') ? undef : ($2 eq 'a') ? ' and ' : ' &amp; ';
+      $and    = txt('cit_and', $lang, {and=>$and});
       my $n   = ($3 and $3<scalar @$y) ? $3 : scalar @$y;
       my $etal= $4;
       my $yy  = ($n) ? [(@$y)[0..($n-1)]] : $y;
@@ -2730,15 +2752,16 @@ __DATA__
 |cft|Cannot find template {{t}} in {{d}}|テンプレートファイル{{t}}はディレクトリ{{d}}内に見つかりません|
 |chkbibfile| Check reference ID list ({{f}}) | リファレンスID対応表（{{f}}）を確認してください|
 |cit| [{{n}}] | [{{n}}] |
+|cit_and| &nbsp;{{and}}&nbsp; |，|
 ## jornal article, in-line citation
 |cit_inline_ja| ({{au}}, {{ye}}) | ({{au}}, {{ye}})|
-!cit_form! [au|if|lf|j,a2e] ([ye]) [ti|.] [jo|i] [vo][is|p()] ! [au|l|j,a2e] [ye] [ti|.] [jo|i] [vo][is|p()] !
+!cit_form! [au|if|lf|j,a2e] ([ye]) [ti|.] [jo|i] [vo][is|p()] ! [au|l|j,a2e] ([ye]) [ti|.] [jo|i] [vo][is|p()] !
 ## journal article, citation in reference list
-!cit_form_ja! [au|if|lf|j,&2e] ([ye]) [ti|.] [jo|i] [vo][is|p()] ! jjj [au|if|lf|je,2] [ye] [ti|.] [jo|i] [vo][is|p()] !
+!cit_form_ja! [au|if|lf|j,&2e] ([ye]) [ti|.] [jo|i] [vo][is|p()] ! [au|if|lf|je,2] ([ye]) [ti|.] [jo|i] [vo][is|p()] !
 ## book chapter, citation in reference list
-!cit_form_bc! [au|if|lf|j,&2e] ([ye]) [ti|.] In [bo] [p()] [pl] [] ! jjj [au|if|lf|je,2] [ye] [ti|.] [jo|i] [vo][is|p()] !
+!cit_form_bc! [au|if|lf|j,&2e] ([ye]) [ti|.] In [bo] [p()] [pl] [] ! [au|if|lf|je,2] ([ye]) [ti|.] [jo|i] [vo][is|p()] !
 ## web site, citation in reference list
-!cit_form_ws! [au|if|lf|j,&2e] ([ye]) [ti|.] [jo|i] in [] eds. [] ! jjj [au|if|lf|je,2] [ye] [ti|.] [jo|i] [vo][is|p()] !
+!cit_form_ws! [au|if|lf|j,&2e] ([ye]) [ti|.] [jo|i] in [] eds. [] ! [au|if|lf|je,2] ([ye]) [ti|.] [jo|i] [vo][is|p()] !
 ##
 |cno|Could not open {{f}}|{{f}}を開けません|
 |conv|Conv {{from}} -> {{to}}|変換 {{from}} -> {{to}}|
