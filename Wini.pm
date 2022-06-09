@@ -579,7 +579,7 @@ sub read_bib{
 
 =cut
 
-      my %item = qw/A au C pp D ye E ed G lang 8 da T ti H tau I pu J jo R doi V vo N is U url/;
+      my %item = qw/A au B co C pp D ye E ed G lang 8 da T ti H tau I pu J jo R doi V vo N is U url/;
       my %current_rec;
       while(<$fhi>){
         s/[\n\r]*$//g;
@@ -650,8 +650,9 @@ sub read_bib{
     }
     close $fhi;
     for(my $i=0; $i<=$#$ref; $i++){
-      $ref->[$i]{id}      = bib_id($ref->[$i], {n=>1});
-      $ref->[$i]{text}    = cittxt($ref->[$i], 'cit_form');
+      my $cit_form     = ($ref->[$i]{cittype}) ? ('cit_form_'.$ref->[$i]{cittype}) : 'cit_form';
+      $ref->[$i]{id}   = bib_id($ref->[$i], {n=>1});
+      $ref->[$i]{text} = cittxt($ref->[$i], $cit_form);
     }
     open(my $fho, '>:utf8', $outbibfile) or die txt('cno', undef, {f=>$outbibfile});
     foreach my $x (sort {$a->{id} cmp $b->{id}} @$ref){
@@ -1158,7 +1159,6 @@ sub markgaab{
         $t =~ s!\[([^]]*?)\]!anchor($1, $baseurl, $lang)."\n"!esg or
         $t =~ s!(\{\{([^|]*?)(?:\|([^{}]*?))?}})!
         call_macro(
-#          ((defined $1) ? $1 : ''),
           ((defined $2) ? $2 : ''),
           $opt,
           $baseurl,
@@ -1202,53 +1202,35 @@ sub deref{
   my $seq=0;
   $r=~s!(${MI}([^${MI}${MO}]+)${MI}t=(?:(fig|tbl|cit))?(?:${MI}l=([^${MI}${MO}]+))?${MO})!
     my($r0, $id, $type, $lang) = ($1, $2, $3, $4);
-
-=begin c
-    if($type eq 'citlist'){
-      my $o = qq{<ul class="mglist reflist">\n};
-$o.=qq{<div style="margin: 100vh;">xx</div>\n}; # test
-      my @citids = grep {($REF{$_}{type} eq 'cit') and ($REF{$_}{order}>0)} keys %REF;
-      foreach my $id (sort {$REF{$a}{order} <=> $REF{$b}{order}} @citids){
-        $lang = $REF{$id}{lang}[0] || $lang || 'en';
-        $o .= qq{<li id="reflist_${id}">} ;
-        $o .= txt('cit', $lang, {n=>$REF{$id}{order}||''}) . ($REF{$id}{text}||'') . "</li>\n";
-      }
-      $o.="</ul>\n";
+    (not $type and not $REF{$id}) and mes(txt('idnd', '', {id=>$id}), {err=>1});
+    if(defined $REF{$id}{order}){
+      $type = $REF{$id}{type} || mes(txt('idnd', '', {id=>$id}), {warn=>1});
     }else{
-=end c
-
-=cut
-      (not $type and not $REF{$id}) and mes(txt('idnd', '', {id=>$id}), {err=>1});
-      if(defined $REF{$id}{order}){
-        $type = $REF{$id}{type} || mes(txt('idnd', '', {id=>$id}), {warn=>1});
+      if(my($type1, $id1)=$id=~/^(fig|tbl|cit|h|s)(\d+)$/){ # when the reference No. is already determined
+        $REF{$id}{order}        = $id1; # id -> count
+        $REFASSIGN{$type}{$id1} = $id;  # count -> id
       }else{
-        if(my($type1, $id1)=$id=~/^(fig|tbl|cit|h|s)(\d+)$/){ # when the reference No. is already determined
-          $REF{$id}{order}        = $id1; # id -> count
-          $REFASSIGN{$type}{$id1} = $id;  # count -> id
-        }else{
-          (defined $ref_cnt{$type}) or $ref_cnt{$type}=1;
-          while(defined $REFASSIGN{$type}{$ref_cnt{$type}}){
-            $ref_cnt{$type}++;
-          }
-          $REF{$id}{order} = $ref_cnt{$type};
-          $REFASSIGN{$type}{$ref_cnt{$type}} = $id;
+        (defined $ref_cnt{$type}) or $ref_cnt{$type}=1;
+        while(defined $REFASSIGN{$type}{$ref_cnt{$type}}){
+          $ref_cnt{$type}++;
         }
+        $REF{$id}{order} = $ref_cnt{$type};
+        $REFASSIGN{$type}{$ref_cnt{$type}} = $id;
       }
-      if($type){
-        $REF{$id}{inline_id} = txt("ref_${type}", $lang, {n=>$REF{$id}{order}});
-        $id_cnt_in_text{$id}++;
-        my $title = $REF{$id}{text} || $REF{$id}{doi};
-        $title=~s/<.*?>//g;
-        my $x = qq{<span id="${id}_$id_cnt_in_text{$id}" title="$title">$REF{$id}{inline_id}</span>};
-        ($type eq 'cit') and qq{<a href="#reflist_${id}">$x</a>};
-      }
-   # }
+    }
+    if($type){
+      $REF{$id}{inline_id} = txt("ref_${type}", $lang, {n=>$REF{$id}{order}});
+      $id_cnt_in_text{$id}++;
+      my $title = $REF{$id}{text} || $REF{$id}{doi};
+      $title=~s/<.*?>//g;
+      my $x = qq{<span id="${id}_$id_cnt_in_text{$id}" title="$title">$REF{$id}{inline_id}</span>};
+      ($type eq 'cit') and qq{<a href="#reflist_${id}">$x</a>};
+    }
   !ge;
 
   $r=~s!${MI}([^${MI}${MO}]+)(?:${MI}t=citlist)?(?:${MI}l=([^${MI}${MO}]+))?${MO}!
       my($id, $lang) = ($1, $2);
       my $o = qq{<ul class="mglist reflist">\n};
-      $o.=qq{<div style="margin: 100vh;">xx</div>\n}; # test
       my @citids = grep {($REF{$_}{type} eq 'cit') and ($REF{$_}{order}>0)} keys %REF;
       foreach my $id (sort {$REF{$a}{order} <=> $REF{$b}{order}} @citids){
         $lang = $REF{$id}{lang}[0] || $lang || 'en';
@@ -1634,7 +1616,10 @@ sub cittxt{ # format text with '[]' -> matured reference text
   #  (defined $f) or $f = "[au|1|lf][au|2-3|lf|l; |j] [au|4-|etal|r;] [ye]. [ti]. {{/|[jo]}} [vo][issue|p()]:[pp].";
   #(defined $f) or $f = '[au|j;&e2] %%%% [au|i]'."\n";
   ($lang) or $lang = $x->{lang}[0] || 'en';
-  (defined $x->{au}[0]) or $x->{au} = [qq!"$x->{ti}[0]"!]; # no author -> use title instead
+  unless(defined $x->{au}[0]){
+    $x->{au} = [qq!"$x->{ti}[0]"!]; # no author -> use title instead
+    undef $x->{ti};
+  }
   my $f = (defined $f0) ? txt($f0, $lang) : "[au|i]\n";
   $f=~s/\[(.*?)\]/cittxt_vals($x, $1, $lang)/ge;
   return($f);
@@ -1737,6 +1722,9 @@ sub cittxt_vals{ # subst. "[...]" in reference format to final value
       $y = [ map {qq{&nbsp;<span style="font-weight:bold">$_</span>}} @$y];
     }elsif($f eq 'i'){
       $y = [ map {qq{&nbsp;<span style="font-style:italic">$_</span>}} @$y];
+    }elsif($f=~/(\w+) +(then|else)$/){ # if array($1) is empty,...
+      (scalar @{$x->{$1}} > 0)  and ($2 eq 'else') and return($y->[-1]);
+      (scalar @{$x->{$1}} == 0) and ($2 eq 'then') and return($y->[-1]);
     }
   #($valname eq 'au') and print STDERR __LINE__, qq! f="$f" !, decode('utf-8', Dumper $y);
   } # foreach @filter
@@ -1800,8 +1788,6 @@ sub ref_tmp_txt{
   # make temporal ref template, "${MI}id.*{MO}"
   my $par        = readpars(\@_, qw/id type lang/);
   my($id, $type, $lang, $dup) = map {$par->{$_}[-1]} qw/id type lang dup/;
-#  ($lang) or $lang = 'en';
-#  my $type       = $REF{$id}{type};
   my $lang1 = ($lang eq '') ? '' : "${MI}l=${lang}";
   my $type1 = ($type eq '') ? '' : "${MI}t=${type}";
   my   $out = "${MI}${id}${type1}${lang1}${MO}";
@@ -2066,15 +2052,6 @@ sub table{
       my $col_n = $cn/2+1;
       if($cn%2==1){ # separator
         $col = substr($col,1); # remove the first '|'
-
-        ## border style initial setting from $htmlitem[0][0]{copt}{style} 191217 - 191220
-        #foreach my $btype (map {"border-$_"} qw/left right bottom top/){
-        #  (not defined $htmlitem[$ln][0]{footnote}) and 
-        #    (defined $htmlitem[0][0]{copt}{style}{$btype}) and 
-        #      $htmlitem[$ln][$col_n]{copt}{style}{$btype}[0] = $htmlitem[0][0]{copt}{style}{$btype}; 
-        #}
-
-        #$ctag = ($col=~/\bh\b/)?'th':'td';
         $htmlitem[$ln][$col_n]{ctag} = 'td';
         $col=~s/\.\.\.\.([^.]+)/unshift(@{$htmlitem[  0][     0]{copt}{class}}, $1), ''/eg;
         $col=~s/\.\.\.([^.]+)/  unshift(@{$htmlitem[  0][$col_n]{copt}{class}}, $1), ''/eg;
@@ -2757,11 +2734,13 @@ __DATA__
 |cit_inline_ja| ({{au}}, {{ye}}) | ({{au}}, {{ye}})|
 !cit_form! [au|if|lf|j,a2e] ([ye]) [ti|.] [jo|i] [vo][is|p()] ! [au|l|j,a2e] ([ye]) [ti|.] [jo|i] [vo][is|p()] !
 ## journal article, citation in reference list
-!cit_form_ja! [au|if|lf|j,&2e] ([ye]) [ti|.] [jo|i] [vo][is|p()] ! [au|if|lf|je,2] ([ye]) [ti|.] [jo|i] [vo][is|p()] !
+!cit_form_ja! [au|if|lf|j,a2e] ([ye]) [ti|.] [jo|i] [vo][is|p()] ! [au|l|j,a2e] ([ye]) [ti|.] [jo|i] [vo][is|p()] !
 ## book chapter, citation in reference list
-!cit_form_bc! [au|if|lf|j,&2e] ([ye]) [ti|.] In [bo] [p()] [pl] [] ! [au|if|lf|je,2] ([ye]) [ti|.] [jo|i] [vo][is|p()] !
+!cit_form_bc! BC [au|if|lf|j,&2e] ([ye]) [ti|.] In [bo] [p()] [pl] [] ! [au|if|lf|je,2] ([ye]) [ti|.] [jo|i] [vo][is|p()] !
+## conference proceedings
+!cit_form_pc! BC [au|if|lf|j,&2e] ([ye]) [ti|.] [co|l In] [p()] [pl] [] ! [au|if|lf|je,2] ([ye]) [ti|.] [co] !
 ## web site, citation in reference list
-!cit_form_ws! [au|if|lf|j,&2e] ([ye]) [ti|.] [jo|i] in [] eds. [] ! [au|if|lf|je,2] ([ye]) [ti|.] [jo|i] [vo][is|p()] !
+!cit_form_ws! WS [au|if|lf|j,&2e] ([ye]) [ti|.] [jo|i] in [] eds. [] ! [au|if|lf|je,2] ([ye]) [ti|.] [jo|i] [vo][is|p()] !
 ##
 |cno|Could not open {{f}}|{{f}}を開けません|
 |conv|Conv {{from}} -> {{to}}|変換 {{from}} -> {{to}}|
@@ -2780,7 +2759,7 @@ __DATA__
 |din|Input:   STDIN|入力元: 標準入力|
 |elnf|{{d}} for extra library not found|{{d}}が見たらず、エキストラライブラリに登録できません|
 |Error|error|エラー|
-|etal|et al.|他|
+|etal| et al.|他|
 |fail|failed|失敗|
 |fci|File {{f}} is chosen as input|ファイル{{f}}が入力元ファイルです|
 |fin|completed|終了|
