@@ -1491,9 +1491,11 @@ sub call_macro{
 #    return(($class_id) ? qq!<span${class_id}>$f[0]</span>! : $f[0]);
   }
   (defined $MACROS{$macroname})   and return($MACROS{$macroname}(@f));
-  (($macroname=~m{^[a-zA-Z][-^~"%'`:,.<=/]{1,2}$})     or
-  ($macroname=~m{^(AE|ETH|IJ|KK|Eng|CE|ss|AE'|gat)$}i) or
-  ($macroname=~m{^'[a-zA-Z]{1,2}$}))                   and return(latin($macroname));
+  (($macroname=~m{^[a-zA-Z][-^~"%'`:,.<=/]{1,2}$})             or
+  ($macroname=~m{^(AE|ETH|IJ|KK|Eng|CE|ss|AE'|gat|\?!|!\?)$}i) or
+  ($macroname=~m{^(\?|!|\?!|!\?)^$})                           or # reverse
+  ($macroname=~m{^(|\?!|!\?)=$})                               or # ligature
+  ($macroname=~m{^'[a-zA-Z]{1,2}$}))                           and return(latin($macroname));
   ($macroname=~/^l$/i)            and return('&#x7b;'); # {
   ($macroname=~/^bar$/i )         and return('&#x7c;'); # |
   ($macroname=~/^r$/i)            and return('&#x7d;'); # }
@@ -1505,7 +1507,7 @@ sub call_macro{
   ($macroname=~/^(rr|ref|cit)$/i) and return(cit(\@f, $opt->{_v})); # reference
   ($macroname=~/^(cit|ref)list$/i)  and return("${MI}###${MI}t=citlist${MO}");
   ($macroname=~/^(date|time|dt)$/i) and return(date([@f, "type=$1"],  $opt->{_v}));
-  ($macroname=~/^calc$/i)         and return(ev(\@f, $opt->{_v}));
+  ($macroname=~/^calc$/i)         and return((ev(\@f, $opt->{_v}))[-1]);
   ($macroname=~/^va$/i)           and return(
     (defined $opt->{_v}{$f[0]}) ? $opt->{_v}{$f[0]} : (mes(txt('vnd', {v=>$f[0]}), {warn=>1}), '')
   );
@@ -2280,10 +2282,10 @@ sub ylml{ #ylml: yaml-like markup language
           foreach my $token (split(/\s*,\s*/, $v2)){
             my($kk,$vv) = $token=~/(\S+)\s*:\s*(.*)/;
             $vv=~s/^(["'])(.*)\1$/$2/;
-            $val->{$k}{$kk} = ev($vv, $val);
+            $val->{$k}{$kk} = (ev($vv, $val))[-1];
           }
         }else{ # simple variable
-          $val->{$k} = ev($v, $val) ;
+          $val->{$k} = (ev($v, $val))[-1] ;
         }
       }
     } # for each $line
@@ -2332,19 +2334,83 @@ sub date{
 }
 
 sub ev{ # <, >, %in%, and so on
-  my($x, $v) = @_;
+  my($x, $v, $lang) = @_;
 
   # $x: string or array reference. string: 'a,b|='
   # $v: reference of variables given from wini()
   
   my(@token) = (ref $x eq '') ? (undef, split(/((?<!\\)[|])/, $x))
+#  my(@token) = (ref $x eq '') ? (undef, split(/(?<!\\)[|]/, $x))
              : (undef, map{ (split(/((?<!\\)[|])/, $_)) } @$x);
   
   my @stack;
   for(my $i=1; $i<=$#token; $i++){
     my $t  = $token[$i];
-    if($t eq '&u'){
-      push(@stack, uc      $stack[-1]); # $token[$i-2]);
+    my $sep0;
+    if($t eq '&uc_all'){
+      @stack = (map {uc $_} @stack);
+      #      push(@stack, uc      $stack[-1]); # $token[$i-2]);
+    }elsif($t eq '&last_first' or ($sep0)=$t=~/\&last_first_initial([,.])?/ or # "Lastname, Firstname"
+           $t eq '&first_last' or ($sep0)=$t=~/\&first_last_initial([,.])?/){  # "Firstname Lastname"
+      my $sep    = ($sep0 eq ',') ? ', ' : ' ';
+      my $period = ($sep0 eq '.') ? '.'  : '';
+       @stack = (map {
+         my($last, $first) = /([^,]*)(?:, *(.*))?/;
+         ($t=~/initial/) and ($last, $first) = ((uc(substr($last,0,1))).$period, ((uc(substr($first,0,1))).$period));
+         join($sep, grep {/\S/} ($t=~/\&last/) ? ($last, $first) : ($first, $last));
+      } @stack);
+    }elsif($t=~/^\&initial_[afl]$/){ # take first letter and capitalize. This should be used before 'fl' or 'fli' filter
+      @stack = map {
+      my($last, $first) = /([^,]*), *(.*)/;
+      if(defined $last){
+        if($t ne '&initial_l'){ # Initial for the first name
+          my(@first0) = $first=~/\b([A-Z])/g;
+          if($first0[0]){
+            map {s/(\w)/$1./} @first0;
+              $first = join(' ', @first0) . '';
+            }
+          }
+          if($t ne '&initial_f'){ # Initial for the last name
+            if($last=~/([A-Z])\w*-([A-Z])\w/){ # Yamada-Suzuki -> Y-S.
+              $last = "$1-$2.";
+            }else{
+              my(@l) = $last=~/\b([A-Z])/g;
+              $last  = join(' ', map {($_ eq '') ? '' : "$_."} @l);
+            }
+          }
+          join(', ', grep {/\S/} ($last, $first));
+        }else{
+          ''
+        }
+      } @stack;
+    }elsif($t=~/^join([,;])?([a&])?(\d*)(e)?$/){ #join
+      # , : a, b, c,
+      # ; : a; b; c;
+      # ,a: a, b and c
+      # ,&: a, b & c
+      # ;&: a; b & c
+      # 2e: a, b et al.
+      # 3e: a, b, c et al.
+      my $sep = ($1) ? "$1 " : ', ';
+      my $a0  = ($2 eq '') ? ' ' : ($2 eq 'a') ? ' and ' : ' &amp; ';
+      my $and = txt('cit_and', $lang, {and=>$a0});
+      my $n   = ($3 and $3<scalar @stack) ? $3 : scalar @stack;
+      my $etal= $4;
+      my $yy  = ($n) ? [(@stack)[0..($n-1)]] : [@stack];
+      my $j   = ($and) ? (($#$yy) ? join($sep, @$yy[0..$#$yy-1]) . $and . $yy->[-1]
+                                  : $yy->[0])
+                       : join($sep, @$yy);
+      ($etal) and (scalar @stack > $n) and $j .= txt('etal', $lang);
+      @stack  = ($j);
+    }elsif($t=~/^l_(.*)$/){ # "abc"|l* -> "*abc"
+      my $p = $1;
+      @stack = map {s/^\s*//; "$p$_"} @stack;
+    }elsif($t=~/^r_(.*)$/){ # "abc"|r* -> "abc*"
+      my $p = $1;
+      @stack = map {s/\s*$//; "$_$p"} @stack;
+    }elsif($t eq 'q_'){
+      @stack = map {"'$_'"} @stack;
+#====
     }elsif($t eq '&uf'){
       push(@stack, ucfirst $stack[-1]); # $token[$i-2]);
     }elsif($t eq '&l'){
@@ -2410,11 +2476,11 @@ sub ev{ # <, >, %in%, and so on
       if($t=~/^\w+$/){
         push(@stack, $v->{$t});
       }else{
-        push(@stack, array($t));
+        ($t ne '|') and push(@stack, array($t));
       }
     }
   }
-  return($stack[-1]);
+  return(@stack);
 } # end of ev
 
 sub escape_metachar{
