@@ -1490,6 +1490,7 @@ sub call_macro{
     return(span(\@f, $class_id));
 #    return(($class_id) ? qq!<span${class_id}>$f[0]</span>! : $f[0]);
   }
+  my($sep, @f1);
   (defined $MACROS{$macroname})   and return($MACROS{$macroname}(@f));
   (($macroname=~m{^[a-zA-Z][-^~"%'`:,.<=/]{1,2}$})             or
   ($macroname=~m{^(AE|ETH|IJ|KK|Eng|CE|ss|AE'|gat|\?!|!\?)$}i) or
@@ -1507,6 +1508,10 @@ sub call_macro{
   ($macroname=~/^(rr|ref|cit)$/i) and return(cit(\@f, $opt->{_v})); # reference
   ($macroname=~/^(cit|ref)list$/i)  and return("${MI}###${MI}t=citlist${MO}");
   ($macroname=~/^(date|time|dt)$/i) and return(date([@f, "type=$1"],  $opt->{_v}));
+  ($macroname=~/^(stack)$/i)      and (
+     ($sep, @f1) = ($f[0], @f[1..$#f]),
+     return(join($sep, (ev(\@f1, $opt->{_v}))))
+  );
   ($macroname=~/^calc$/i)         and return((ev(\@f, $opt->{_v}))[-1]);
   ($macroname=~/^va$/i)           and return(
     (defined $opt->{_v}{$f[0]}) ? $opt->{_v}{$f[0]} : (mes(txt('vnd', {v=>$f[0]}), {warn=>1}), '')
@@ -2354,11 +2359,15 @@ sub ev{ # <, >, %in%, and so on
            $t eq '&first_last' or ($sep0)=$t=~/\&first_last_initial([,.])?/){  # "Firstname Lastname"
       my $sep    = ($sep0 eq ',') ? ', ' : ' ';
       my $period = ($sep0 eq '.') ? '.'  : '';
-       @stack = (map {
+      @stack = map {
          my($last, $first) = /([^,]*)(?:, *(.*))?/;
          ($t=~/initial/) and ($last, $first) = ((uc(substr($last,0,1))).$period, ((uc(substr($first,0,1))).$period));
-         join($sep, grep {/\S/} ($t=~/\&last/) ? ($last, $first) : ($first, $last));
-      } @stack);
+         join($sep, ($t=~/\&last/) ? ($last, $first) : ($first, $last));
+      } @stack;
+    }elsif($t=~/^\&morethan *(\d+)/){
+      ((scalar @stack)<=$1) and return(()); # if list size is not more than $1, the list is canceled.
+    }elsif($t eq '&lastname'){
+      map { s/([^,]*),.*/$1/; } @stack;
     }elsif($t=~/^\&initial_[afl]$/){ # take first letter and capitalize. This should be used before 'fl' or 'fli' filter
       @stack = map {
       my($last, $first) = /([^,]*), *(.*)/;
@@ -2383,7 +2392,7 @@ sub ev{ # <, >, %in%, and so on
           ''
         }
       } @stack;
-    }elsif($t=~/^join([,;])?([a&])?(\d*)(e)?$/){ #join
+    }elsif($t=~/^\&join([,;])?([a&])?(\d*)(e)?$/){ #join
       # , : a, b, c,
       # ; : a; b; c;
       # ,a: a, b and c
@@ -2402,14 +2411,22 @@ sub ev{ # <, >, %in%, and so on
                        : join($sep, @$yy);
       ($etal) and (scalar @stack > $n) and $j .= txt('etal', $lang);
       @stack  = ($j);
-    }elsif($t=~/^l_(.*)$/){ # "abc"|l* -> "*abc"
+    }elsif($t=~/^&l_(.*)$/){ # "abc"|l* -> "*abc"
       my $p = $1;
       @stack = map {s/^\s*//; "$p$_"} @stack;
-    }elsif($t=~/^r_(.*)$/){ # "abc"|r* -> "abc*"
+    }elsif($t=~/^&r_(.*)$/){ # "abc"|r* -> "abc*"
       my $p = $1;
       @stack = map {s/\s*$//; "$_$p"} @stack;
-    }elsif($t eq 'q_'){
+    }elsif($t eq '&q_'){
       @stack = map {"'$_'"} @stack;
+    }elsif($t eq '&bold'){
+      map {qq{&nbsp;<span style="font-weight:bold">$_</span>}} @stack;
+    }elsif($t eq '&ita' or $t eq '&italic'){
+      map {qq{&nbsp;<span style="font-style:italic">$_</span>}} @stack;
+    }elsif($t=~/(\w+) +(then|else)$/){ # if array($1) is empty,...
+      (scalar @{$v->{$1}} > 0)  and ($2 eq 'else') and return(());
+      (scalar @{$v->{$1}} == 0) and ($2 eq 'then') and return(());
+
 #====
     }elsif($t eq '&uf'){
       push(@stack, ucfirst $stack[-1]); # $token[$i-2]);
@@ -2472,6 +2489,8 @@ sub ev{ # <, >, %in%, and so on
       push(@stack, $2 . '');
     }elsif($t=~/^\d+$/){ # constants (numeral)
       push(@stack, $t);
+    }elsif($t=~/^\&/){ # illegal filter
+      mes(txt('ilfi', $lang, {x=>$t}), {err=>1});
     }else{ # variables or formula
       if($t=~/^\w+$/){
         push(@stack, $v->{$t});
@@ -2803,15 +2822,15 @@ __DATA__
 |cit_and| &nbsp;{{and}}&nbsp; |，|
 ## jornal article, in-line citation
 |cit_inline_ja| ({{au}}, {{ye}}) | ({{au}}, {{ye}})|
-!cit_form! [au|initial_f|last_first|join,a2e] [ye|p_] [ti|.] [jo|ita] [vo][is|p_()] ! [au|lastname|join,2e] [ye|p_] [ti|.] [jo|ita] [vo][is|p_] !
+!cit_form! [au|initial_f|last_first|&join,a2e] [ye|&p_] [ti|.] [jo|&ita] [vo][is|&p_()] ! [au|&lastname|&join,2e] [ye|&p_] [ti|.] [jo|&ita] [vo][is|&p_] !
 ## journal article, citation in reference list
-!cit_form_ja! [au|initial_f|last_first|join,a2e] [ye|p_] [ti|.] [jo|ita] [vo][is|p()] ! [au|lastname|join,2e] ([ye]) [ti|.] [jo|ita] [vo][is|p_()] !
+!cit_form_ja! [au|&initial_f|&last_first|&join,a2e] [ye|&p_] [ti|.] [jo|&ita] [vo][is|&p()] ! [au|lastname|join,2e] ([ye]) [ti|.] [jo|&ita] [vo][is|&p_()] !
 ## book chapter, citation in reference list
-!cit_form_bc! BC [au|initial_f|last_first|join,&2e] [ye|p_] [ti|.] In [bo] ! [au|initial_f|last_first|join,2e] ([ye]) [ti|.] [jo|i] [vo][is|p()] !
+!cit_form_bc! BC [au|&initial_f|&last_first|&join,&2e] [ye|&p_] [ti|.] In [bo] ! [au|&initial_f|&last_first|&join,2e] ([ye]) [ti|.] [jo|&ita] [vo][is|&p()] !
 ## conference proceedings
-!cit_form_pc! BC [au|if|lf|j,&2e] ([ye]) [ti|.] [co|l In] [p()] [pl] [] ! [au|if|lf|je,2] ([ye]) [ti|.] [co] !
+!cit_form_pc! BC [au|&initial_f|&last_first|&join,&2e] ([ye]) [ti|.] [co] [pl] ! [au|&initial_f|&last_first|&join,2e] ([ye]) [ti|.] [co] !
 ## web site, citation in reference list
-!cit_form_ws! WS [au|if|lf|j,&2e] ([ye]) [ti|.] [jo|i] in [] eds. [] ! [au|if|lf|je,2] ([ye]) [ti|.] [jo|i] [vo][is|p()] !
+!cit_form_ws! WS [au|&initial_f|&last_first|j,&2e] ([ye]) [ti|.] [jo|&ita] in [] eds. [] ! [au|&initial_f|&last_first|&join,2e] ([ye]) [ti|.] [jo|i] [vo][is|&p()] !
 ##
 |cno|Could not open {{f}}|{{f}}を開けません|
 |conv|Conv {{from}} -> {{to}}|変換 {{from}} -> {{to}}|
@@ -2839,6 +2858,7 @@ __DATA__
 |ftf|Found {{t}} as template file|テンプレートファイル{{t}}が見つかりました|
 |idnd|ID {{id}} not defined|ID '{{id}}'は定義されていません|
 |if|input file:|入力ファイル：|
+|ilfi|Illegal filter: {{x}}|不正なフィルター：{{x}}|
 |ll|loaded library: {{lib}}|ライブラリロード完了： {{lib}}|
 |llf|failed to load library '{{lib}}'|ライブラリロード失敗： {{lib}}|
 |mnf|Cannot find Macro '{{m}}'|マクロ「{{m}}」が見つかりません|
