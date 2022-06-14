@@ -2344,12 +2344,12 @@ sub ev{ # <, >, %in%, and so on
   # $x: string or array reference. string: 'a,b|='
   # $v: reference of variables given from wini()
   
-  my(@token) = (ref $x eq '') ? (undef, split(/((?<!\\)[|])/, $x))
+  my(@token) = (ref $x eq '') ? split(/((?<!\\)[|])/, $x)
 #  my(@token) = (ref $x eq '') ? (undef, split(/(?<!\\)[|]/, $x))
-             : (undef, map{ (split(/((?<!\\)[|])/, $_)) } @$x);
+             : map{ (split(/((?<!\\)[|])/, $_)) } @$x;
   
   my @stack;
-  for(my $i=1; $i<=$#token; $i++){
+  for(my $i=0; $i<=$#token; $i++){
     my $t  = $token[$i];
     my $sep0;
     if($t eq '&uc_all'){
