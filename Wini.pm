@@ -450,7 +450,7 @@ sub stand_alone{
     my($date) = call_macro('date');
     $date=~s/\D//g;
     my $x = {au => ['A,a', 'B,b'], jo => []};
-    foreach my $form ("au|1", "au|lastname|join,&", "au|jo then", "au|jo else|join,&"){
+    foreach my $form ("au|&join", "au|&lastname|&join,&", "au|jo then", "au|jo else|&join,&"){
       my $r = cittxt_vals($x, $form);
       print "f=$form: r=$r\n";
     }
@@ -1632,15 +1632,24 @@ sub cittxt_vals{ # subst. "[...]" in reference format to final value
   my($x0, $form, $lang) = @_;
   (defined $x0 and defined $form) or return();
   my($valname, @filter) = split(/\|/, $form);
-  my $y;
-  (exists $x0->{$valname}) or return('');
-  if(ref $x0->{$valname} eq 'ARRAY'){
-    foreach my $x (@{$x0->{$valname}}){
-      push(@$y, $x);
-    }
-  }else{
-    $y = [$x0->{$valname}];
-  }
+#  my $y;
+#  (exists $x0->{$valname}) or return('');
+#  if(ref $x0->{$valname} eq 'ARRAY'){
+#    foreach my $x (@{$x0->{$valname}}){
+#      push(@$y, $x);
+#    }
+#  }else{
+#    $y = [$x0->{$valname}];
+#  }
+
+my @xx =map {
+  s/"/&quot;/g;
+  s/'/&apos;/g;
+  /^[\d&]/ ? $_ : qq!'$_'!;
+} @{$x0->{$valname}}, @filter;
+  my(@r) = ev([@xx], $x0, $lang);
+
+=begin c
   foreach my $f (@filter){
     if($f eq '1'){
       $y = [$y->[0]];
@@ -1740,7 +1749,12 @@ sub cittxt_vals{ # subst. "[...]" in reference format to final value
     }
   #($valname eq 'au') and print STDERR __LINE__, qq! f="$f" !, decode('utf-8', Dumper $y);
   } # foreach @filter
-  return($y->[-1]);
+
+=end c
+
+=cut
+
+  return($r[-1]);
 } # cittxt_val()
 
 sub join_and{ # qw/a b c/ -> "a, b and c"
@@ -2347,7 +2361,6 @@ sub ev{ # <, >, %in%, and so on
   my(@token) = (ref $x eq '') ? split(/((?<!\\)[|])/, $x)
 #  my(@token) = (ref $x eq '') ? (undef, split(/(?<!\\)[|]/, $x))
              : map{ (split(/((?<!\\)[|])/, $_)) } @$x;
-  
   my @stack;
   for(my $i=0; $i<=$#token; $i++){
     my $t  = $token[$i];
@@ -2426,7 +2439,7 @@ sub ev{ # <, >, %in%, and so on
     }elsif($t=~/(\w+) +(then|else)$/){ # if array($1) is empty,...
       (scalar @{$v->{$1}} > 0)  and ($2 eq 'else') and return(());
       (scalar @{$v->{$1}} == 0) and ($2 eq 'then') and return(());
-
+print STDERR "then/else ", Dumper $v->{$1};
 #====
     }elsif($t eq '&uf'){
       push(@stack, ucfirst $stack[-1]); # $token[$i-2]);
