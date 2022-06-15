@@ -450,7 +450,7 @@ sub stand_alone{
     my($date) = call_macro('date');
     $date=~s/\D//g;
     my $x = {au => ['A,a', 'B,b'], jo => []};
-    foreach my $form ("au|&join", "au|&lastname|&join,&", "au|jo then", "au|jo else|&join,&"){
+    foreach my $form ("au|&join", "au|&lastname|&join,&", "au|&if_empty jo", "au|&unless_empty jo|&join,&"){
       my $r = cittxt_vals($x, $form);
       print "f=$form: r=$r\n";
     }
@@ -721,7 +721,7 @@ sub txt{ # multilingual text from text id
   (defined $TXT{$id}) or mes(txt('ut', $lang). ": '$id'", {warn=>1});
   my $t = $TXT{$id}{$lang} || $TXT{$id}{en} || '';
   $t=~s/\{\{(.*?)}}/
-  (defined $par->{$1})        ? $par->{$1} : 'xxx'; 
+  (defined $par->{$1})        ? $par->{$1} : "??? $1"; 
   /ge;
   return($t);
 } # sub txt
@@ -1642,11 +1642,11 @@ sub cittxt_vals{ # subst. "[...]" in reference format to final value
 #    $y = [$x0->{$valname}];
 #  }
 
-my @xx =map {
-  s/"/&quot;/g;
-  s/'/&apos;/g;
-  /^[\d&]/ ? $_ : qq!'$_'!;
-} @{$x0->{$valname}}, @filter;
+  my @xx =map {
+    s/"/&quot;/g;
+    s/'/&apos;/g;
+    /^[\d&]/ ? $_ : qq!'$_'!;
+  } @{$x0->{$valname}}, @filter;
   my(@r) = ev([@xx], $x0, $lang);
 
 =begin c
@@ -2365,6 +2365,7 @@ sub ev{ # <, >, %in%, and so on
   for(my $i=0; $i<=$#token; $i++){
     my $t  = $token[$i];
     my $sep0;
+print STDERR "### $i: $t.\n";
     if($t eq '&uc_all'){
       @stack = (map {uc $_} @stack);
       #      push(@stack, uc      $stack[-1]); # $token[$i-2]);
@@ -2381,18 +2382,18 @@ sub ev{ # <, >, %in%, and so on
       ((scalar @stack)<=$1) and return(()); # if list size is not more than $1, the list is canceled.
     }elsif($t eq '&lastname'){
       map { s/([^,]*),.*/$1/; } @stack;
-    }elsif($t=~/^\&initial_[afl]$/){ # take first letter and capitalize. This should be used before 'fl' or 'fli' filter
+    }elsif($t=~/^\&ini_[afl]$/){ # take first letter and capitalize. This should be used before 'fl' or 'fli' filter
       @stack = map {
       my($last, $first) = /([^,]*), *(.*)/;
       if(defined $last){
-        if($t ne '&initial_l'){ # Initial for the first name
+        if($t ne '&ini_l'){ # Initial for the first name
           my(@first0) = $first=~/\b([A-Z])/g;
           if($first0[0]){
             map {s/(\w)/$1./} @first0;
               $first = join(' ', @first0) . '';
             }
           }
-          if($t ne '&initial_f'){ # Initial for the last name
+          if($t ne '&ini_f'){ # Initial for the last name
             if($last=~/([A-Z])\w*-([A-Z])\w/){ # Yamada-Suzuki -> Y-S.
               $last = "$1-$2.";
             }else{
@@ -2424,30 +2425,35 @@ sub ev{ # <, >, %in%, and so on
                        : join($sep, @$yy);
       ($etal) and (scalar @stack > $n) and $j .= txt('etal', $lang);
       @stack  = ($j);
-    }elsif($t=~/^&l_(.*)$/){ # "abc"|l* -> "*abc"
+    }elsif($t=~/^\&l_(.*)$/){ # "abc"|l* -> "*abc"
       my $p = $1;
       @stack = map {s/^\s*//; "$p$_"} @stack;
-    }elsif($t=~/^&r_(.*)$/){ # "abc"|r* -> "abc*"
+    }elsif($t=~/^\&r_(.*)$/){ # "abc"|r* -> "abc*"
       my $p = $1;
       @stack = map {s/\s*$//; "$_$p"} @stack;
-    }elsif($t eq '&q_'){
-      @stack = map {"'$_'"} @stack;
+    }elsif($t=~/^\&q_(.)?(.)?$/){
+      my($l, $r) = ($1||"'", $2||"'");
+      @stack = map {"${l}$_${r}"} @stack;
     }elsif($t eq '&bold'){
       map {qq{&nbsp;<span style="font-weight:bold">$_</span>}} @stack;
     }elsif($t eq '&ita' or $t eq '&italic'){
       map {qq{&nbsp;<span style="font-style:italic">$_</span>}} @stack;
-    }elsif($t=~/(\w+) +(then|else)$/){ # if array($1) is empty,...
-      (scalar @{$v->{$1}} > 0)  and ($2 eq 'else') and return(());
-      (scalar @{$v->{$1}} == 0) and ($2 eq 'then') and return(());
-print STDERR "then/else ", Dumper $v->{$1};
+    }elsif($t=~/^\&(if|unless)_empty(?: +(\w+))?$/){ # if array($1) is empty,...
+      my($if, $name) = ($1, $2);
+      (exists $v->{$name}) or mes(txt('vnd', $lang, {v=>$name}), {err=>1});
+      (scalar @{$v->{$name}} > 0)  and ($if eq 'unless') and return(());
+      (scalar @{$v->{$name}} == 0) and ($if eq 'if')     and return(());
+print STDERR "then/else ", Dumper $v->{$name};
 #====
-    }elsif($t eq '&uf'){
+    }elsif($t eq '&ucase'){
       push(@stack, ucfirst $stack[-1]); # $token[$i-2]);
-    }elsif($t eq '&l'){
+    }elsif($t eq '&ucase_f'){
+      push(@stack, ucfirst $stack[-1]); # $token[$i-2]);
+    }elsif($t eq '&lcase'){
       push(@stack, lc      $stack[-1]); # $token[$i-2]);
-    }elsif($t eq '&lf'){
+    }elsif($t eq '&lcase_f'){
       push(@stack, lcfirst $stack[-1]); # $token[$i-2]);
-    }elsif($t=~/\&cat([^|]*)$/){
+    }elsif($t=~/^\&cat([^|]*)$/){
       my $sep=$1;
       $sep=~tr{csb}{, |};
       @stack = (join($sep, @stack));
