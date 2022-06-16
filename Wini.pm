@@ -1492,10 +1492,10 @@ sub call_macro{
   }
   my($sep, @f1);
   (defined $MACROS{$macroname})   and return($MACROS{$macroname}(@f));
+  ($macroname=~m{^(\?|!|\?!|!\?)^$}) or                                    # reverse
+  ($macroname=~m{^(|\?!|!\?)=$})     and return(question($macroname, @f)); # ligature
   (($macroname=~m{^[a-zA-Z][-^~"%'`:,.<=/]{1,2}$})             or
   ($macroname=~m{^(AE|ETH|IJ|KK|Eng|CE|ss|AE'|gat|\?!|!\?)$}i) or
-  ($macroname=~m{^(\?|!|\?!|!\?)^$})                           or # reverse
-  ($macroname=~m{^(|\?!|!\?)=$})                               or # ligature
   ($macroname=~m{^'[a-zA-Z]{1,2}$}))                           and return(latin($macroname));
   ($macroname=~/^l$/i)            and return('&#x7b;'); # {
   ($macroname=~/^bar$/i )         and return('&#x7c;'); # |
@@ -2799,6 +2799,16 @@ sub latin_init{
 Ύ 910 Y 'Y
 Ώ 911 O 'OO
 ΐ 912 i i:'
+? 63   ? ?
+! 33  ! !
+¡ 161 ! !^
+¿ 191 ? ?^
+⸘ 11800 ?! ?!^
+‼ 8252 !! !!=
+⁇ 8263 ?? ??=
+⁈ 8264 ?! ?!=
+⁉ 8265 !? !?=
+
 EOD
   foreach my $x1 (split(/\n/, $x0)){
     my(@f) = split(/\s+/, $x1);
@@ -2829,6 +2839,33 @@ sub latin{
     return(undef);
   }
 } # sub latin
+
+sub question{
+  my($macroname, @f) = @_;
+  my($m1, $m2) = $macroname=~/([?!]+)([=^])?/;
+  (scalar keys %latin == 0) and latin_init();
+
+  my($left, $right) = ('','');
+  if(exists $latin{$macroname}){
+    $right = $latin{$macroname};
+    $left  = ($macroname eq '?') ? sprintf('&#%d;', $latin{'?^'})
+           : ($macroname eq '!') ? sprintf('&#%d;', $latin{'!^'}) : undef;
+  }else{ # multiple '!' and/or '?'
+    my @m = split(//, $macroname);
+    for(my $i=$#m; $i>=0; $i--){
+      $left .= $latin{$m[$i.'^']};
+    }
+  }
+
+  if($m2 eq ''){
+  }else{
+  }
+
+  if(defined $f[0]){
+  }else{
+    return
+}
+
 } # env latin
 1;
 
