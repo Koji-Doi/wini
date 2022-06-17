@@ -1486,14 +1486,11 @@ sub call_macro{
   $class_id   .= ($id[0]) ? qq! id="$id[0]"! : '';
   $macroname=~s/^[\n\s]*//;
   $macroname=~s/[\n\s]*$//;
-  if($macroname eq ''){
-    return(span(\@f, $class_id));
-#    return(($class_id) ? qq!<span${class_id}>$f[0]</span>! : $f[0]);
-  }
+  ($macroname eq '') and return(span(\@f, $class_id));
+
   my($sep, @f1);
   (defined $MACROS{$macroname})   and return($MACROS{$macroname}(@f));
-  ($macroname=~m{^(\?|!|\?!|!\?)^$}) or                                    # reverse
-  ($macroname=~m{^(|\?!|!\?)=$})     and return(question($macroname, @f)); # ligature
+  ($macroname=~m{^[!?]+[=^]?$})   and return(question($macroname, @f));
   (($macroname=~m{^[a-zA-Z][-^~"%'`:,.<=/]{1,2}$})             or
   ($macroname=~m{^(AE|ETH|IJ|KK|Eng|CE|ss|AE'|gat|\?!|!\?)$}i) or
   ($macroname=~m{^'[a-zA-Z]{1,2}$}))                           and return(latin($macroname));
@@ -2846,24 +2843,36 @@ sub question{
   (scalar keys %latin == 0) and latin_init();
 
   my($left, $right) = ('','');
-  if(exists $latin{$macroname}){
+print STDERR "macroname=$macroname ",__LINE__,"\n";
+  if($macroname eq '!?=' or $macroname eq '?!='){
+    $right = $latin{$m1};
+  #  $left = $latin{$macroname};
+  }elsif($macroname eq '!?^' or $macroname eq '?!^'){
+    $right = $latin{$m1};
+    $left  = $latin{'?!^'};
+  }elsif(exists $latin{$macroname}){
     $right = $latin{$macroname};
-    $left  = ($macroname eq '?') ? sprintf('&#%d;', $latin{'?^'})
-           : ($macroname eq '!') ? sprintf('&#%d;', $latin{'!^'}) : undef;
+#    $left  = ($macroname eq '?') ? sprintf('&#%d;', $latin{'?^'})
+#           : ($macroname eq '!') ? sprintf('&#%d;', $latin{'!^'}) : undef;
   }else{ # multiple '!' and/or '?'
-    my @m = split(//, $macroname);
-    for(my $i=$#m; $i>=0; $i--){
-      $left .= $latin{$m[$i.'^']};
-    }
   }
 
-  if($m2 eq ''){
+  
+  if($m2 eq '='){
   }else{
   }
 
   if(defined $f[0]){
+    if($left eq ''){
+      my @m = split(//, $m1);
+      for(my $i=$#m; $i>=0; $i--){
+        $left .= $latin{$m[$i.'^']};
+      }
+    }
+    return($left . $f[0] . $right);
   }else{
-    return
+    return($f[0] . $right);
+  }
 }
 
 } # env latin
