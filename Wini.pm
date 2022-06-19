@@ -1489,28 +1489,28 @@ sub call_macro{
   ($macroname eq '') and return(span(\@f, $class_id));
 
   my($sep, @f1);
-  (defined $MACROS{$macroname})   and return($MACROS{$macroname}(@f));
-  ($macroname=~m{^[!?]+[=^]?$})   and return(question($macroname, @f));
-  (($macroname=~m{^[a-zA-Z][-^~"%'`:,.<=/]{1,2}$})             or
-  ($macroname=~m{^(AE|ETH|IJ|KK|Eng|CE|ss|AE'|gat|\?!|!\?)$}i) or
-  ($macroname=~m{^'[a-zA-Z]{1,2}$}))                           and return(latin($macroname));
-  ($macroname=~/^l$/i)            and return('&#x7b;'); # {
-  ($macroname=~/^bar$/i )         and return('&#x7c;'); # |
-  ($macroname=~/^r$/i)            and return('&#x7d;'); # }
+  (defined $MACROS{$macroname})     and return($MACROS{$macroname}(@f));
+  ($macroname=~m{^[!?]+[=^]{0,2}$}) and return(question($macroname, @f));
+  (($macroname=~m{^[a-zA-Z][-^~"%'`:,.<=/]{1,2}$})     or
+  ($macroname=~m{^(AE|ETH|IJ|KK|Eng|CE|ss|AE'|gat)$}i) or
+  ($macroname=~m{^'[a-zA-Z]{1,2}$}))                   and return(latin($macroname));
+  ($macroname=~/^l$/i)              and return('&#x7b;'); # {
+  ($macroname=~/^bar$/i )           and return('&#x7c;'); # |
+  ($macroname=~/^r$/i)              and return('&#x7d;'); # }
   ($macroname=~/^([=-]([fh*]*-)?+[>v^ud]+|[<v^ud]+[=-]([fh*]*-)?+)/i)
-                                  and return(arrow($macroname, @f));
-  ($macroname=~m{^[!-/:-@\[-~]$}) and (not defined $f[0]) and 
+                                    and return(arrow($macroname, @f));
+  ($macroname=~m{^[!-/:-@\[-~]$})   and (not defined $f[0]) and 
     return('&#x'.unpack('H*',$macroname).';'); # char -> ascii code
-  ($macroname=~/^\@$/)            and return(term(\@f)); # abbr
-  ($macroname=~/^(rr|ref|cit)$/i) and return(cit(\@f, $opt->{_v})); # reference
+  ($macroname=~/^\@$/)              and return(term(\@f)); # abbr
+  ($macroname=~/^(rr|ref|cit)$/i)   and return(cit(\@f, $opt->{_v})); # reference
   ($macroname=~/^(cit|ref)list$/i)  and return("${MI}###${MI}t=citlist${MO}");
   ($macroname=~/^(date|time|dt)$/i) and return(date([@f, "type=$1"],  $opt->{_v}));
   ($macroname=~/^(stack)$/i)      and (
      ($sep, @f1) = ($f[0], @f[1..$#f]),
      return(join($sep, (ev(\@f1, $opt->{_v}))))
   );
-  ($macroname=~/^calc$/i)         and return((ev(\@f, $opt->{_v}))[-1]);
-  ($macroname=~/^va$/i)           and return(
+  ($macroname=~/^calc$/i)           and return((ev(\@f, $opt->{_v}))[-1]);
+  ($macroname=~/^va$/i)             and return(
     (defined $opt->{_v}{$f[0]}) ? $opt->{_v}{$f[0]} : (mes(txt('vnd', {v=>$f[0]}), {warn=>1}), '')
   );
   ($macroname=~/^envname$/i)      and return($ENVNAME);
@@ -2551,10 +2551,10 @@ my %latin;
 sub latin_init{
 =begin c
 '  acute accent
-=  breve accent
+=  breve accent/ligature
 <  caron accent
 ,  cedilla accent
-^  circumflex accent
+^  circumflex accent/inverted
 :  dieresis or umlaut mark
 .  dot accent
 `  grave accent
@@ -2796,11 +2796,12 @@ sub latin_init{
 Ύ 910 Y 'Y
 Ώ 911 O 'OO
 ΐ 912 i i:'
-? 63   ? ?
+? 63  ? ?
 ! 33  ! !
 ¡ 161 ! !^
 ¿ 191 ? ?^
-⸘ 11800 ?! ?!^
+‽ 8253 ?! ?!==
+⸘ 11800 ?! ?!=^
 ‼ 8252 !! !!=
 ⁇ 8263 ?? ??=
 ⁈ 8264 ?! ?!=
@@ -2837,6 +2838,15 @@ sub latin{
   }
 } # sub latin
 
+sub ncr{ #numeric character reference
+  my(@x) = @_; # $x should be integer
+  my $out = '';
+  foreach my $x0 (@x){
+    $out .= '&#'.$x0.';';
+  }
+  return($out);
+}
+  
 sub question{
   my($macroname, @f) = @_;
   my($m1, $m2) = $macroname=~/([?!]+)([=^])?/;
@@ -2845,32 +2855,32 @@ sub question{
   my($left, $right) = ('','');
 print STDERR "macroname=$macroname ",__LINE__,"\n";
   if($macroname eq '!?=' or $macroname eq '?!='){
-    $right = $latin{$m1};
-  #  $left = $latin{$macroname};
+    $right = ncr($latin{'?!='});
+    $left  = ($macroname eq '!?') ? ncr($latin{'!^'}, $latin{'?^'}) : ncr($latin{'?^'}, $latin{'!^'});
   }elsif($macroname eq '!?^' or $macroname eq '?!^'){
-    $right = $latin{$m1};
-    $left  = $latin{'?!^'};
-  }elsif(exists $latin{$macroname}){
-    $right = $latin{$macroname};
-#    $left  = ($macroname eq '?') ? sprintf('&#%d;', $latin{'?^'})
-#           : ($macroname eq '!') ? sprintf('&#%d;', $latin{'!^'}) : undef;
+    $right = ncr($latin{$macroname});
+    $left  = ncr($latin{'?!^'});
+#  }elsif(exists $latin{$macroname}){
+#    $right = ncr($latin{$macroname});
   }else{ # multiple '!' and/or '?'
+    my @m = split(//, $m1);
+    for(my $i=0; $i<=$#m; $i++){
+      $right .= ncr($latin{$m[$i]});
+      $left  =  ncr($latin{$m[$i].'^'}) . $left;
+    }
   }
-
-  
-  if($m2 eq '='){
-  }else{
-  }
+print STDERR "left=$left, right=$right. ",__LINE__,"\n";
 
   if(defined $f[0]){
-    if($left eq ''){
-      my @m = split(//, $m1);
-      for(my $i=$#m; $i>=0; $i--){
-        $left .= $latin{$m[$i.'^']};
-      }
-    }
+    #if($left eq ''){
+    #  my @m = split(//, $m1);
+    #  for(my $i=$#m; $i>=0; $i--){
+    #    $left .= $latin{$m[$i.'^']};
+    #  }
+    #}
     return($left . $f[0] . $right);
   }else{
+    print STDERR "WWWW $f[0].$right.\n";
     return($f[0] . $right);
   }
 }
