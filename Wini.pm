@@ -2857,9 +2857,16 @@ print STDERR "macroname=$macroname ",__LINE__,"\n";
   if($macroname eq '!?=' or $macroname eq '?!='){
     $right = ncr($latin{'?!='});
     $left  = ($macroname eq '!?') ? ncr($latin{'!^'}, $latin{'?^'}) : ncr($latin{'?^'}, $latin{'!^'});
-  }elsif($macroname eq '!?^' or $macroname eq '?!^'){
-    $right = ncr($latin{$macroname});
-    $left  = ncr($latin{'?!^'});
+  }elsif($macroname eq '!?==' or $macroname eq '?!=='){
+    $right = ncr($latin{'?!=='});
+    $left  = ncr($latin{'?!=^'});
+  }elsif($macroname eq '!^'){
+    $right = $left = ncr($latin{'!^'});
+  }elsif($macroname eq '?^'){
+    $right = $left = ncr($latin{'?^'});
+#  }elsif($macroname eq '!?^' or $macroname eq '?!^'){
+#    $right = ncr($latin{$macroname});
+#    $left  = ncr($latin{'?!^'});
 #  }elsif(exists $latin{$macroname}){
 #    $right = ncr($latin{$macroname});
   }else{ # multiple '!' and/or '?'
