@@ -2356,13 +2356,11 @@ sub ev{ # <, >, %in%, and so on
   # $v: reference of variables given from wini()
   
   my(@token) = (ref $x eq '') ? split(/((?<!\\)[|])/, $x)
-#  my(@token) = (ref $x eq '') ? (undef, split(/(?<!\\)[|]/, $x))
              : map{ (split(/((?<!\\)[|])/, $_)) } @$x;
   my @stack;
   for(my $i=0; $i<=$#token; $i++){
     my $t  = $token[$i];
     my $sep0;
-print STDERR "### $i: $t.\n";
     if($t eq '&uc_all'){
       @stack = (map {uc $_} @stack);
       #      push(@stack, uc      $stack[-1]); # $token[$i-2]);
@@ -2423,12 +2421,12 @@ print STDERR "### $i: $t.\n";
       ($etal) and (scalar @stack > $n) and $j .= txt('etal', $lang);
       @stack  = ($j);
     }elsif($t=~/^\&l_(.*)$/){ # "abc"|l* -> "*abc"
-      my $p = $1;
+      my $p = $1 || '*';
       @stack = map {s/^\s*//; "$p$_"} @stack;
     }elsif($t=~/^\&r_(.*)$/){ # "abc"|r* -> "abc*"
-      my $p = $1;
+      my $p = $1 || '.';
       @stack = map {s/\s*$//; "$_$p"} @stack;
-    }elsif($t=~/^\&q_(.)?(.)?$/){
+    }elsif($t=~/^\&q_(.)?(.)?$/){ # "abc"|&q_ -> "'abc'"; "abc"|&q_() -> "(abc)"
       my($l, $r) = ($1||"'", $2||"'");
       @stack = map {"${l}$_${r}"} @stack;
     }elsif($t eq '&bold'){
@@ -2440,7 +2438,6 @@ print STDERR "### $i: $t.\n";
       (exists $v->{$name}) or mes(txt('vnd', $lang, {v=>$name}), {err=>1});
       (scalar @{$v->{$name}} > 0)  and ($if eq 'unless') and return(());
       (scalar @{$v->{$name}} == 0) and ($if eq 'if')     and return(());
-print STDERR "then/else ", Dumper $v->{$name};
 #====
     }elsif($t eq '&ucase'){
       push(@stack, ucfirst $stack[-1]); # $token[$i-2]);
@@ -2906,13 +2903,13 @@ __DATA__
 |cit_inline_ja| ({{au}}, {{ye}}) | ({{au}}, {{ye}})|
 !cit_form! [au|initial_f|last_first|&join,a2e] [ye|&p_] [ti|.] [jo|&ita] [vo][is|&p_()] ! [au|&lastname|&join,2e] [ye|&p_] [ti|.] [jo|&ita] [vo][is|&p_] !
 ## journal article, citation in reference list
-!cit_form_ja! [au|&initial_f|&last_first|&join,a2e] [ye|&p_] [ti|.] [jo|&ita] [vo][is|&p()] ! [au|lastname|join,2e] ([ye]) [ti|.] [jo|&ita] [vo][is|&p_()] !
+!cit_form_ja! [au|&initial_f|&last_first|&join,a2e] [ye|&q_()] [ti|.] [jo|&ita] [vo][is|&q_()] ! [au|&lastname|&join,2e] [ye|&q_()] [ti|&r_] [jo|&ita] [vo][is|&q_()] !
 ## book chapter, citation in reference list
-!cit_form_bc! BC [au|&initial_f|&last_first|&join,&2e] [ye|&p_] [ti|.] In [bo] ! [au|&initial_f|&last_first|&join,2e] ([ye]) [ti|.] [jo|&ita] [vo][is|&p()] !
+!cit_form_bc! BC [au|&initial_f|&last_first|&join,&2e] [ye|&q_()] [ti|&r_] In [bo] ! [au|&initial_f|&last_first|&join,2e] [ye|&q_()] [ti|&r_] [jo|&ita] [vo][is|&q_()] !
 ## conference proceedings
-!cit_form_pc! BC [au|&initial_f|&last_first|&join,&2e] ([ye]) [ti|.] [co] [pl] ! [au|&initial_f|&last_first|&join,2e] ([ye]) [ti|.] [co] !
+!cit_form_pc! BC [au|&initial_f|&last_first|&join,&2e] [ye|&q_()] [ti|&r_] [co] [pl] ! [au|&initial_f|&last_first|&join,2e] [ye|&q_()] [ti|&r_] [co] !
 ## web site, citation in reference list
-!cit_form_ws! WS [au|&initial_f|&last_first|j,&2e] ([ye]) [ti|.] [jo|&ita] in [] eds. [] ! [au|&initial_f|&last_first|&join,2e] ([ye]) [ti|.] [jo|i] [vo][is|&p()] !
+!cit_form_ws! WS [au|&initial_f|&last_first|&join,&2e] [ye|&q_()] [ti|&r_] [jo|&ita] in [] eds. [] ! [au|&initial_f|&last_first|&join,2e] [ye|&q_()] [ti|&r_] [jo|&ita] [vo][is|&q_()] !
 ##
 |cno|Could not open {{f}}|{{f}}を開けません|
 |conv|Conv {{from}} -> {{to}}|変換 {{from}} -> {{to}}|
