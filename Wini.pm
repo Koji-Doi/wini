@@ -2850,7 +2850,6 @@ sub question{
   (scalar keys %latin == 0) and latin_init();
 
   my($left, $right) = ('','');
-print STDERR "macroname=$macroname ",__LINE__,"\n";
   if($macroname eq '!?=' or $macroname eq '?!='){
     $right = ncr($latin{'?!='});
     $left  = ($macroname eq '!?') ? ncr($latin{'!^'}, $latin{'?^'}) : ncr($latin{'?^'}, $latin{'!^'});
@@ -2861,11 +2860,6 @@ print STDERR "macroname=$macroname ",__LINE__,"\n";
     $right = $left = ncr($latin{'!^'});
   }elsif($macroname eq '?^'){
     $right = $left = ncr($latin{'?^'});
-#  }elsif($macroname eq '!?^' or $macroname eq '?!^'){
-#    $right = ncr($latin{$macroname});
-#    $left  = ncr($latin{'?!^'});
-#  }elsif(exists $latin{$macroname}){
-#    $right = ncr($latin{$macroname});
   }else{ # multiple '!' and/or '?'
     my @m = split(//, $m1);
     for(my $i=0; $i<=$#m; $i++){
@@ -2873,7 +2867,6 @@ print STDERR "macroname=$macroname ",__LINE__,"\n";
       $left  =  ncr($latin{$m[$i].'^'}) . $left;
     }
   }
-print STDERR "left=$left, right=$right. ",__LINE__,"\n";
 
   if(defined $f[0]){
     #if($left eq ''){
@@ -2884,7 +2877,6 @@ print STDERR "left=$left, right=$right. ",__LINE__,"\n";
     #}
     return($left . $f[0] . $right);
   }else{
-    print STDERR "WWWW $f[0].$right.\n";
     return($f[0] . $right);
   }
 }
