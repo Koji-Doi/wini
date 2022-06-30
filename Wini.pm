@@ -449,13 +449,17 @@ sub stand_alone{
     init();
     my($date) = call_macro('date');
     $date=~s/\D//g;
-    my $x = {au => ['A,a', 'B,b'], jo => []};
-    foreach my $form ("au|&join", "au|&lastname|&join,&", "au|&if_empty jo", "au|&unless_empty jo|&join,&"){
-      my $r = cittxt_vals($x, $form);
-      print "f=$form: r=$r\n";
+    my @x = (
+      {au => ['A,a', 'B,b'], jo => []},
+      {au => ['A,a', 'B,b'], jo => ['Journal of Biology']},
+    );
+    foreach my $x (@x){
+      print "\n====\n",Dumper $x;
+      foreach my $form ("au|&join", "au|&lastname|&join,&", "au|&if_empty jo|&join,&", "au|&unless_empty jo|&join,&"){
+        my $r = cittxt_vals($x, $form);
+        print "f=$form: r=$r\n";
+      }
     }
-    $DB::single=$DB::single=1;
-    1;
     exit;
   }
 
@@ -519,43 +523,44 @@ sub read_bib{
     if($fileformat eq 'endnote'){
 
 =begin c
-%A 	Author 	
-%B 	Secondary title 	of a book or conference name
-%C 	Place published 	
-%D 	Year 	
-%E 	Editor/Secondary author 	
-%F 	Label 	
-%G 	Language 	
-%H 	Translated author 	
-%I 	Publisher 	
-%J 	Journal name 	
+%x: enw firmat, [x]: pubmed reference (nbib) format, (x): ris format
+%A 	Author 	(AU) (A1)
+%B 	Secondary title of a book or conference name	(T2)(CONF)
+%C 	Place published	(CY)
+%D 	Year 	() (Y1)(PY)
+%E 	Editor/Secondary author 	(ED)
+%F 	Label 	(LB)
+%G 	Language 	(LA)
+%H 	Translated author	(TA)
+%I 	Publisher 	(PB)
+%J 	Journal name 	() (JO)
 %K 	Keywords 	
 %L 	Call number 	
-%M 	Accession number 	
-%N 	Number 	or issue
-%O 	Alternate title 	
-%P 	Pages 	
-%Q 	Translated title 	
-%R 	DOI 	digital object identifier
-%S 	Tertiary title 	
-%T 	Title 	
-%U 	URL 	
-%V 	Volume 	
-%W 	Database provider 	
-%X 	Abstract 	
+%M 	Accession number 	(AN)
+%N 	Number 	or issue	(IS)
+%O 	Alternate title 	(J2) this field is used for the abbreviated title of a book or journal name, the latter mapped to T2
+%P 	Pages 	(SP,EP)
+%Q 	Translated title 	(TT)
+%R 	DOI 	digital object identifier	(DO)
+%S 	Tertiary title 	(T3)
+%T 	Title 	(TI)(T1)
+%U 	URL 	(UR)
+%V 	Volume 	() (VL)
+%W 	Database provider 	(DP)
+%X 	Abstract 	(AB)
 %Y 	Tertiary author/Translator 	
 %Z 	Notes 	
-%0 	Reference type 	see right table
+%0 	Reference type 	(TY) must be the first tag of each record
 %1 	Custom 1 	
 %2 	Custom 2 	
 %3 	Custom 3 	
 %4 	Custom 4 	
-%6 	Number of volumes 	
-%7 	Edition 	
+%6 	Number of volumes 	(NV)
+%7 	Edition	(ET)
 %8 	Date 	
-%9 	Type of work 	
+%9 	Type of work 	(M3)
 %? 	Subsidiary author 	
-%@ 	ISBN/ISSN 	ISBN or ISSN number
+%@ 	ISBN/ISSN 	ISBN or ISSN number	(SN)
 %! 	Short title 	
 %# 	Custom 5 	
 %$ 	Custom 6 	
@@ -564,11 +569,11 @@ sub read_bib{
 %( 	Original publication 	
 %) 	Reprint edition 	
 %* 	Reviewed item 	
-%+ 	Author address 	
+%+ 	Author address 	(AD)
 %^ 	Caption 	
 %> 	File attachments 	
 %< 	Research notes 	
-%[ 	Access date 	
+%[ 	Access date 	(Y2)
 %= 	Custom 8 	
 %~ 	Name of database
 =end c
@@ -1603,10 +1608,10 @@ aaa 1:{{ref|kirk2022}}, 2:{{ref|gal2021a}} 2:{{ref|gal2021a}}.
 
 EOD
   my($html) = to_html($x);
-print STDERR "\n\n----------------\n";
+#print STDERR "\n\n----------------\n";
 #print STDERR "*** REF\n", Dumper %REF;
 #print STDERR "*** REFASSIGN\n", Dumper %REFASSIGN;
-print STDERR "----------------\n\n";
+#print STDERR "----------------\n\n";
   return($html);
 }
 
@@ -1629,127 +1634,12 @@ sub cittxt_vals{ # subst. "[...]" in reference format to final value
   my($x0, $form, $lang) = @_;
   (defined $x0 and defined $form) or return();
   my($valname, @filter) = split(/\|/, $form);
-#  my $y;
-#  (exists $x0->{$valname}) or return('');
-#  if(ref $x0->{$valname} eq 'ARRAY'){
-#    foreach my $x (@{$x0->{$valname}}){
-#      push(@$y, $x);
-#    }
-#  }else{
-#    $y = [$x0->{$valname}];
-#  }
-
   my @xx =map {
     s/"/&quot;/g;
     s/'/&apos;/g;
     /^[\d&]/ ? $_ : qq!'$_'!;
   } @{$x0->{$valname}}, @filter;
   my(@r) = ev([@xx], $x0, $lang);
-
-=begin c
-  foreach my $f (@filter){
-    if($f eq '1'){
-      $y = [$y->[0]];
-    }elsif($f eq 'number'){
-      $y = [scalar @$y];
-    }elsif($f=~/^morethan(\d+)/){ # if list size is not more than $1, the list is canceled.
-      ($1 > scalar @$y) and return([]);
-    }elsif($f eq 'lastname'){
-      $y = [map {
-        s/([^,]*),.*/$1/;
-        $_;
-      } @$y ];
-    }elsif($f=~/^initial_[afl]$/){ # take first letter and capitalize. This should be used before 'fl' or 'fli' filter
-      my $y0=$y; #test
-      $y = [map {
-        my($last, $first) = /([^,]*), *(.*)/;
-        if(defined $last){
-          if($f ne 'initial_l'){ # Initial for the first name
-            my(@first0) = $first=~/\b([A-Z])/g;
-            if($first0[0]){
-              map {s/(\w)/$1./} @first0;
-              $first = join(' ', @first0) . '';
-            }
-          }
-          if($f ne 'initial_f'){ # Initial for the last name
-            if($last=~/([A-Z])\w*-([A-Z])\w/){ # Yamada-Suzuki -> Y-S.
-              $last = "$1-$2.";
-            }else{
-              my(@l) = $last=~/\b([A-Z])/g;
-              $last  = join(' ', map {($_ eq '') ? '' : "$_."} @l);
-            }
-          }
-          join(', ', grep {/\S/} ($last, $first));
-        }else{
-          ''
-        }
-      } @$y ];
-    }elsif($f eq 'last_first' or $f eq 'last_first_initial'){ # Last, First
-      ($y->[0]=~/^"/) or $y = [map {
-       my($last, $first) = /([^,]*)(?:, *(.*))?/;
-       ($f eq 'last_first_initial') and ($last, $first) = ((uc substr($last,0,1)), (uc substr($first,0,1)));
-       join(', ', grep {/\S/} ($last, $first));
-      } @$y];
-    }elsif($f eq 'first_last' or $f eq 'first_last_initial'){ # First Last
-      ($y->[0]=~/^"/) or $y = [map {my($last, $first) = /([^,]*), +(.*)/; "${first} ${last}"} @$y ];
-    }elsif($f eq 'uc_all'){
-      $y = [map {uc $_} @$y];
-    }elsif($f eq 'uc_first'){
-      $y = [map {ucfirst(lc $_)} @$y];
-    }elsif($f=~/^(\d)+(?:-(\d+))?$/){ # list slice
-      my($first,$last) = ($1-1, ($2||scalar @$y)-1);
-      $y = [grep {defined $_ and $_ ne ''} @$y[$first..$last]];
-    }elsif($f=~/^join([,;])?([a&])?(\d*)(e)?$/){ #join
-      # , : a, b, c,
-      # ; : a; b; c;
-      # ,a: a, b and c
-      # ,&: a, b & c
-      # ;&: a; b & c
-      # 2e: a, b et al.
-      # 3e: a, b, c et al.
-      my $sep = ($1) ? "$1 " : ', ';
-      my $a0  = ($2 eq '') ? ' ' : ($2 eq 'a') ? ' and ' : ' &amp; ';
-      my $and = txt('cit_and', $lang, {and=>$a0});
-      my $n   = ($3 and $3<scalar @$y) ? $3 : scalar @$y;
-      my $etal= $4;
-      my $yy  = ($n) ? [(@$y)[0..($n-1)]] : $y;
-      my $j   = ($and) ? (($#$yy) ? join($sep, @$yy[0..$#$yy-1]) . $and . $yy->[-1]
-                                  : $yy->[0])
-                       : join($sep, @$yy);
-      ($etal) and (scalar @$y > $n) and $j .= txt('etal', $lang);
-      $y      = [$j];
-    }elsif($f=~/^l_(.*)$/){ # "abc"|l* -> "*abc"
-      my $p = $1;
-      $y = [map {s/^\s*//; "$p$_"} @$y];
-    }elsif($f=~/^r_(.*)$/){ # "abc"|r* -> "abc*"
-      my $p = $1;
-      $y = [map {s/\s*$//; "$_$p"} @$y];
-    }elsif($f eq 'q_'){
-      $y = [ map {"'$_'"} @$y];
-    }elsif($f eq 'qq_'){
-      $y = [ map {qq!"$_"!} @$y];
-    }elsif($f=~/^p_(.)?(.)?$/){
-      my($left, $right) = ($1||'(', $2||')');
-      $y = [ map {"($_)"} @$y];
-    }elsif($f=~/^br_(.)?(.)?$/){ # "abc"|br() -> "(abc)"
-      my($o, $c) = ($1 eq '' and $2 eq '') ? qw/( )/ : ($1, $2);
-      $y = [ map {$1 . $_ . $2} @$y];
-    }elsif($f eq '.'){
-      (defined $y->[-1]) and $y->[-1] .= '.';
-    }elsif($f eq 'bold'){
-      $y = [ map {qq{&nbsp;<span style="font-weight:bold">$_</span>}} @$y];
-    }elsif($f eq 'ita' or $f eq 'italic'){
-      $y = [ map {qq{&nbsp;<span style="font-style:italic">$_</span>}} @$y];
-    }elsif($f=~/(\w+) +(then|else)$/){ # if array($1) is empty,...
-      (scalar @{$x0->{$1}} > 0)  and ($2 eq 'else') and return('');
-      (scalar @{$x0->{$1}} == 0) and ($2 eq 'then') and return('');
-    }
-  #($valname eq 'au') and print STDERR __LINE__, qq! f="$f" !, decode('utf-8', Dumper $y);
-  } # foreach @filter
-
-=end c
-
-=cut
 
   return($r[-1]);
 } # cittxt_val()
@@ -2364,13 +2254,13 @@ sub ev{ # <, >, %in%, and so on
     if($t eq '&uc_all'){
       @stack = (map {uc $_} @stack);
       #      push(@stack, uc      $stack[-1]); # $token[$i-2]);
-    }elsif($t eq '&last_first' or ($sep0)=$t=~/\&last_first_initial([,.])?/ or # "Lastname, Firstname"
-           $t eq '&first_last' or ($sep0)=$t=~/\&first_last_initial([,.])?/){  # "Firstname Lastname"
+    }elsif($t eq '&last_first' or ($sep0)=$t=~/\&last_first_ini([,.])?/ or # "Lastname, Firstname"
+           $t eq '&first_last' or ($sep0)=$t=~/\&first_last_ini([,.])?/){  # "Firstname Lastname"
       my $sep    = ($sep0 eq ',') ? ', ' : ' ';
       my $period = ($sep0 eq '.') ? '.'  : '';
       @stack = map {
          my($last, $first) = /([^,]*)(?:, *(.*))?/;
-         ($t=~/initial/) and ($last, $first) = ((uc(substr($last,0,1))).$period, ((uc(substr($first,0,1))).$period));
+         ($t=~/ini/) and ($last, $first) = ((uc(substr($last,0,1))).$period, ((uc(substr($first,0,1))).$period));
          join($sep, ($t=~/\&last/) ? ($last, $first) : ($first, $last));
       } @stack;
     }elsif($t=~/^\&morethan *(\d+)/){
@@ -2867,18 +2757,7 @@ sub question{
       $left  =  ncr($latin{$m[$i].'^'}) . $left;
     }
   }
-
-  if(defined $f[0]){
-    #if($left eq ''){
-    #  my @m = split(//, $m1);
-    #  for(my $i=$#m; $i>=0; $i--){
-    #    $left .= $latin{$m[$i.'^']};
-    #  }
-    #}
-    return($left . $f[0] . $right);
-  }else{
-    return($f[0] . $right);
-  }
+  return((defined $f[0]) ? ($left . $f[0] . $right) : $right);
 }
 
 } # env latin
@@ -2893,15 +2772,15 @@ __DATA__
 |cit_and| &nbsp;{{and}}&nbsp; |，|
 ## jornal article, in-line citation
 |cit_inline_ja| ({{au}}, {{ye}}) | ({{au}}, {{ye}})|
-!cit_form! [au|initial_f|last_first|&join,a2e] [ye|&p_] [ti|.] [jo|&ita] [vo][is|&p_()] ! [au|&lastname|&join,2e] [ye|&p_] [ti|.] [jo|&ita] [vo][is|&p_] !
+!cit_form! [au|&ini_f|&last_first_ini,|&join;a2e] [ye|&q_()] [ti|&r_] [jo|&ita] [vo][is|&q_()] ! [au|&lastname|&join,2e] [ye|&q_()] [ti|&r_] [jo|&ita] [vo][is|&q_()] !
 ## journal article, citation in reference list
-!cit_form_ja! [au|&initial_f|&last_first|&join,a2e] [ye|&q_()] [ti|.] [jo|&ita] [vo][is|&q_()] ! [au|&lastname|&join,2e] [ye|&q_()] [ti|&r_] [jo|&ita] [vo][is|&q_()] !
+!cit_form_ja! [au|&ini_f|&last_first_ini,|&join;a2e] [ye|&q_()] [ti|&r_] [jo|&ita] [vo][is|&q_()] ! [au|&lastname|&join,2e] [ye|&q_()] [ti|&r_] [jo|&ita] [vo][is|&q_()] !
 ## book chapter, citation in reference list
-!cit_form_bc! BC [au|&initial_f|&last_first|&join,&2e] [ye|&q_()] [ti|&r_] In [bo] ! [au|&initial_f|&last_first|&join,2e] [ye|&q_()] [ti|&r_] [jo|&ita] [vo][is|&q_()] !
+!cit_form_bc! BC [au|&ini_f|&last_first_ini,|&join;&2e] [ye|&q_()] [ti|&r_] In [bo] ! [au|&ini_f|&last_first|&join,2e] [ye|&q_()] [ti|&r_] [jo|&ita] [vo][is|&q_()] !
 ## conference proceedings
-!cit_form_pc! BC [au|&initial_f|&last_first|&join,&2e] [ye|&q_()] [ti|&r_] [co] [pl] ! [au|&initial_f|&last_first|&join,2e] [ye|&q_()] [ti|&r_] [co] !
+!cit_form_pc! BC [au|&ini_f|&last_first_ini,|&join;&2e] [ye|&q_()] [ti|&r_] [co] [pl] ! [au|&ini_f|&last_first|&join,2e] [ye|&q_()] [ti|&r_] [co] !
 ## web site, citation in reference list
-!cit_form_ws! WS [au|&initial_f|&last_first|&join,&2e] [ye|&q_()] [ti|&r_] [jo|&ita] in [] eds. [] ! [au|&initial_f|&last_first|&join,2e] [ye|&q_()] [ti|&r_] [jo|&ita] [vo][is|&q_()] !
+!cit_form_ws! WS [au|&ini_f|&last_first_ini,|&join;&2e] [ye|&q_()] [ti|&r_] [jo|&ita] in [] eds. [] ! [au|&ini_f|&last_first|&join,2e] [ye|&q_()] [ti|&r_] [jo|&ita] [vo][is|&q_()] !
 ##
 |cno|Could not open {{f}}|{{f}}を開けません|
 |conv|Conv {{from}} -> {{to}}|変換 {{from}} -> {{to}}|
