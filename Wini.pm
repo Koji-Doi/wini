@@ -460,10 +460,14 @@ sub stand_alone{
         print "f=$form: r=$r\n";
       }
     }
+    my($deref, $html) = to_html('[!a.png|#123]');
+print Dumper $deref;
+print Dumper $html;
     exit;
   }
 
   # output
+  my @flds = qw/type count lang text/;
   if(scalar @$outf>1){
     # 1. multiple infile -> multiple outfile (1:1)
     for(my $i=0; $i<=$#$inf; $i++){
@@ -480,6 +484,16 @@ sub stand_alone{
       $winitxt=~s/\x{FEFF}//; # remove BOM if exists
       my($htmlout) = to_html($winitxt, {indir=>$ind, dir=>getcwd(), whole=>$whole, cssfile=>$cssfile, title=>$title, cssflameworks=>\@cssflameworks});
       print {$fho} $htmlout;
+      open(my $fho_ref, '>:utf8', (defined $outf->[0]) ? $outf->[0].'.ref' : 'STDOUT.ref');
+      print {$fho_ref} join("\t", 'id', @flds), "\n";
+      foreach my $id (sort keys %REF){
+        print {$fho_ref} $id;
+        foreach my $f (@flds){
+          print {$fho_ref} "\t$REF{$f}";
+        }
+        print {$fho_ref} "\n";
+      }
+
     }
   }else{
     # 2. infiles -> one outfile or STDOUT
@@ -504,6 +518,15 @@ sub stand_alone{
     } @$inf;
     my($htmlout) = to_html($winitxt, {indir=>$ind, dir=>getcwd(), whole=>$whole, cssfile=>$cssfile, title=>$title, cssflameworks=>\@cssflameworks});
     print {$fho} $htmlout;
+    open(my $fho_ref, '>:utf8', (defined $outf->[0]) ? $outf->[0].'.ref' : 'STDOUT.ref');
+    print {$fho_ref} join("\t", 'id', @flds), "\n";
+    foreach my $id (sort keys %REF){
+      print {$fho_ref} $id;
+      foreach my $f (@flds){
+        print {$fho_ref} "\t$REF{$f}";
+      }
+      print {$fho_ref} "\n";
+    }
   }
 #  print STDERR "dump for ref: ", Dumper %REF;
 #  print STDERR "dump for refcount: ", Dumper %REFCOUNT;
@@ -1203,6 +1226,7 @@ sub deref{
   my $seq=0;
   $r=~s!(${MI}([^${MI}${MO}]+)${MI}t=(?:(fig|tbl|cit))?(?:${MI}l=([^${MI}${MO}]+))?${MO})!
     my($r0, $id, $type, $lang) = ($1, $2, $3, $4);
+print STDERR "(r0, id, type, lang) = ($r0, $id, $type, $lang)\n";
     (not $type and not $REF{$id}) and mes(txt('idnd', '', {id=>$id}), {err=>1});
     if(defined $REF{$id}{order}){
       $type = $REF{$id}{type} || mes(txt('idnd', '', {id=>$id}), {warn=>1});
@@ -1244,7 +1268,9 @@ sub deref{
       }
       $o.="</ul>\n";
   !ge;
-
+print '!! check %REF and $r',"\n";
+  $DB::single=1;
+1;
   return($r);
 } # sub deref
 }
@@ -1699,6 +1725,7 @@ sub cit{
 
 sub ref_tmp_txt{
   # make temporal ref template, "${MI}id.*{MO}"
+print STDERR "RRRR ", @_, "FFFF\n";
   my $par        = readpars(\@_, qw/id type lang/);
   my($id, $type, $lang, $dup) = map {$par->{$_}[-1]} qw/id type lang dup/;
   my $lang1 = ($lang eq '') ? '' : "${MI}l=${lang}";
@@ -1771,7 +1798,7 @@ sub anchor_from_md{
 }
 
 sub anchor{
-# [! image.png text]
+# [!image.png text]
 # [!"image.png" text]
 # [!!image.png|#x text] # figure
 # [!image.png|< text]   # img with float:left
@@ -1792,7 +1819,7 @@ sub anchor{
   my $style            = ($opts=~/</) ? "float: left;" : ($opts=~/>/) ? "float: right;" : '';
   ($style) and $style  = qq{ style="$style"};
   my($id)              = $opts=~/#([-\w]+)/;
-  ($id=~/^\d+$/) and $id = "fig$id";
+  ($id=~/^\d+$/) and (my $id_n, $id) = ($id, "fig$id");
   my @classes          = $opts=~/\.([-\w]+)/g;
   my($width,$height)   = ($opts=~/(\d+)x(\d+)/)?($1,$2):(0,0);
   my $imgopt           = ($width>0)?qq{ width="$width"}:'';
@@ -1802,11 +1829,17 @@ sub anchor{
   if($prefix=~/[!?]/){ # img, figure
     my $class = join(' ', @classes); ($class) and $class = qq{ class="$class"};
     if(defined $id){
-      my $img_id0 = $id; # temp_id;
-      $img_id0=~s{^(\d)}{fig$1}; # img_id0: "fig111"
-      my $reftxt = ref_tmp_txt($id, 'fig', $lang);
-      $text       = "$reftxt $text";
-      $img_id     = qq! id="${img_id0}"!; # ID for <img ...>
+#      my $img_id0 = $id; # temp_id;
+#      $img_id0=~s{^(\d)}{fig$1}; # img_id0: "fig111"
+      my $p       = {t=>'fig'};
+      ($id=~/^\d+$/) and $p->{'o'} = $1;
+      ($lang)        and $p->{'l'} = $lang;
+      my $reftxt  = ref_tmp_txt($id, (grep {defined} map {(defined $p->{$_}) and "$_=".$p->{$_}} qw/t o l/));
+print STDERR "reftxt $reftxt.\n";
+#      my $reftxt  = ref_tmp_txt($id, 'fig', $lang);
+      $text       = join(' ', $reftxt, $text);
+      $img_id     = qq! id="$id"!; # ID for <img ...>
+      $REF{$id}   = {type=>'fig', order=>$id_n, lang=>$lang};
     }
     if($prefix eq '!!'){
       return(qq!<figure$style><img src="$url" alt="$text"${img_id}$class$imgopt><figcaption>$text</figcaption></figure>!);
