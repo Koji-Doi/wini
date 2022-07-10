@@ -452,14 +452,19 @@ sub stand_alone{
     my @x = (
       {au => ['A,a', 'B,b'], jo => []},
       {au => ['A,a', 'B,b'], jo => ['Journal of Biology']},
-    );
-    foreach my $x (@x){
-      print "\n====\n",Dumper $x;
-      foreach my $form ("au|&join", "au|&lastname|&join,&", "au|&if_empty jo|&join,&", "au|&unless_empty jo|&join,&"){
-        my $r = cittxt_vals($x, $form);
-        print "f=$form: r=$r\n";
-      }
-    }
+            );
+
+    my $txt = <<'EOD';
+|- Here is a caption | #id1 @2 |
+| a | b |
+
+{{rr|id1|id2=a|lang=ja}} = id1 ja (mainsect: option ja in macro)
+
+{{rr|id1|id2=b|lang=en}} = id1 en (mainsect: option en in macro)
+
+EOD
+    my($o, undef) = to_html($txt);
+    print $o;
     exit;
   }
 
@@ -1669,11 +1674,11 @@ sub cit{
   my($pars)        = readpars($pars0, qw/id type cittype au ye jo vo is pp ti pu lang url doi accessdate form/);
   my $lang         = $pars->{lang}[-1] || $opt->{lang} || $LANG || 'en';
   my $id           = $pars->{id}[-1];
-  my @bibopts = grep {!/^(id\d*|type|lang)$/ and defined $pars->{$_}[0]} keys %$pars;
+  my @bibopts = grep {!/^(id\d*|type|lang)$/ and defined $pars->{$_}[0] and $pars->{$_}[0]} keys %$pars;
   ($id) or mes(txt('idnd', {id=>''}), {err=>1});
 
   if((scalar @bibopts)>0){
-    # is newly defined bibliography
+    # is newly-defined bibliography
     (defined $REF{$id}) and mes(txt('did', {id=>$id}), {err=>1});
     my $tmptxt = ref_tmp_txt("id=$id", "type=cit", "lang=$lang");
     foreach my $i (grep {$_ ne 'lang' and $_ ne 'id'} keys %$pars){
@@ -1686,6 +1691,7 @@ sub cit{
     $REF{$id}{text}      = cittxt($pars, 'cit_form'); # sprintf("%s, %s", $au1, ($pars->{yr}[-1]||''));  }
     $REF{$id}{type}      = 'cit';
     $REF{$id}{cittype}   = $pars->{cittype}[-1] || '';
+    $REF{$id}{lang}      = $lang;
     $REF{$id}{source}    = 0;
     return($tmptxt);
   }else{ # the ids should already be defined (for bib, fig, table ...)
@@ -1699,11 +1705,12 @@ sub cit{
 
 sub ref_tmp_txt{
   # make temporal ref template, "${MI}id.*{MO}"
-  my $par        = readpars(\@_, qw/id type lang/);
-  my($id, $type, $lang, $dup) = map {$par->{$_}[-1]} qw/id type lang dup/;
-  my $lang1 = ($lang eq '') ? '' : "${MI}l=${lang}";
-  my $type1 = ($type eq '') ? '' : "${MI}t=${type}";
-  my   $out = "${MI}${id}${type1}${lang1}${MO}";
+  my $par        = readpars(\@_, qw/id type lang order dup/);
+  my($id, $type, $lang, $order, $dup) = map {$par->{$_}[-1]} qw/id type lang order dup/;
+  my $type1  = ($type  eq '') ? '' : "${MI}t=${type}";
+  my $lang1  = ($lang  eq '') ? '' : "${MI}l=${lang}";
+  my $order1 = ($order eq '') ? '' : "${MI}o=${order}";
+  my   $out = "${MI}${id}${type1}${lang1}${order1}${MO}";
   ($dup ne 'ok') and (exists $REF{$id}) and mes(txt('did', $lang, {id=>$id}), {err=>1});
   (defined $type) and (not defined $REF{$id}) and $REF{$id} = {type=>$type};
   return($out);
@@ -1854,6 +1861,7 @@ sub table{
     $caption0=~s/\|\s*$//;
     ($caption, my $o0) = split(/ *\|(?= |$)/, $caption0, 2); # $caption=~s{[| ]*$}{};
     foreach my $o (split(/\s+/, $o0||'')){
+      ($o eq '') and next;
       if($o =~ /([^=\s]+)="([^"]*)"/){
         my($k,$v) = ($1,$2);
         ($k eq 'class')  and push(@{$htmlitem[0][0]{copt}{class}}, $v), next;
@@ -1879,13 +1887,17 @@ sub table{
       }
 
       ($o=~/\.([-\w]+)/) and push(@{$htmlitem[0][0]{copt}{class}}, $1);
-      if($o=~/#([-\w]+)/){
-        my($tbl_id0) = $1;
-        $tbl_id0=~s{^(\d+)$}{tbl$1}; # #1 -> #tbl1
-        (exists $REF{$tbl_id0}) and mes(txt('did', undef, {id=>$tbl_id0}), {q=>1,err=>1});
-        ($tbl_id0=~/\S/) and $caption = ref_tmp_txt($tbl_id0, 'tbl', $lang) . " $caption";
-        $htmlitem[0][0]{copt}{id}[0] = $tbl_id0;
-        $tbl_id = sprintf(qq{ id="%s"}, $tbl_id0); # ref_tmp_txt($tbl_id0, undef, 'tbl')); # for table->caption tag
+      if($o=~/#(?:tbl)?([-\w]+)/){ # table ID - forced numbering to be stored in %REF
+        #my($tbl_id0, $tbl_id1) = ($1, "tbl$1");
+        my $tbl_id = $1;
+        my $order  = 0;
+        ($tbl_id=~/^\d+$/) and ($tbl_id, $order) = ("tbl${tbl_id}", $tbl_id);
+        (exists $REF{$tbl_id}) and mes(txt('did', undef, {id=>$tbl_id}), {q=>1, err=>1});
+        $REF{$tbl_id} = {order=>$order, type=>'tbl', text=>txt('ref_tbl', {n=>$order})};
+        #($tbl_id0=~/\S/) and
+        $caption = ref_tmp_txt("id=${tbl_id}", 'type=tbl', "lang=${lang}", "order=${order}") . " $caption";
+        $htmlitem[0][0]{copt}{id}[0] = $tbl_id;
+        #$tbl_id = sprintf(qq{ id="%s"}, $tbl_id); # ref_tmp_txt($tbl_id0, undef, 'tbl')); # for table->caption tag
       }
 
       while($o=~/\&([lrcjsebtm]+)/g){
