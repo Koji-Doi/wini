@@ -452,10 +452,10 @@ sub stand_alone{
     my @x = (
       {au => ['A,a', 'B,b'], jo => []},
       {au => ['A,a', 'B,b'], jo => ['Journal of Biology']},
-            );
+    );
 
     my $txt = <<'EOD';
-|- Here is a caption | #id1 @2 |
+|- Here is a caption | #x1 @2 |
 | a | b |
 
 {{rr|id1|id2=a|lang=ja}} = id1 ja (mainsect: option ja in macro)
@@ -465,10 +465,22 @@ sub stand_alone{
 EOD
     my($o, undef) = to_html($txt);
     print $o;
+
+    foreach my $x (@x){
+      print "\n====\n",Dumper $x;
+      foreach my $form ("au|&join", "au|&lastname|&join,&", "au|&if_empty jo|&join,&", "au|&unless_empty jo|&join,&"){
+        my $r = cittxt_vals($x, $form);
+        print "f=$form: r=$r\n";
+      }
+    }
+    my($deref, $html) = to_html('[!a.png|#123]');
+print Dumper $deref;
+print Dumper $html;
     exit;
   }
 
   # output
+  my @flds = qw/type count lang text/;
   if(scalar @$outf>1){
     # 1. multiple infile -> multiple outfile (1:1)
     for(my $i=0; $i<=$#$inf; $i++){
@@ -485,6 +497,16 @@ EOD
       $winitxt=~s/\x{FEFF}//; # remove BOM if exists
       my($htmlout) = to_html($winitxt, {indir=>$ind, dir=>getcwd(), whole=>$whole, cssfile=>$cssfile, title=>$title, cssflameworks=>\@cssflameworks});
       print {$fho} $htmlout;
+      open(my $fho_ref, '>:utf8', (defined $outf->[0]) ? $outf->[0].'.ref' : 'STDOUT.ref');
+      print {$fho_ref} join("\t", 'id', @flds), "\n";
+      foreach my $id (sort keys %REF){
+        print {$fho_ref} $id;
+        foreach my $f (@flds){
+          print {$fho_ref} "\t$REF{$f}";
+        }
+        print {$fho_ref} "\n";
+      }
+
     }
   }else{
     # 2. infiles -> one outfile or STDOUT
@@ -509,6 +531,15 @@ EOD
     } @$inf;
     my($htmlout) = to_html($winitxt, {indir=>$ind, dir=>getcwd(), whole=>$whole, cssfile=>$cssfile, title=>$title, cssflameworks=>\@cssflameworks});
     print {$fho} $htmlout;
+    open(my $fho_ref, '>:utf8', (defined $outf->[0]) ? $outf->[0].'.ref' : 'STDOUT.ref');
+    print {$fho_ref} join("\t", 'id', @flds), "\n";
+    foreach my $id (sort keys %REF){
+      print {$fho_ref} $id;
+      foreach my $f (@flds){
+        print {$fho_ref} "\t$REF{$f}";
+      }
+      print {$fho_ref} "\n";
+    }
   }
 #  print STDERR "dump for ref: ", Dumper %REF;
 #  print STDERR "dump for refcount: ", Dumper %REFCOUNT;
@@ -1208,6 +1239,7 @@ sub deref{
   my $seq=0;
   $r=~s!(${MI}([^${MI}${MO}]+)${MI}t=(?:(fig|tbl|cit))?(?:${MI}l=([^${MI}${MO}]+))?${MO})!
     my($r0, $id, $type, $lang) = ($1, $2, $3, $4);
+print STDERR "(r0, id, type, lang) = ($r0, $id, $type, $lang)\n";
     (not $type and not $REF{$id}) and mes(txt('idnd', '', {id=>$id}), {err=>1});
     if(defined $REF{$id}{order}){
       $type = $REF{$id}{type} || mes(txt('idnd', '', {id=>$id}), {warn=>1});
@@ -1249,7 +1281,9 @@ sub deref{
       }
       $o.="</ul>\n";
   !ge;
-
+print '!! check %REF and $r',"\n";
+  $DB::single=1;
+1;
   return($r);
 } # sub deref
 }
@@ -1778,7 +1812,7 @@ sub anchor_from_md{
 }
 
 sub anchor{
-# [! image.png text]
+# [!image.png text]
 # [!"image.png" text]
 # [!!image.png|#x text] # figure
 # [!image.png|< text]   # img with float:left
@@ -1799,7 +1833,7 @@ sub anchor{
   my $style            = ($opts=~/</) ? "float: left;" : ($opts=~/>/) ? "float: right;" : '';
   ($style) and $style  = qq{ style="$style"};
   my($id)              = $opts=~/#([-\w]+)/;
-  ($id=~/^\d+$/) and $id = "fig$id";
+  ($id=~/^\d+$/) and (my $id_n, $id) = ($id, "fig$id");
   my @classes          = $opts=~/\.([-\w]+)/g;
   my($width,$height)   = ($opts=~/(\d+)x(\d+)/)?($1,$2):(0,0);
   my $imgopt           = ($width>0)?qq{ width="$width"}:'';
@@ -1809,11 +1843,17 @@ sub anchor{
   if($prefix=~/[!?]/){ # img, figure
     my $class = join(' ', @classes); ($class) and $class = qq{ class="$class"};
     if(defined $id){
-      my $img_id0 = $id; # temp_id;
-      $img_id0=~s{^(\d)}{fig$1}; # img_id0: "fig111"
-      my $reftxt = ref_tmp_txt($id, 'fig', $lang);
-      $text       = "$reftxt $text";
-      $img_id     = qq! id="${img_id0}"!; # ID for <img ...>
+#      my $img_id0 = $id; # temp_id;
+#      $img_id0=~s{^(\d)}{fig$1}; # img_id0: "fig111"
+      my $p       = {t=>'fig'};
+      ($id=~/^\d+$/) and $p->{'o'} = $1;
+      ($lang)        and $p->{'l'} = $lang;
+      my $reftxt  = ref_tmp_txt($id, (grep {defined} map {(defined $p->{$_}) and "$_=".$p->{$_}} qw/t o l/));
+print STDERR "reftxt $reftxt.\n";
+#      my $reftxt  = ref_tmp_txt($id, 'fig', $lang);
+      $text       = join(' ', $reftxt, $text);
+      $img_id     = qq! id="$id"!; # ID for <img ...>
+      $REF{$id}   = {type=>'fig', order=>$id_n, lang=>$lang};
     }
     if($prefix eq '!!'){
       return(qq!<figure$style><img src="$url" alt="$text"${img_id}$class$imgopt><figcaption>$text</figcaption></figure>!);
@@ -1895,7 +1935,8 @@ sub table{
         (exists $REF{$tbl_id}) and mes(txt('did', undef, {id=>$tbl_id}), {q=>1, err=>1});
         $REF{$tbl_id} = {order=>$order, type=>'tbl', text=>txt('ref_tbl', {n=>$order})};
         #($tbl_id0=~/\S/) and
-        $caption = ref_tmp_txt("id=${tbl_id}", 'type=tbl', "lang=${lang}", "order=${order}") . " $caption";
+#        $caption = ref_tmp_txt("id=${tbl_id}", 'type=tbl', "lang=${lang}", "order=${order}") . " $caption";
+        $caption = ref_tmp_txt("id=${tbl_id}") . " $caption";
         $htmlitem[0][0]{copt}{id}[0] = $tbl_id;
         #$tbl_id = sprintf(qq{ id="%s"}, $tbl_id); # ref_tmp_txt($tbl_id0, undef, 'tbl')); # for table->caption tag
       }
