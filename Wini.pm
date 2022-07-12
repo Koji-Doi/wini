@@ -455,16 +455,17 @@ sub stand_alone{
     );
 
     my $txt = <<'EOD';
-|- Here is a caption | #x1 @2 |
+|- Here is a caption | #1 @2 |
 | a | b |
 
-{{rr|id1|id2=a|lang=ja}} = id1 ja (mainsect: option ja in macro)
+{{rr|tbl1|id2=a|lang=ja}} = tbl1 ja (mainsect: option ja in macro)
 
-{{rr|id1|id2=b|lang=en}} = id1 en (mainsect: option en in macro)
+{{rr|tbl1|id2=b|lang=en}} = tbl1 en (mainsect: option en in macro)
 
 EOD
     my($o, undef) = to_html($txt);
     print $o;
+exit;
 
     foreach my $x (@x){
       print "\n====\n",Dumper $x;
@@ -1264,6 +1265,9 @@ print STDERR "(r0, id, type, lang) = ($r0, $id, $type, $lang)\n";
       my $x = qq{<span id="${id}_$id_cnt_in_text{$id}" title="$title">$REF{$id}{inline_id}</span>};
       ($type eq 'cit') and qq{<a href="#reflist_${id}">$x</a>};
     }
+    if(defined $REF{$id}{inline_id}){
+      $REF{$id}{inline_id};
+    }
   !ge;
 
   $r=~s!${MI}([^${MI}${MO}]+)(?:${MI}t=citlist)?(?:${MI}l=([^${MI}${MO}]+))?${MO}!
@@ -1281,7 +1285,7 @@ print STDERR "(r0, id, type, lang) = ($r0, $id, $type, $lang)\n";
       }
       $o.="</ul>\n";
   !ge;
-print '!! check %REF and $r',"\n";
+print '!!!! check %REF and $r',"\n";
   $DB::single=1;
 1;
   return($r);
@@ -1729,7 +1733,7 @@ sub cit{
     $REF{$id}{source}    = 0;
     return($tmptxt);
   }else{ # the ids should already be defined (for bib, fig, table ...)
-    ((scalar keys %{$REF{$id}})==0) and mes(txt('udrefid', undef, {id=>$id}), {warn=>1});
+    #((scalar keys %{$REF{$id}})==0) and mes(txt('udrefid', undef, {id=>$id}), {warn=>1});
     (defined $REF{$id})             or  mes(txt('udrefid', undef, {id=>$id}), {warn=>1});
     my $reftype = $REF{$id}{type} || $pars->{type}[-1];
     my $lang1 = $REF{$id}{lang}[0] || $lang;
@@ -1741,12 +1745,13 @@ sub ref_tmp_txt{
   # make temporal ref template, "${MI}id.*{MO}"
   my $par        = readpars(\@_, qw/id type lang order dup/);
   my($id, $type, $lang, $order, $dup) = map {$par->{$_}[-1]} qw/id type lang order dup/;
+  (defined $REF{$id}) or mes(txt('ndrefid', $lang, {id=>$id}), {err=>1});
   my $type1  = ($type  eq '') ? '' : "${MI}t=${type}";
   my $lang1  = ($lang  eq '') ? '' : "${MI}l=${lang}";
   my $order1 = ($order eq '') ? '' : "${MI}o=${order}";
   my   $out = "${MI}${id}${type1}${lang1}${order1}${MO}";
-  ($dup ne 'ok') and (exists $REF{$id}) and mes(txt('did', $lang, {id=>$id}), {err=>1});
-  (defined $type) and (not defined $REF{$id}) and $REF{$id} = {type=>$type};
+#  ($dup ne 'ok') and (exists $REF{$id}) and mes(txt('did', $lang, {id=>$id}), {err=>1});
+#  (defined $type) and (not defined $REF{$id}) and $REF{$id} = {type=>$type};
   return($out);
 }
 
@@ -1933,12 +1938,14 @@ sub table{
         my $order  = 0;
         ($tbl_id=~/^\d+$/) and ($tbl_id, $order) = ("tbl${tbl_id}", $tbl_id);
         (exists $REF{$tbl_id}) and mes(txt('did', undef, {id=>$tbl_id}), {q=>1, err=>1});
-        $REF{$tbl_id} = {order=>$order, type=>'tbl', text=>txt('ref_tbl', {n=>$order})};
+        $REF{$tbl_id} = ($tbl_id=~/^tbl\d+$/)
+          ? {order=>$order, type=>'tbl', text=>txt('ref_tbl', undef, {n=>$order})}
+          : {};
         #($tbl_id0=~/\S/) and
 #        $caption = ref_tmp_txt("id=${tbl_id}", 'type=tbl', "lang=${lang}", "order=${order}") . " $caption";
         $caption = ref_tmp_txt("id=${tbl_id}") . " $caption";
         $htmlitem[0][0]{copt}{id}[0] = $tbl_id;
-        #$tbl_id = sprintf(qq{ id="%s"}, $tbl_id); # ref_tmp_txt($tbl_id0, undef, 'tbl')); # for table->caption tag
+        #$tbl_id = sprintf(qq{ id="%s"}, $tbl_id); # ref_tmp_txt($tbl_id0, $lang, 'tbl')); # for table->caption tag
       }
 
       while($o=~/\&([lrcjsebtm]+)/g){
@@ -2869,8 +2876,8 @@ __DATA__
 |mt|{{col}}{{mestype}}{{reset}} at line {{ln}}. |{{reset}}{{ln}}行目にて{{col}}{{mestype}}{{reset}}：|
 |opf|File {{f}} is opened in utf8|{{f}}をutf-8ファイルとして開きます|
 |ref_cit| ({{n}}) | ({{n}}) |
-|ref_fig|Fig. {{n}}: |図{{n}}：|
-|ref_tbl|Table {{n}}: |表{{n}}：|
+|ref_fig|Fig. {{n}} | 図{{n}}|
+|ref_tbl|Table {{n}} | 表{{n}}|
 |rout|Output:  STDOUT|出力先: 標準出力|
 |secnames|part chapter section subsection|部 章 節 項|
 |snf|Searched {{t}}, but not found|{{t}}の内部を検索しましたが見つかりません|
