@@ -298,6 +298,7 @@ use Module::Load qw( load );
 
 our $ENVNAME;
 #our %EXT;
+our @LANGS;
 our $LANG;
 our $QUIET;
 our %MACROS;
@@ -367,6 +368,7 @@ sub init{
 #  ($MI, $MO)  = ("\x00", "\x01");
   ($MI, $MO)  = ("<<<", ">>>");
   $ENVNAME    = "_";
+  @LANGS      = qw/en ja/;
   $LANG       = 'en';
   $QUIET      = 0; # 1: suppress most of messages
   $SCRIPTNAME = basename($0);
@@ -378,8 +380,11 @@ sub init{
     /^"[^"]*$/ and next; # skip dummy line
     my $sp = substr($_, 0, 1);
     ($sp eq '') or $sp = '\\' . $sp;
-    my($id, $en, $ja) = split($sp, substr($_,1));
-    $TXT{$id} = {en=>$en, ja=>$ja};
+#    my($id, $en, $ja) = split($sp, substr($_,1));
+    my($id, @txt) = split($sp, substr($_,1));
+    for(my $i=0; $i<=$#txt; $i++){
+      $TXT{$id}{$LANGS[$i]} = $txt[$i];
+    }
   }
 }
 
@@ -457,6 +462,14 @@ sub stand_alone{
     my $txt = <<'EOD';
 |- Here is a caption | #1 @2 |
 | a | b |
+
+|- Here is a caption | #tbl2 @2 |
+| a | b |
+
+|- Here is a caption | #tblx @2 |
+| a | b |
+
+[!example.png|#1]
 
 {{rr|tbl1|id2=a|lang=ja}} = tbl1 ja (mainsect: option ja in macro)
 
@@ -1240,7 +1253,7 @@ sub deref{
   my $seq=0;
   $r=~s!(${MI}([^${MI}${MO}]+)${MI}t=(?:(fig|tbl|cit))?(?:${MI}l=([^${MI}${MO}]+))?${MO})!
     my($r0, $id, $type, $lang) = ($1, $2, $3, $4);
-print STDERR "(r0, id, type, lang) = ($r0, $id, $type, $lang)\n";
+    ($lang) or $lang = $LANG || 'en';
     (not $type and not $REF{$id}) and mes(txt('idnd', '', {id=>$id}), {err=>1});
     if(defined $REF{$id}{order}){
       $type = $REF{$id}{type} || mes(txt('idnd', '', {id=>$id}), {warn=>1});
@@ -1260,28 +1273,31 @@ print STDERR "(r0, id, type, lang) = ($r0, $id, $type, $lang)\n";
     if($type){
       $REF{$id}{inline_id} = txt("ref_${type}", $lang, {n=>$REF{$id}{order}});
       $id_cnt_in_text{$id}++;
-      my $title = $REF{$id}{text} || $REF{$id}{doi};
+      my $title = $REF{$id}{text}{$lang} || $REF{$id}{doi};
       $title=~s/<.*?>//g;
       my $x = qq{<span id="${id}_$id_cnt_in_text{$id}" title="$title">$REF{$id}{inline_id}</span>};
       ($type eq 'cit') and qq{<a href="#reflist_${id}">$x</a>};
     }
-    if(defined $REF{$id}{inline_id}){
-      $REF{$id}{inline_id};
-    }
+#    if(defined $REF{$id}{inline_id}){
+#      $REF{$id}{inline_id};
+#    }
+1;
+    $REF{$id}{text}{$lang};
   !ge;
 
-  $r=~s!${MI}([^${MI}${MO}]+)(?:${MI}t=citlist)?(?:${MI}l=([^${MI}${MO}]+))?${MO}!
+  $r=~s!${MI}([^${MI}${MO}]+)(?:${MI}t=citlist)(?:${MI}l=([^${MI}${MO}]+))?${MO}!
       my($id, $lang) = ($1, $2);
+      ($lang) or $lang = $LANG || 'en';
       my $o = qq{<ul class="mglist reflist">\n};
       my @citids = grep {($REF{$_}{type} eq 'cit') and ($REF{$_}{order}>0)} keys %REF;
       foreach my $id (sort {$REF{$a}{order} <=> $REF{$b}{order}} @citids){
-        $lang = $REF{$id}{lang}[0] || $lang || 'en';
+        $lang = $REF{$id}{lang}[0] || $lang;
         $o .= qq{<li id="reflist_${id}">} . txt('cit', $lang, {n=>$REF{$id}{order}||''}) . ' ';
 # links from mglist to text
         for(my $i=1; $i<=$id_cnt_in_text{$id}; $i++){
           $o .= sprintf(qq{<a href="#%s">%s</a>}, "${id}_$i", "^$i&nbsp; ");
         }
-        $o .= ' ' . ($REF{$id}{text}||'') . "</li>\n";
+        $o .= ' ' . ($REF{$id}{text}{$lang}||'') . "</li>\n";
       }
       $o.="</ul>\n";
   !ge;
@@ -1745,7 +1761,7 @@ sub ref_tmp_txt{
   # make temporal ref template, "${MI}id.*{MO}"
   my $par        = readpars(\@_, qw/id type lang order dup/);
   my($id, $type, $lang, $order, $dup) = map {$par->{$_}[-1]} qw/id type lang order dup/;
-  (defined $REF{$id}) or mes(txt('ndrefid', $lang, {id=>$id}), {err=>1});
+  (defined $REF{$id}) or mes(txt('udrefid', $lang, {id=>$id}), {err=>1});
   my $type1  = ($type  eq '') ? '' : "${MI}t=${type}";
   my $lang1  = ($lang  eq '') ? '' : "${MI}l=${lang}";
   my $order1 = ($order eq '') ? '' : "${MI}o=${order}";
@@ -1848,17 +1864,17 @@ sub anchor{
   if($prefix=~/[!?]/){ # img, figure
     my $class = join(' ', @classes); ($class) and $class = qq{ class="$class"};
     if(defined $id){
-#      my $img_id0 = $id; # temp_id;
-#      $img_id0=~s{^(\d)}{fig$1}; # img_id0: "fig111"
+      $REF{$id}   = ($id=~/^fig\d+$/)
+        ? {type=>'fig', order=>$id_n, lang=>$lang}
+        : {};
       my $p       = {t=>'fig'};
-      ($id=~/^\d+$/) and $p->{'o'} = $1;
+      ($id=~/^\d+$/) and ($p->{'o'}, $id) = ($1, "fig$1");
       ($lang)        and $p->{'l'} = $lang;
       my $reftxt  = ref_tmp_txt($id, (grep {defined} map {(defined $p->{$_}) and "$_=".$p->{$_}} qw/t o l/));
 print STDERR "reftxt $reftxt.\n";
 #      my $reftxt  = ref_tmp_txt($id, 'fig', $lang);
       $text       = join(' ', $reftxt, $text);
       $img_id     = qq! id="$id"!; # ID for <img ...>
-      $REF{$id}   = {type=>'fig', order=>$id_n, lang=>$lang};
     }
     if($prefix eq '!!'){
       return(qq!<figure$style><img src="$url" alt="$text"${img_id}$class$imgopt><figcaption>$text</figcaption></figure>!);
@@ -1937,12 +1953,15 @@ sub table{
         my $tbl_id = $1;
         my $order  = 0;
         ($tbl_id=~/^\d+$/) and ($tbl_id, $order) = ("tbl${tbl_id}", $tbl_id);
-        (exists $REF{$tbl_id}) and mes(txt('did', undef, {id=>$tbl_id}), {q=>1, err=>1});
-        $REF{$tbl_id} = ($tbl_id=~/^tbl\d+$/)
-          ? {order=>$order, type=>'tbl', text=>txt('ref_tbl', undef, {n=>$order})}
-          : {};
-        #($tbl_id0=~/\S/) and
-#        $caption = ref_tmp_txt("id=${tbl_id}", 'type=tbl', "lang=${lang}", "order=${order}") . " $caption";
+        (exists $REF{$tbl_id}) and mes(txt('did', undef, {id=>$tbl_id}), {err=>1});
+        if($tbl_id=~/^tbl\d+$/){
+          $REF{$tbl_id} = {order=>$order, type=>'tbl'};
+          for(my $i=0; $i<=$#LANGS; $i++){
+            $REF{$tbl_id}{text}{$LANGS[$i]} = txt('ref_tbl', $LANGS[$i], {n=>$order});
+          }
+        }else{
+          $REF{$tbl_id} = {};
+        }
         $caption = ref_tmp_txt("id=${tbl_id}") . " $caption";
         $htmlitem[0][0]{copt}{id}[0] = $tbl_id;
         #$tbl_id = sprintf(qq{ id="%s"}, $tbl_id); # ref_tmp_txt($tbl_id0, $lang, 'tbl')); # for table->caption tag
