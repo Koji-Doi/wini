@@ -460,6 +460,10 @@ sub stand_alone{
     );
 
     my $txt = <<'EOD';
+===
+lang: 'ja'
+===
+
 |- Here is a caption | #1 @2 |
 | a | b |
 
@@ -1164,7 +1168,7 @@ sub markgaab{
   $t0 =~ s/^"""([\w =]*)\n(.*?)\n"""$/&save_quote("q $1", $2)/esmg;
     
   # conv table to html
-  $t0 =~ s/^\s*(\|.*?)[\n\r]+(?!\|)/table($1, $opt->{_v})/esmg;
+  $t0 =~ s/^\s*(\|.*?)[\n\r]+(?!\|)/table($1, {lang=>$lang})/esmg;
   # footnote
   if(exists $opt->{table}){ # in table
     my $table_id = $opt->{table};
@@ -1253,6 +1257,7 @@ sub deref{
   my $seq=0;
   $r=~s!(${MI}([^${MI}${MO}]+)${MI}t=(?:(fig|tbl|cit))?(?:${MI}l=([^${MI}${MO}]+))?${MO})!
     my($r0, $id, $type, $lang) = ($1, $2, $3, $4);
+print STDERR "##### $r0.\n";
     ($lang) or $lang = $LANG || 'en';
     (not $type and not $REF{$id}) and mes(txt('idnd', '', {id=>$id}), {err=>1});
     if(defined $REF{$id}{order}){
@@ -1867,10 +1872,10 @@ sub anchor{
       $REF{$id}   = ($id=~/^fig\d+$/)
         ? {type=>'fig', order=>$id_n, lang=>$lang}
         : {};
-      my $p       = {t=>'fig'};
-      ($id=~/^\d+$/) and ($p->{'o'}, $id) = ($1, "fig$1");
-      ($lang)        and $p->{'l'} = $lang;
-      my $reftxt  = ref_tmp_txt($id, (grep {defined} map {(defined $p->{$_}) and "$_=".$p->{$_}} qw/t o l/));
+      my $p       = {type=>'fig'};
+      ($id=~/^\d+$/) and ($p->{'order'}, $id) = ($1, "fig$1");
+      ($lang)        and $p->{'lang'} = $lang;
+      my $reftxt  = ref_tmp_txt($id, (grep {defined} map {(defined $p->{$_}) and "$_=".$p->{$_}} qw/type order lang/));
 print STDERR "reftxt $reftxt.\n";
 #      my $reftxt  = ref_tmp_txt($id, 'fig', $lang);
       $text       = join(' ', $reftxt, $text);
@@ -1909,18 +1914,20 @@ sub ruby{
 }
 
 sub table{
-  my($in, $val)=@_;
+  my($in, $v)=@_;
   my $ln=0;
-  my $lang = $val->{lang} || $LANG || 'en';
+  my $lang = $v->{lang} || $LANG || 'en';
   my(@winiitem, @htmlitem, $caption, $footnotetext, $tbl_id);
   my @footnotes; # footnotes in cells
   push(@{$htmlitem[0][0]{copt}{class}}, 'mgtable');
 
   #get caption & table setting - remove '^|-' lines from $in
+
   $in =~ s{(^\|-([^-].*$))\n}{
     my $caption0 = $2;
     $caption0=~s/\|\s*$//;
     ($caption, my $o0) = split(/ *\|(?= |$)/, $caption0, 2); # $caption=~s{[| ]*$}{};
+
     foreach my $o (split(/\s+/, $o0||'')){
       ($o eq '') and next;
       if($o =~ /([^=\s]+)="([^"]*)"/){
@@ -1929,6 +1936,7 @@ sub table{
         ($k eq 'border') and $htmlitem[0][0]{copt}{border}=$v         , next;
         push(@{$htmlitem[0][0]{copt}{style}{$k}}, $v);
       }
+
       if($o=~/^([<>])$/){
         $htmlitem[0][0]{copt}{style}{float}[0] = ($1 eq '<')?'left':'right';
       }
@@ -1946,12 +1954,12 @@ sub table{
         ($a=~/[_@=]/) and $htmlitem[0][0]{copt}{style}{'border-bottom'}[0] = $b1;
         ($a=~/[~@=]/) and $htmlitem[0][0]{copt}{style}{'border-top'}[0]    = $b1;
       }
-
       ($o=~/\.([-\w]+)/) and push(@{$htmlitem[0][0]{copt}{class}}, $1);
-      if($o=~/#(?:tbl)?([-\w]+)/){ # table ID - forced numbering to be stored in %REF
+      my($tbl_id) = $o=~/#(\w+)/;
+      ($tbl_id=~/^\d+$/) and ($tbl_id, my $order) = ("tbl${tbl_id}", $tbl_id);
+      if($tbl_id=~/^tbl(\d+)$/){ # table ID - forced numbering to be stored in %REF
         #my($tbl_id0, $tbl_id1) = ($1, "tbl$1");
-        my $tbl_id = $1;
-        my $order  = 0;
+        $order  = $1;
         ($tbl_id=~/^\d+$/) and ($tbl_id, $order) = ("tbl${tbl_id}", $tbl_id);
         (exists $REF{$tbl_id}) and mes(txt('did', undef, {id=>$tbl_id}), {err=>1});
         if($tbl_id=~/^tbl\d+$/){
@@ -1962,11 +1970,10 @@ sub table{
         }else{
           $REF{$tbl_id} = {};
         }
-        $caption = ref_tmp_txt("id=${tbl_id}") . " $caption";
+        $caption = ref_tmp_txt("id=${tbl_id}", 'type=tbl', "lang=$lang") . " $caption";
         $htmlitem[0][0]{copt}{id}[0] = $tbl_id;
         #$tbl_id = sprintf(qq{ id="%s"}, $tbl_id); # ref_tmp_txt($tbl_id0, $lang, 'tbl')); # for table->caption tag
       }
-
       while($o=~/\&([lrcjsebtm]+)/g){
         my $h = {qw/l left r right c center j justify s start e end/}->{$1};
         (defined $h) and push(@{$htmlitem[0][0]{copt}{style}{'text-align'}}, $h);
