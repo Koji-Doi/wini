@@ -468,10 +468,16 @@ lang: 'ja'
 | a | b |
 
 |- Here is a caption | #tbl2 @2 |
-| a | b |
+| c | d |
 
 |- Here is a caption | #tblx @2 |
-| a | b |
+| e | f |
+
+|- Here is a caption | @2 |
+| g | h |
+
+|- Here is a caption | #tblx2 @2 |
+| i | j |
 
 [!example.png|#1]
 
@@ -1280,13 +1286,9 @@ print STDERR "##### $r0.\n";
       $id_cnt_in_text{$id}++;
       my $title = $REF{$id}{text}{$lang} || $REF{$id}{doi};
       $title=~s/<.*?>//g;
-      my $x = qq{<span id="${id}_$id_cnt_in_text{$id}" title="$title">$REF{$id}{inline_id}</span>};
-      ($type eq 'cit') and qq{<a href="#reflist_${id}">$x</a>};
+      my $x = qq{<span id="${id}_$id_cnt_in_text{$id}" title="title">$REF{$id}{inline_id}</span>};
+      ($type eq 'cit') and local($_) = qq{<a href="#reflist_${id}">x</a>};
     }
-#    if(defined $REF{$id}{inline_id}){
-#      $REF{$id}{inline_id};
-#    }
-1;
     $REF{$id}{text}{$lang};
   !ge;
 
@@ -1307,7 +1309,7 @@ print STDERR "##### $r0.\n";
       $o.="</ul>\n";
   !ge;
 print '!!!! check %REF and $r',"\n";
-  $DB::single=1;
+  $DB::single=$DB::single=1;
 1;
   return($r);
 } # sub deref
@@ -1917,7 +1919,7 @@ sub table{
   my($in, $v)=@_;
   my $ln=0;
   my $lang = $v->{lang} || $LANG || 'en';
-  my(@winiitem, @htmlitem, $caption, $footnotetext, $tbl_id);
+  my(@winiitem, @htmlitem, $caption, $footnotetext);
   my @footnotes; # footnotes in cells
   push(@{$htmlitem[0][0]{copt}{class}}, 'mgtable');
 
@@ -1955,11 +1957,12 @@ sub table{
         ($a=~/[~@=]/) and $htmlitem[0][0]{copt}{style}{'border-top'}[0]    = $b1;
       }
       ($o=~/\.([-\w]+)/) and push(@{$htmlitem[0][0]{copt}{class}}, $1);
+
+      # set table ID
       my($tbl_id) = $o=~/#(\w+)/;
-      ($tbl_id=~/^\d+$/) and ($tbl_id, my $order) = ("tbl${tbl_id}", $tbl_id);
-      if($tbl_id=~/^tbl(\d+)$/){ # table ID - forced numbering to be stored in %REF
-        #my($tbl_id0, $tbl_id1) = ($1, "tbl$1");
-        $order  = $1;
+      ($tbl_id=~/^\d+$/) and $tbl_id = "tbl${tbl_id}";
+      if($tbl_id=~/^tbl(\d+)$/){ # table No.: forced numbering to be stored in %REF
+        my $order  = $1;
         ($tbl_id=~/^\d+$/) and ($tbl_id, $order) = ("tbl${tbl_id}", $tbl_id);
         (exists $REF{$tbl_id}) and mes(txt('did', undef, {id=>$tbl_id}), {err=>1});
         if($tbl_id=~/^tbl\d+$/){
@@ -1970,10 +1973,18 @@ sub table{
         }else{
           $REF{$tbl_id} = {};
         }
+        $REFASSIGN{tbl}{$order} = $tbl_id;
         $caption = ref_tmp_txt("id=${tbl_id}", 'type=tbl', "lang=$lang") . " $caption";
         $htmlitem[0][0]{copt}{id}[0] = $tbl_id;
         #$tbl_id = sprintf(qq{ id="%s"}, $tbl_id); # ref_tmp_txt($tbl_id0, $lang, 'tbl')); # for table->caption tag
-      }
+      }else{ # free-style table ID
+        my $i=1;
+        until(exists $REFASSIGN{tbl}{$i}){
+          $i++;
+        }
+print STDERR "tblid not assigned: $i\n";
+        
+      } # if tbl_id
       while($o=~/\&([lrcjsebtm]+)/g){
         my $h = {qw/l left r right c center j justify s start e end/}->{$1};
         (defined $h) and push(@{$htmlitem[0][0]{copt}{style}{'text-align'}}, $h);
@@ -2148,7 +2159,8 @@ sub table{
 
   # make html
   ## style for <table>
-  my $outtxt = sprintf(qq!\n<table${tbl_id} class="%s"!, join(' ', sort @{$htmlitem[0][0]{copt}{class}}));
+  my $id = (defined $htmlitem[0][0]{copt}{id}[0] and $htmlitem[0][0]{copt}{id}[0]=~/^\w+$/) ? qq! id="$htmlitem[0][0]{copt}{id}[0]"! : '';
+  my $outtxt = sprintf(qq!\n<table${id} class="%s"!, join(' ', sort @{$htmlitem[0][0]{copt}{class}}));
   (defined $htmlitem[0][0]{copt}{border})      and $outtxt .= ' border="1"';
   $outtxt .= q{ style="border-collapse: collapse; };
   foreach my $k (qw/text-align vertical-align color background-color float/){
