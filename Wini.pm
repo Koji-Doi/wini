@@ -470,7 +470,7 @@ lang: 'ja'
 |- Here is a caption | #tbl2 @2 |
 | c | d |
 
-|- Here is a caption | #tblx @2 |
+|- Here is a caption (must be tbl 3) | #tblx @2 |
 | e | f |
 
 |- Here is a caption | @2 |
@@ -1960,31 +1960,21 @@ sub table{
 
       # set table ID
       my($tbl_id) = $o=~/#(\w+)/;
-      ($tbl_id=~/^\d+$/) and $tbl_id = "tbl${tbl_id}";
-      if($tbl_id=~/^tbl(\d+)$/){ # table No.: forced numbering to be stored in %REF
-        my $order  = $1;
-        ($tbl_id=~/^\d+$/) and ($tbl_id, $order) = ("tbl${tbl_id}", $tbl_id);
-        (exists $REF{$tbl_id}) and mes(txt('did', undef, {id=>$tbl_id}), {err=>1});
-        if($tbl_id=~/^tbl\d+$/){
+      if(defined $tbl_id){
+        ($tbl_id=~/^\d+$/) and $tbl_id = "tbl${tbl_id}";
+        if($tbl_id=~/^tbl(\d+)$/){ # table No.: forced numbering to be stored in %REF
+          my $order  = $1;
+          ($tbl_id=~/^\d+$/) and ($tbl_id, $order) = ("tbl${tbl_id}", $tbl_id);
+          (exists $REF{$tbl_id}) and mes(txt('did', undef, {id=>$tbl_id}), {err=>1});
           $REF{$tbl_id} = {order=>$order, type=>'tbl'};
-          for(my $i=0; $i<=$#LANGS; $i++){
-            $REF{$tbl_id}{text}{$LANGS[$i]} = txt('ref_tbl', $LANGS[$i], {n=>$order});
-          }
-        }else{
-          $REF{$tbl_id} = {};
-        }
-        $REFASSIGN{tbl}{$order} = $tbl_id;
-        $caption = ref_tmp_txt("id=${tbl_id}", 'type=tbl', "lang=$lang") . " $caption";
-        $htmlitem[0][0]{copt}{id}[0] = $tbl_id;
-        #$tbl_id = sprintf(qq{ id="%s"}, $tbl_id); # ref_tmp_txt($tbl_id0, $lang, 'tbl')); # for table->caption tag
-      }else{ # free-style table ID
-        my $i=1;
-        until(exists $REFASSIGN{tbl}{$i}){
-          $i++;
-        }
-print STDERR "tblid not assigned: $i\n";
-        
-      } # if tbl_id
+          $caption = table_text($tbl_id, $order, $caption, $lang);
+          $htmlitem[0][0]{copt}{id}[0] = $tbl_id;
+          #$tbl_id = sprintf(qq{ id="%s"}, $tbl_id); # ref_tmp_txt($tbl_id0, $lang, 'tbl')); # for table->caption tag
+        }else{ # free-style table ID
+          my $i=1; $i++ while(exists $REFASSIGN{tbl}{$i});
+          $caption = table_text($tbl_id, $i, $caption, $lang);
+        } # if tbl_id
+      } # if defined $tbl_id
       while($o=~/\&([lrcjsebtm]+)/g){
         my $h = {qw/l left r right c center j justify s start e end/}->{$1};
         (defined $h) and push(@{$htmlitem[0][0]{copt}{style}{'text-align'}}, $h);
@@ -2256,6 +2246,17 @@ print STDERR "tblid not assigned: $i\n";
   $outtxt=~s/\t+/ /g; # tab is separator of cells vertically unified
   return($outtxt);
 } # sub table
+
+sub table_text{
+  my($tbl_id, $order, $caption, $lang) = @_;
+  for(my $i=0; $i<=$#LANGS; $i++){
+    $REF{$tbl_id}{text}{$LANGS[$i]} = txt('ref_tbl', $LANGS[$i], {n=>$order});
+  }
+  $REFASSIGN{tbl}{$order} = $tbl_id;
+  $caption = ref_tmp_txt("id=${tbl_id}", 'type=tbl', "lang=$lang") . " $caption";
+  return($caption);
+}
+
 
 sub borderstyle{
   my($linestyle, $width, $color) = @_;
