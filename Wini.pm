@@ -481,6 +481,8 @@ lang: 'ja'
 
 [!example.png|#1]
 
+[!example2.png|#pngx]
+
 {{rr|tbl1|id2=a|lang=ja}} = tbl1 ja (mainsect: option ja in macro)
 
 {{rr|tbl1|id2=b|lang=en}} = tbl1 en (mainsect: option en in macro)
@@ -2256,7 +2258,6 @@ sub table_text{
   $caption = ref_tmp_txt("id=${tbl_id}", 'type=tbl', "lang=$lang") . " $caption";
   return($caption);
 }
-
 
 sub borderstyle{
   my($linestyle, $width, $color) = @_;
