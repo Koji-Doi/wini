@@ -473,7 +473,7 @@ lang: 'ja'
 |- Here is a caption (must be tbl 3) | #tblx @2 |
 | e | f |
 
-|- Here is a caption | @2 |
+|- Here is a caption (No ID) | @2 |
 | g | h |
 
 |- Here is a caption | #tblx2 @2 |
@@ -1923,6 +1923,7 @@ sub table{
   my $lang = $v->{lang} || $LANG || 'en';
   my(@winiitem, @htmlitem, $caption, $footnotetext);
   my @footnotes; # footnotes in cells
+  my $tbl_id;
   push(@{$htmlitem[0][0]{copt}{class}}, 'mgtable');
 
   #get caption & table setting - remove '^|-' lines from $in
@@ -1961,16 +1962,16 @@ sub table{
       ($o=~/\.([-\w]+)/) and push(@{$htmlitem[0][0]{copt}{class}}, $1);
 
       # set table ID
-      my($tbl_id) = $o=~/#(\w+)/;
-      if(defined $tbl_id){
+      if($o=~/#(\w+)/){
+        $tbl_id=$1;
         ($tbl_id=~/^\d+$/) and $tbl_id = "tbl${tbl_id}";
+        $htmlitem[0][0]{copt}{id}[0] = $tbl_id;
         if($tbl_id=~/^tbl(\d+)$/){ # table No.: forced numbering to be stored in %REF
           my $order  = $1;
           ($tbl_id=~/^\d+$/) and ($tbl_id, $order) = ("tbl${tbl_id}", $tbl_id);
           (exists $REF{$tbl_id}) and mes(txt('did', undef, {id=>$tbl_id}), {err=>1});
           $REF{$tbl_id} = {order=>$order, type=>'tbl'};
           $caption = table_text($tbl_id, $order, $caption, $lang);
-          $htmlitem[0][0]{copt}{id}[0] = $tbl_id;
           #$tbl_id = sprintf(qq{ id="%s"}, $tbl_id); # ref_tmp_txt($tbl_id0, $lang, 'tbl')); # for table->caption tag
         }else{ # free-style table ID
           my $i=1; $i++ while(exists $REFASSIGN{tbl}{$i});
@@ -2152,6 +2153,7 @@ sub table{
   # make html
   ## style for <table>
   my $id = (defined $htmlitem[0][0]{copt}{id}[0] and $htmlitem[0][0]{copt}{id}[0]=~/^\w+$/) ? qq! id="$htmlitem[0][0]{copt}{id}[0]"! : '';
+print STDERR "id=$id, table_id=${tbl_id}\n";
   my $outtxt = sprintf(qq!\n<table${id} class="%s"!, join(' ', sort @{$htmlitem[0][0]{copt}{class}}));
   (defined $htmlitem[0][0]{copt}{border})      and $outtxt .= ' border="1"';
   $outtxt .= q{ style="border-collapse: collapse; };
