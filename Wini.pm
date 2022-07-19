@@ -483,6 +483,10 @@ lang: 'ja'
 
 [!example2.png|#pngx]
 
+{{rr|fig1}} = fig1
+
+{{rr|pngx}} = fig2
+
 {{rr|tbl1|id2=a|lang=ja}} = tbl1 ja (mainsect: option ja in macro)
 
 {{rr|tbl1|id2=b|lang=en}} = tbl1 en (mainsect: option en in macro)
@@ -1874,7 +1878,7 @@ sub anchor{
     my $class = join(' ', @classes); ($class) and $class = qq{ class="$class"};
     if(defined $id){
       $REF{$id}   = ($id=~/^fig\d+$/)
-        ? {type=>'fig', order=>$id_n, lang=>$lang}
+        ? {type=>'fig', order=>$id_n, lang=>[$lang]}
         : {};
       my $p       = {type=>'fig'};
       ($id=~/^\d+$/) and ($p->{'order'}, $id) = ($1, "fig$1");
