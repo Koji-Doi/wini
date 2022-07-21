@@ -366,7 +366,7 @@ sub init{
   binmode STDERR,':utf8';
   binmode STDOUT,':utf8';
 #  ($MI, $MO)  = ("\x00", "\x01");
-  ($MI, $MO)  = ("<<<", ">>>");
+  ($MI, $MO)  = ("%%%", "###");
   $ENVNAME    = "_";
   @LANGS      = qw/en ja/;
   $LANG       = 'en';
@@ -514,7 +514,8 @@ print Dumper $html;
   if(scalar @$outf>1){
     # 1. multiple infile -> multiple outfile (1:1)
     for(my $i=0; $i<=$#$inf; $i++){
-      my $outfile = $outf->[$i];
+      my $outfile    = $outf->[$i];
+      my $outreffile = "$outfile.ref";
       if($inf->[$i] eq ''){
         mes(txt('conv', undef, {from=>'STDIN', to=>$outfile}), {q=>1});
         $fhi=*STDIN;
@@ -527,7 +528,8 @@ print Dumper $html;
       $winitxt=~s/\x{FEFF}//; # remove BOM if exists
       my($htmlout) = to_html($winitxt, {indir=>$ind, dir=>getcwd(), whole=>$whole, cssfile=>$cssfile, title=>$title, cssflameworks=>\@cssflameworks});
       print {$fho} $htmlout;
-      open(my $fho_ref, '>:utf8', (defined $outf->[0]) ? $outf->[0].'.ref' : 'STDOUT.ref');
+#      open(my $fho_ref, '>:utf8', (defined $outf->[0]) ? $outf->[0].'.ref' : 'STDOUT.ref');
+      open(my $fho_ref, '>:utf8', $outreffile);
       print {$fho_ref} join("\t", 'id', @flds), "\n";
       foreach my $id (sort keys %REF){
         print {$fho_ref} $id;
@@ -1269,29 +1271,24 @@ sub deref{
   my $seq=0;
   $r=~s!(${MI}([^${MI}${MO}]+)${MI}t=(?:(fig|tbl|cit))?(?:${MI}l=([^${MI}${MO}]+))?${MO})!
     my($r0, $id, $type, $lang) = ($1, $2, $3, $4);
-print STDERR "##### $r0.\n";
     ($lang) or $lang = $LANG || 'en';
     (not $type and not $REF{$id}) and mes(txt('idnd', '', {id=>$id}), {err=>1});
     if(defined $REF{$id}{order}){
       $type = $REF{$id}{type} || mes(txt('idnd', '', {id=>$id}), {warn=>1});
     }else{
-      if(my($type1, $id1)=$id=~/^(fig|tbl|cit|h|s)(\d+)$/){ # when the reference No. is already determined
-        $REF{$id}{order}        = $id1; # id -> count
-        $REFASSIGN{$type}{$id1} = $id;  # count -> id
-      }else{
-        (defined $ref_cnt{$type}) or $ref_cnt{$type}=1;
-        while(defined $REFASSIGN{$type}{$ref_cnt{$type}}){
-          $ref_cnt{$type}++;
-        }
-        $REF{$id}{order} = $ref_cnt{$type};
-        $REFASSIGN{$type}{$ref_cnt{$type}} = $id;
+      (defined $ref_cnt{$type}) or $ref_cnt{$type}=1;
+      while(defined $REFASSIGN{$type}{$ref_cnt{$type}}){
+        $ref_cnt{$type}++;
       }
+      $REF{$id}{order} = $ref_cnt{$type};
+      $REFASSIGN{$type}{$ref_cnt{$type}} = $id;
     }
     if($type){
       $REF{$id}{inline_id} = txt("ref_${type}", $lang, {n=>$REF{$id}{order}});
       $id_cnt_in_text{$id}++;
       my $title = $REF{$id}{text}{$lang} || $REF{$id}{doi};
       $title=~s/<.*?>//g;
+      $REF{$id}{text}{$lang} = $REF{$id}{inline_id};
       my $x = qq{<span id="${id}_$id_cnt_in_text{$id}" title="title">$REF{$id}{inline_id}</span>};
       ($type eq 'cit') and local($_) = qq{<a href="#reflist_${id}">x</a>};
     }
@@ -1314,7 +1311,6 @@ print STDERR "##### $r0.\n";
       }
       $o.="</ul>\n";
   !ge;
-print '!!!! check %REF and $r',"\n";
   $DB::single=$DB::single=1;
 1;
   return($r);
@@ -1860,14 +1856,15 @@ sub anchor{
   ($url0) or ($prefix, $url0, $text) = $t=~m{([!?#]*)([^\s"]+)(?:\s+(.*))?}s;
   my($url, $opts) = (split(/\|/, $url0, 2), '', '');
   ($prefix eq '#') and $url=$prefix.$url;
-  ($text) = markgaab($text, {nocr=>1, para=>'nb'});
-  ($text eq '') and $text = $url;
+  my($caption) = markgaab($text, {nocr=>1, para=>'nb'});
+  ($caption eq '') and $caption = $url;
 
   # options
   my $style            = ($opts=~/</) ? "float: left;" : ($opts=~/>/) ? "float: right;" : '';
   ($style) and $style  = qq{ style="$style"};
   my($id)              = $opts=~/#([-\w]+)/;
-  ($id=~/^\d+$/) and (my $id_n, $id) = ($id, "fig$id");
+  ($id=~/^\d+$/)     and $id="fig$id";
+  ($id=~/^fig(\d+)/) and my $id_n = $1;
   my @classes          = $opts=~/\.([-\w]+)/g;
   my($width,$height)   = ($opts=~/(\d+)x(\d+)/)?($1,$2):(0,0);
   my $imgopt           = ($width>0)?qq{ width="$width"}:'';
@@ -1877,31 +1874,28 @@ sub anchor{
   if($prefix=~/[!?]/){ # img, figure
     my $class = join(' ', @classes); ($class) and $class = qq{ class="$class"};
     if(defined $id){
-      $REF{$id}   = ($id=~/^fig\d+$/)
-        ? {type=>'fig', order=>$id_n, lang=>[$lang]}
-        : {};
-      my $p       = {type=>'fig'};
-      ($id=~/^\d+$/) and ($p->{'order'}, $id) = ($1, "fig$1");
-      ($lang)        and $p->{'lang'} = $lang;
-      my $reftxt  = ref_tmp_txt($id, (grep {defined} map {(defined $p->{$_}) and "$_=".$p->{$_}} qw/type order lang/));
-print STDERR "reftxt $reftxt.\n";
-#      my $reftxt  = ref_tmp_txt($id, 'fig', $lang);
-      $text       = join(' ', $reftxt, $text);
+      $REF{$id}   = (defined $id_n)
+        ? {type=>'fig', lang=>[$lang], order=>$id_n}
+        : {type=>'fig', lang=>[$lang]};
+      $caption = ref_id_text($id, 'fig', $id_n, $caption, $lang);
       $img_id     = qq! id="$id"!; # ID for <img ...>
     }
+    my $alttext = $caption;
+    $alttext=~s{<[^<>]+>}{}gs;
+    ($alttext eq '') and $alttext=$url;
     if($prefix eq '!!'){
-      return(qq!<figure$style><img src="$url" alt="$text"${img_id}$class$imgopt><figcaption>$text</figcaption></figure>!);
+      return(qq!<figure$style><img src="$url" alt="$alttext"${img_id}$class$imgopt><figcaption>$caption</figcaption></figure>!);
     }elsif($prefix eq '??'){
-      return(qq!<figure$style><a href="$url" target="$target"><img src="$url" alt="${id}"${img_id}$class$imgopt></a><figcaption>$text</figcaption></figure>!);
+      return(qq!<figure$style><a href="$url" target="$target"><img src="$url" alt="${id}"${img_id}$class$imgopt></a><figcaption>$caption</figcaption></figure>!);
     }elsif($prefix eq '?'){
-      return(qq!<a href="$url" target="$target"><img src="$url" alt="$text"${img_id}$class$style$imgopt></a>!);
+      return(qq!<a href="$url" target="$target"><img src="$url" alt="$alttext"${img_id}$class$style$imgopt></a>!);
     }else{ # "!"
-      return(qq!<img src="$url" alt="$text"${img_id}$class$style$imgopt>!);
+      return(qq!<img src="$url" alt="$alttext"${img_id}$class$style$imgopt>!);
     }
   }elsif($url=~/^[\d_]+$/){
-    return(qq!<a href="$baseurl?aid=$url" target="$target">$text</a>!);
+    return(qq!<a href="$baseurl?aid=$url" target="$target">$caption</a>!);
   }else{
-    return(qq!<a href="$url" target="$target">$text</a>!);
+    return(qq!<a href="$url" target="$target">$caption</a>!);
   }
 } # sub anchor
 
@@ -1975,11 +1969,11 @@ sub table{
           ($tbl_id=~/^\d+$/) and ($tbl_id, $order) = ("tbl${tbl_id}", $tbl_id);
           (exists $REF{$tbl_id}) and mes(txt('did', undef, {id=>$tbl_id}), {err=>1});
           $REF{$tbl_id} = {order=>$order, type=>'tbl'};
-          $caption = table_text($tbl_id, $order, $caption, $lang);
+          $caption = ref_id_text($tbl_id, 'tbl', $order, $caption, $lang);
           #$tbl_id = sprintf(qq{ id="%s"}, $tbl_id); # ref_tmp_txt($tbl_id0, $lang, 'tbl')); # for table->caption tag
         }else{ # free-style table ID
           my $i=1; $i++ while(exists $REFASSIGN{tbl}{$i});
-          $caption = table_text($tbl_id, $i, $caption, $lang);
+          $caption = ref_id_text($tbl_id, 'tbl', $i, $caption, $lang);
         } # if tbl_id
       } # if defined $tbl_id
       while($o=~/\&([lrcjsebtm]+)/g){
@@ -2157,7 +2151,6 @@ sub table{
   # make html
   ## style for <table>
   my $id = (defined $htmlitem[0][0]{copt}{id}[0] and $htmlitem[0][0]{copt}{id}[0]=~/^\w+$/) ? qq! id="$htmlitem[0][0]{copt}{id}[0]"! : '';
-print STDERR "id=$id, table_id=${tbl_id}\n";
   my $outtxt = sprintf(qq!\n<table${id} class="%s"!, join(' ', sort @{$htmlitem[0][0]{copt}{class}}));
   (defined $htmlitem[0][0]{copt}{border})      and $outtxt .= ' border="1"';
   $outtxt .= q{ style="border-collapse: collapse; };
@@ -2255,13 +2248,15 @@ print STDERR "id=$id, table_id=${tbl_id}\n";
   return($outtxt);
 } # sub table
 
-sub table_text{
-  my($tbl_id, $order, $caption, $lang) = @_;
-  for(my $i=0; $i<=$#LANGS; $i++){
-    $REF{$tbl_id}{text}{$LANGS[$i]} = txt('ref_tbl', $LANGS[$i], {n=>$order});
+sub ref_id_text{
+  my($id, $type, $order, $caption, $lang) = @_;
+  if(defined $order){
+    for(my $i=0; $i<=$#LANGS; $i++){
+      $REF{$id}{text}{$LANGS[$i]} = txt("ref_${type}", $LANGS[$i], {n=>$order});
+    }
   }
-  $REFASSIGN{tbl}{$order} = $tbl_id;
-  $caption = ref_tmp_txt("id=${tbl_id}", 'type=tbl', "lang=$lang") . " $caption";
+  $REFASSIGN{$type}{$order} = $id;
+  $caption = ref_tmp_txt("id=${id}", "type=${type}", "lang=$lang") . " $caption";
   return($caption);
 }
 

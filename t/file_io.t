@@ -35,7 +35,7 @@ for my $x (0..3){
 
 { #2 -i -> STDOUT
   system("perl wini.pm -i $indir/0.wini > $outdir/0.html 2>/dev/null");
-  print "$outdir/0.html ", ((-f "$outdir/0.html")?"exists":"missed"), "\n";
+  #print "$outdir/0.html ", ((-f "$outdir/0.html")?"exists":"missed"), "\n";
   my $o = join("\n", <$outdir/*>);
   is $o, "$outdir/0.html";
   map { unlink $_} <$outdir/*>;
@@ -44,14 +44,16 @@ for my $x (0..3){
 { #3 STDIN -> -o...
   system("perl wini.pm -o $outdir/0.html < $indir/0.wini 2>/dev/null");
   my $o = join("\n", <$outdir/*>);
-  is $o, "$outdir/0.html";
+  $o=~s/\s//gs;
+  is $o, "$outdir/0.html$outdir/0.html.ref";
   map { unlink $_} <$outdir/*>;
 }
 
 { #4 -i... -> -o...
   system("perl wini.pm -i $indir/0.wini -o $outdir/0.html 2>/dev/null");
   my $o = join("\n", <$outdir/*>);
-  is $o, "$outdir/0.html";
+  $o=~s/\s//gs;
+  is $o, "$outdir/0.html$outdir/0.html.ref";
   map { unlink $_} <$outdir/*>;
 }
 
@@ -63,27 +65,28 @@ for my $x (0..3){
   $o .= join('', <$fhi>);
   close $fhi;
   $o=~s/[\n\s]//g;
-  is $o, "$outdir/0.html<p>0</p><p>1</p><p>2</p><p>3</p>";
+  is $o, "$outdir/0.html$outdir/0.html.ref<p>0</p><p>1</p><p>2</p><p>3</p>";
   map { unlink $_} <$outdir/*>;
 }
 
 { #6 dir -> dir
-  my $cmd = "perl wini.pm -i $indir -o $outdir";
+  my $outdir2 = tempdir('wini_testoutXXXX');
+  my $cmd = "perl wini.pm -i $indir -o $outdir2";
   print STDERR "$cmd\n";
-  system("perl wini.pm -i $indir -o $outdir 2>/dev/null");
+  system("perl wini.pm -i $indir -o $outdir2 2>/dev/null");
   my $i = join("\n", <$indir/*>);
-  $i=~s/\.wini/\.html/sg;
+  $i=~s/(\w+)\.wini/$1\.html$1\.html\.ref/sg;
   $i=~s{${indir}/}{}sg;
   $i=~s/[\n\s]//g;
-  my $o = join("\n", <$outdir/*>);
-  $o=~s{${outdir}/}{}sg;
-  $o=~s/[\n\s]//g;
-  print ">>i>>$i\n>>o>>$o\n";
+  my $o = join("\n", <$outdir2/*>);
+  $o=~s{${outdir2}/}{}sg;
+  $o=~s/[\n\s]//gs;
   is $o, $i;
-  map { unlink $_} <$outdir/*>;
+  map { unlink $_} <$outdir2/*>;
+  (-d $outdir2) and print("remove $outdir2\n"),remove_tree($outdir2);
 }
 
-(-d $indir)  and print("remove $indir\n"),remove_tree($indir);
-(-d $outdir) and print("remove $outdir\n"),remove_tree($outdir);
+(-d $indir)   and print("remove $indir\n"),  remove_tree($indir);
+(-d $outdir)  and print("remove $outdir\n"), remove_tree($outdir);
 
 done_testing;
