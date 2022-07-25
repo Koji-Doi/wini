@@ -528,17 +528,17 @@ print Dumper $html;
       $winitxt=~s/\x{FEFF}//; # remove BOM if exists
       my($htmlout) = to_html($winitxt, {indir=>$ind, dir=>getcwd(), whole=>$whole, cssfile=>$cssfile, title=>$title, cssflameworks=>\@cssflameworks});
       print {$fho} $htmlout;
+      save_bib($outreffile);
 #      open(my $fho_ref, '>:utf8', (defined $outf->[0]) ? $outf->[0].'.ref' : 'STDOUT.ref');
-      open(my $fho_ref, '>:utf8', $outreffile);
-      print {$fho_ref} join("\t", 'id', @flds), "\n";
-      foreach my $id (sort keys %REF){
-        print {$fho_ref} $id;
-        foreach my $f (@flds){
-          print {$fho_ref} "\t$REF{$f}";
-        }
-        print {$fho_ref} "\n";
-      }
-
+     # open(my $fho_ref, '>:utf8', $outreffile);
+     # print {$fho_ref} join("\t", 'id', @flds), "\n";
+     # foreach my $id (sort keys %REF){
+     #   print {$fho_ref} $id;
+     #   foreach my $f (@flds){
+     #     print {$fho_ref} "\t$REF{$f}";
+     #   }
+     #   print {$fho_ref} "\n";
+     # }
     }
   }else{
     # 2. infiles -> one outfile or STDOUT
@@ -563,19 +563,22 @@ print Dumper $html;
     } @$inf;
     my($htmlout) = to_html($winitxt, {indir=>$ind, dir=>getcwd(), whole=>$whole, cssfile=>$cssfile, title=>$title, cssflameworks=>\@cssflameworks});
     print {$fho} $htmlout;
-    open(my $fho_ref, '>:utf8', (defined $outf->[0]) ? $outf->[0].'.ref' : 'STDOUT.ref');
-    print {$fho_ref} join("\t", 'id', @flds), "\n";
-    foreach my $id (sort keys %REF){
-      print {$fho_ref} $id;
-      foreach my $f (@flds){
-        print {$fho_ref} "\t$REF{$f}";
-      }
-      print {$fho_ref} "\n";
-    }
+    save_bib((defined $outf->[0]) ? $outf->[0].'.ref' : 'STDOUT.ref');
+    #open(my $fho_ref, '>:utf8', (defined $outf->[0]) ? $outf->[0].'.ref' : 'STDOUT.ref');
+    #print {$fho_ref} join("\t", 'id', @flds), "\n";
+    #foreach my $id (sort keys %REF){
+    #  print {$fho_ref} $id;
+    #  foreach my $f (@flds){
+    #    print {$fho_ref} "\t$REF{$f}";
+    #  }
+    #  print {$fho_ref} "\n";
+    #}
   }
 #  print STDERR "dump for ref: ", Dumper %REF;
 #  print STDERR "dump for refcount: ", Dumper %REFCOUNT;
 #  print STDERR "dump for refassign: ", Dumper %REFASSIGN;
+  $DB::single=$DB::single=1;
+  1;
 } # sub stand_alone
 
 sub read_bib{
@@ -770,6 +773,7 @@ sub bib_id{
 sub save_bib{
 # final whole list of references
   my($outfile) = @_;
+  print STDERR "outreffile=$outfile.\n";
   my $fho;
   if($outfile){
     open($fho, '>:utf8', $outfile)
@@ -1435,13 +1439,6 @@ sub list{
   ): '', \%listitems);
 } # sub list
 
-sub close_listtag{
-  my($ref, $l) = @_;
-  map{
-    $$ref .= (' ' x ($#$l-$_)) . (($l->[$_] eq 'ul')?'</ul>':($l->[$_] eq 'ol')?'</ol>':'</dl>') . "\n";
-  } 0..$#$l;
-}
-
 sub symmacro{
   # {{/*_-|text}}
   my($tag0, $text)= map {defined($_) ? $_ : ''} @_;
@@ -1743,6 +1740,7 @@ sub cit{
   if((scalar @bibopts)>0){
     # is newly-defined bibliography
     (defined $REF{$id}) and mes(txt('did', {id=>$id}), {err=>1});
+    $REF{$id} = {type=>'cit'};
     my $tmptxt = ref_tmp_txt("id=$id", "type=cit", "lang=$lang");
     foreach my $i (grep {$_ ne 'lang' and $_ ne 'id'} keys %$pars){
       foreach my $x (@{$pars->{$i}}){
@@ -1765,6 +1763,24 @@ sub cit{
     return(ref_tmp_txt("id=$id", "type=$reftype", "lang=$lang1", "dup=ok"));
   }
 } # sub cit
+
+sub ref_txt{
+  my($id, $type, $order, $caption, $lang) = @_;
+  if(defined $order){
+    if($order==0){
+      
+    }
+    for(my $i=0; $i<=$#LANGS; $i++){
+      $REF{$id}{text}{$LANGS[$i]} = txt("ref_${type}", $LANGS[$i], {n=>$order});
+    }
+    $REFASSIGN{$type}{$order} = $id;
+  }else{
+ #   $REF{$id} = {type=>$type};
+  }
+  
+  $caption = ref_tmp_txt("id=${id}", "type=${type}", "lang=$lang") . " $caption";
+  return($caption);
+}
 
 sub ref_tmp_txt{
   # make temporal ref template, "${MI}id.*{MO}"
@@ -1877,7 +1893,7 @@ sub anchor{
       $REF{$id}   = (defined $id_n)
         ? {type=>'fig', lang=>[$lang], order=>$id_n}
         : {type=>'fig', lang=>[$lang]};
-      $caption = ref_id_text($id, 'fig', $id_n, $caption, $lang);
+      $caption = ref_txt($id, 'fig', $id_n, $caption, $lang);
       $img_id     = qq! id="$id"!; # ID for <img ...>
     }
     my $alttext = $caption;
@@ -1969,11 +1985,12 @@ sub table{
           ($tbl_id=~/^\d+$/) and ($tbl_id, $order) = ("tbl${tbl_id}", $tbl_id);
           (exists $REF{$tbl_id}) and mes(txt('did', undef, {id=>$tbl_id}), {err=>1});
           $REF{$tbl_id} = {order=>$order, type=>'tbl'};
-          $caption = ref_id_text($tbl_id, 'tbl', $order, $caption, $lang);
+          $caption = ref_txt($tbl_id, 'tbl', $order, $caption, $lang);
           #$tbl_id = sprintf(qq{ id="%s"}, $tbl_id); # ref_tmp_txt($tbl_id0, $lang, 'tbl')); # for table->caption tag
         }else{ # free-style table ID
-          my $i=1; $i++ while(exists $REFASSIGN{tbl}{$i});
-          $caption = ref_id_text($tbl_id, 'tbl', $i, $caption, $lang);
+          #my $i=1; $i++ while(exists $REFASSIGN{tbl}{$i});
+          $REF{$tbl_id} = {type=>'tbl'};
+          $caption = ref_txt($tbl_id, 'tbl', undef, $caption, $lang);
         } # if tbl_id
       } # if defined $tbl_id
       while($o=~/\&([lrcjsebtm]+)/g){
@@ -2247,18 +2264,6 @@ sub table{
   $outtxt=~s/\t+/ /g; # tab is separator of cells vertically unified
   return($outtxt);
 } # sub table
-
-sub ref_id_text{
-  my($id, $type, $order, $caption, $lang) = @_;
-  if(defined $order){
-    for(my $i=0; $i<=$#LANGS; $i++){
-      $REF{$id}{text}{$LANGS[$i]} = txt("ref_${type}", $LANGS[$i], {n=>$order});
-    }
-  }
-  $REFASSIGN{$type}{$order} = $id;
-  $caption = ref_tmp_txt("id=${id}", "type=${type}", "lang=$lang") . " $caption";
-  return($caption);
-}
 
 sub borderstyle{
   my($linestyle, $width, $color) = @_;

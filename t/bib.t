@@ -126,7 +126,7 @@ Reference 1: {{cit|kirk2022|au='James, T. Kirk'|ye=2022|ti='XXX'}}
 
 Reference 2: {{cit|gal2021|au='Kadotani, Anzu'|au='Koyama, Yuzuko'|au='Kawashima, Momo'|ye=2021|ti='Practice of Senshado in High School Club Activities'|jo='Research by Highschool Students'}}
 
-aaa {{ref|kirk2022}}, {{ref|gal2021}}.
+aaa {{ref|kirk2022x}}, {{ref|gal2021}}.
 
 {{citlist}}
 
