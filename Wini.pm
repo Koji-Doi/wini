@@ -1290,6 +1290,7 @@ sub deref{
     if($type){
       $REF{$id}{inline_id} = txt("ref_${type}", $lang, {n=>$REF{$id}{order}});
       $id_cnt_in_text{$id}++;
+print STDERR ">>>> $id.\n";
       my $title = $REF{$id}{text}{$lang} || $REF{$id}{doi};
       $title=~s/<.*?>//g;
       $REF{$id}{text}{$lang} = $REF{$id}{inline_id};
@@ -1749,11 +1750,13 @@ sub cit{
     }
     my $cittype = $REF{$id}{cittype} || 'ja';
     #$REF{$id}{inline_cit_id} = txt("cit_inline_${cittype}", $lang, {au=>$pars->{au}[0], ye=>$pars->{ye}[-1]})||''; # printf("%s, %s", $au1, ($pars->{yr}[-1]||''));
-    $REF{$id}{text}      = cittxt($pars, 'cit_form'); # sprintf("%s, %s", $au1, ($pars->{yr}[-1]||''));  }
-    $REF{$id}{type}      = 'cit';
-    $REF{$id}{cittype}   = $pars->{cittype}[-1] || '';
-    $REF{$id}{lang}      = $lang;
-    $REF{$id}{source}    = 0;
+    foreach my $l (@LANGS){
+      $REF{$id}{text}{$l} = cittxt($pars, 'cit_form', $l); # sprintf("%s, %s", $au1, ($pars->{yr}[-1]||''));  }
+    }
+    $REF{$id}{type}    = 'cit';
+    $REF{$id}{cittype} = $pars->{cittype}[-1] || '';
+    $REF{$id}{lang}    = [$lang];
+    $REF{$id}{source}  = 0;
     return($tmptxt);
   }else{ # the ids should already be defined (for bib, fig, table ...)
     #((scalar keys %{$REF{$id}})==0) and mes(txt('udrefid', undef, {id=>$id}), {warn=>1});
