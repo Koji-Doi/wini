@@ -27,14 +27,14 @@ for my $x (0..3){
 }
 
 { #1 STDIN -> STDOUT
-  system("perl wini.pm <$indir/0.wini >$outdir/0.html 2>/dev/null");
+  system("perl Wini.pm <$indir/0.wini >$outdir/0.html 2>/dev/null");
   my $o = join("\n", <$outdir/*>);
   is $o, "$outdir/0.html";
   map { unlink $_} <$outdir/*>;
 }
 
 { #2 -i -> STDOUT
-  system("perl wini.pm -i $indir/0.wini > $outdir/0.html 2>/dev/null");
+  system("perl Wini.pm -i $indir/0.wini > $outdir/0.html 2>/dev/null");
   #print "$outdir/0.html ", ((-f "$outdir/0.html")?"exists":"missed"), "\n";
   my $o = join("\n", <$outdir/*>);
   is $o, "$outdir/0.html";
@@ -42,7 +42,7 @@ for my $x (0..3){
 }
 
 { #3 STDIN -> -o...
-  system("perl wini.pm -o $outdir/0.html < $indir/0.wini 2>/dev/null");
+  system("perl Wini.pm -o $outdir/0.html < $indir/0.wini 2>/dev/null");
   my $o = join("\n", <$outdir/*>);
   $o=~s/\s//gs;
   is $o, "$outdir/0.html$outdir/0.html.ref";
@@ -50,7 +50,7 @@ for my $x (0..3){
 }
 
 { #4 -i... -> -o...
-  system("perl wini.pm -i $indir/0.wini -o $outdir/0.html 2>/dev/null");
+  system("perl Wini.pm -i $indir/0.wini -o $outdir/0.html 2>/dev/null");
   my $o = join("\n", <$outdir/*>);
   $o=~s/\s//gs;
   is $o, "$outdir/0.html$outdir/0.html.ref";
@@ -59,7 +59,7 @@ for my $x (0..3){
 
 { #5 dir -> file
   my $outfile = "$outdir/0.html";
-  system("perl wini.pm -i $indir -o $outfile 2>/dev/null");
+  system("perl Wini.pm -i $indir -o $outfile 2>/dev/null");
   my $o = join("\n", <$outdir/*>);
   open(my $fhi, '<:utf8', $outfile);
   $o .= join('', <$fhi>);
@@ -71,9 +71,9 @@ for my $x (0..3){
 
 { #6 dir -> dir
   my $outdir2 = tempdir('wini_testoutXXXX');
-  my $cmd = "perl wini.pm -i $indir -o $outdir2";
+  my $cmd = "perl Wini.pm -i $indir -o $outdir2";
   print STDERR "$cmd\n";
-  system("perl wini.pm -i $indir -o $outdir2 2>/dev/null");
+  system("perl Wini.pm -i $indir -o $outdir2 2>/dev/null");
   my $i = join("\n", <$indir/*>);
   $i=~s/(\w+)\.wini/$1\.html$1\.html\.ref/sg;
   $i=~s{${indir}/}{}sg;

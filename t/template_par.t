@@ -22,7 +22,7 @@ l1: while(1){
     print {$fho} $_;
   }
   close $fho;
-  
+
   $file = "no${filecnt}$parfile0";
   open($fho, '>', $file) or die "Failed to modify $file";
   while(<DATA>){
@@ -48,7 +48,7 @@ l1: while(1){
 
 for(my $i=0; $i<=$filecnt; $i++){
   my($parfile, $tmplfile) = ("no${i}$parfile0", "no${i}$tmplfile0");
-  open(my $ph, '-|', "perl wini.pm -q -i $parfile") or die "Failed to excute perl";
+  open(my $ph, '-|', "perl Wini.pm -q -i $parfile") or die "Failed to excute perl";
   my $o = join('', <$ph>);
   $o=~s/[\n\r]*//g;
   is $o, $out[$i];

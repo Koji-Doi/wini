@@ -1242,7 +1242,7 @@ sub markgaab{
 
     $t=~s{(?:^|(?<=\n))([*#;:].*?(?:(?=\n[^*#;:])|$))}
          {my($r,$o)=list($1, $cr, $ptype, $para, $myclass); $r}esg;
-    ($t=~/\S/) and 
+    ($t=~/\S/) and
       $t = ($ptype eq 'header' or $ptype eq 'list')                                     ? "$t\n"
           : ($para eq 'br')                                                              ? "$t<br>$cr"
           : ($para eq 'nb')                                                              ? $t
@@ -1251,7 +1251,6 @@ sub markgaab{
           : $t=~m{${MI}t=citlist}is ? $t
           : "<p${myclass}>\n$t" . (($t=~/\n$/)?'':"\n") . "</p>$cr$cr";
 
-#    $r .= "\n$t";
     push(@r, $t);
   } # foreach $t # for each paragraph
   my $r = join("\n", @r);
@@ -1300,8 +1299,9 @@ print STDERR ">>>> $id.\n";
     $REF{$id}{text}{$lang};
   !ge;
 
-  $r=~s!${MI}([^${MI}${MO}]+)(?:${MI}t=citlist)(?:${MI}l=([^${MI}${MO}]+))?${MO}!
-      my($id, $lang) = ($1, $2);
+  #  $r=~s!${MI}([^${MI}${MO}]+)?(?:${MI}t=citlist)(?:${MI}l=([^${MI}${MO}]+))?${MO}!
+    $r=~s!${MI}citlist(?:${MI}l=(\w*))${MO}!
+      my($lang) = ($1);
       ($lang) or $lang = $LANG || 'en';
       my $o = qq{<ul class="mglist reflist">\n};
       my @citids = grep {($REF{$_}{type} eq 'cit') and ($REF{$_}{order}>0)} keys %REF;
@@ -1349,7 +1349,7 @@ $x
 EOD
 }
 } # wini env
-  
+
 sub footnote{
   my($txt, $style, $footnote_cnt, $footnotes_ref) = @_;
   my %cref = ('*'=>'lowast' ,'+'=>'plus', 'd'=>'dagger', 'D'=>'Dagger', 's'=>'sect', 'p'=>'para');
@@ -1373,7 +1373,7 @@ sub footnote{
 
 sub list{
   my($t, $cr, $ptype, $para, $myclass) = @_;
-  
+
   $ptype = $ptype || '';
   $cr = $cr || "\n";
   $para = $para || '';
@@ -1574,7 +1574,8 @@ sub call_macro{
     return('&#x'.unpack('H*',$macroname).';'); # char -> ascii code
   ($macroname=~/^\@$/)              and return(term(\@f)); # abbr
   ($macroname=~/^(rr|ref|cit)$/i)   and return(cit(\@f, $opt->{_v})); # reference
-  ($macroname=~/^(cit|ref)list$/i)  and return("${MI}###${MI}t=citlist${MO}");
+#  ($macroname=~/^(cit|ref)list$/i)  and return("${MI}###${MI}t=citlist${MO}");
+  ($macroname=~/^(cit|ref)list$/i)  and return(citlist(\@f, $opt->{_v}));
   ($macroname=~/^(date|time|dt)$/i) and return(date([@f, "type=$1"],  $opt->{_v}));
   ($macroname=~/^(stack)$/i)      and (
      ($sep, @f1) = ($f[0], @f[1..$#f]),
@@ -1725,6 +1726,13 @@ sub join_and{ # qw/a b c/ -> "a, b and c"
     $res = join($sep, @$l);
   } # l1
   return($res);
+}
+
+sub citlist{
+  my($pars0, $opt) = @_;
+  my($pars)        =  readpars($pars0, qw/lang/);
+  my $lang = $pars->{lang}[01] || $opt->{lang} || $LANG || 'en';
+  return("${MI}citlist${MI}l=${lang}${MO}");
 }
 
 sub cit{
