@@ -491,6 +491,15 @@ lang: 'ja'
 
 {{rr|tbl1|id2=b|lang=en}} = tbl1 en (mainsect: option en in macro)
 
+Reference 1: {{cit|kirk2022|au='James, T. Kirk'|ye=2022|ti='XXX'}}
+
+Reference 2: {{cit|gal2021|au='Kadotani, Anzu'|au='Koyama, Yuzuko'|au='Kawashima, Momo'|ye=2021|ti='Practice of Senshado in High School Club Activities'|jo='Research by Highschool Students'}}
+
+aaa {{ref|kirk2022}}, {{ref|gal2021}}.
+
+{{citlist}}
+
+
 EOD
     my($o, undef) = to_html($txt);
     print $o;
@@ -724,7 +733,10 @@ sub read_bib{
     for(my $i=0; $i<=$#$ref; $i++){
       my $cit_form     = ($ref->[$i]{cittype}) ? ('cit_form_'.$ref->[$i]{cittype}) : 'cit_form';
       $ref->[$i]{id}   = bib_id($ref->[$i], {n=>1});
-      $ref->[$i]{text} = cittxt($ref->[$i], $cit_form);
+      foreach my $l (@LANGS){
+print STDERR ">>>> $i: ${cit_form}: $l\n";
+        $ref->[$i]{text}{$l} = cittxt($ref->[$i], $cit_form, $l);
+      }
     }
     open(my $fho, '>:utf8', $outbibfile) or die txt('cno', undef, {f=>$outbibfile});
     foreach my $x (sort {$a->{id} cmp $b->{id}} @$ref){
@@ -783,7 +795,7 @@ sub save_bib{
   print {$fho} join("\t", qw/type refid source url inline_id au ye ti/), "\n";
   foreach my $type (qw/fig tbl cit/){
     foreach my $refid (sort grep {$REF{$_}{type} eq $type} keys %REF){
-      print {$fho} join("\t", $type, $refid, $REF{$refid}{source}, $REF{$refid}{url}[0]||'', $REF{$refid}{inline_id}||'', $REF{$refid}{au}[0]||'', $REF{$refid}{ye}[0], $REF{$refid}{ti}[0]||''), "\n";
+      print {$fho} join("\t", $type, $refid, $REF{$refid}{source}, $REF{$refid}{url}[0]||'', $REF{$refid}{inline_id}{en}||'', $REF{$refid}{au}[0]||'', $REF{$refid}{ye}[0], $REF{$refid}{ti}[0]||''), "\n";
     }
   }
   ($outfile) and close $fho;
@@ -1144,6 +1156,7 @@ sub to_html{
     return(deref($tmpltxt));
   }else{ # non-template
     (defined $opt->{whole}) and $htmlout = whole_html($htmlout, $opt->{title}, $opt);
+    $htmlout = deref($htmlout);
     return(deref($htmlout), \@html);
   }
 } # sub to_html
@@ -1242,14 +1255,7 @@ sub markgaab{
 
     $t=~s{(?:^|(?<=\n))([*#;:].*?(?:(?=\n[^*#;:])|$))}
          {my($r,$o)=list($1, $cr, $ptype, $para, $myclass); $r}esg;
-    ($t=~/\S/) and
-      $t = ($ptype eq 'header' or $ptype eq 'list')                                     ? "$t\n"
-          : ($para eq 'br')                                                              ? "$t<br>$cr"
-          : ($para eq 'nb')                                                              ? $t
-          : $t=~m{<(html|body|head|p|table|img|figure|blockquote|[uod]l)[^>]*>.*</\1>}is ? $t
-          : $t=~m{<!doctype}is                                                           ? $t
-          : $t=~m{${MI}t=citlist}is ? $t
-          : "<p${myclass}>\n$t" . (($t=~/\n$/)?'':"\n") . "</p>$cr$cr";
+    $t = add_p($t, $cr, $para, $ptype, $myclass, $opt);
 
     push(@r, $t);
   } # foreach $t # for each paragraph
@@ -1265,6 +1271,23 @@ sub markgaab{
   $r=~s/^[\s\n\r]*//;
   return($r, $opt);
 } # sub markgaab
+
+sub add_p{
+  my($t0, $cr, $para, $ptype, $class, $opt) = @_;
+  my @t1;
+  foreach my $t (split(/\n\n/, $t0)){
+    $t=~/^\s*$/ and return('');
+      $t = ($ptype eq 'header' or $ptype eq 'list')                                     ? "$t\n"
+         : ($para eq 'br')                                                              ? "$t<br>$cr"
+         : ($para eq 'nb')                                                              ? $t
+         : $t=~m{<(html|body|head|p|table|img|figure|blockquote|[uod]l)[^>]*>.*</\1>}is ? $t
+         : $t=~m{<!doctype}is                                                           ? $t
+         : $t=~m{${MI}t=citlist}is ? $t
+         : "<p${class}>\n$t" . (($t=~/\n$/)?'':"\n") . "</p>$cr$cr";
+    push(@t1, $t);
+  }
+  return(join("\n\n", @t1));
+}
 
 {
 my %ref_cnt;
@@ -1287,23 +1310,24 @@ sub deref{
       $REFASSIGN{$type}{$ref_cnt{$type}} = $id;
     }
     if($type){
-      $REF{$id}{inline_id} = txt("ref_${type}", $lang, {n=>$REF{$id}{order}});
+      foreach my $l (@LANGS){
+        $REF{$id}{inline_id}{$l} = txt("ref_${type}", $l, {n=>$REF{$id}{order}});
+      }
       $id_cnt_in_text{$id}++;
-print STDERR ">>>> $id.\n";
       my $title = $REF{$id}{text}{$lang} || $REF{$id}{doi};
       $title=~s/<.*?>//g;
-      $REF{$id}{text}{$lang} = $REF{$id}{inline_id};
+      # $REF{$id}{text}{$lang} = $REF{$id}{inline_id};
       my $x = qq{<span id="${id}_$id_cnt_in_text{$id}" title="title">$REF{$id}{inline_id}</span>};
       ($type eq 'cit') and local($_) = qq{<a href="#reflist_${id}">x</a>};
     }
-    $REF{$id}{text}{$lang};
+    $REF{$id}{inline_id}{$lang};
   !ge;
 
   #  $r=~s!${MI}([^${MI}${MO}]+)?(?:${MI}t=citlist)(?:${MI}l=([^${MI}${MO}]+))?${MO}!
     $r=~s!${MI}citlist(?:${MI}l=(\w*))${MO}!
       my($lang) = ($1);
       ($lang) or $lang = $LANG || 'en';
-      my $o = qq{<ul class="mglist reflist">\n};
+      my $o = '';
       my @citids = grep {($REF{$_}{type} eq 'cit') and ($REF{$_}{order}>0)} keys %REF;
       foreach my $id (sort {$REF{$a}{order} <=> $REF{$b}{order}} @citids){
         $lang = $REF{$id}{lang}[0] || $lang;
@@ -1314,7 +1338,7 @@ print STDERR ">>>> $id.\n";
         }
         $o .= ' ' . ($REF{$id}{text}{$lang}||'') . "</li>\n";
       }
-      $o.="</ul>\n";
+      $o;
   !ge;
   $DB::single=$DB::single=1;
 1;
@@ -1732,7 +1756,7 @@ sub citlist{
   my($pars0, $opt) = @_;
   my($pars)        =  readpars($pars0, qw/lang/);
   my $lang = $pars->{lang}[01] || $opt->{lang} || $LANG || 'en';
-  return("${MI}citlist${MI}l=${lang}${MO}");
+  return(qq!<ul class="citlist">\n${MI}citlist${MI}l=${lang}${MO}\n</ul>!);
 }
 
 sub cit{
@@ -1749,17 +1773,18 @@ sub cit{
   if((scalar @bibopts)>0){
     # is newly-defined bibliography
     (defined $REF{$id}) and mes(txt('did', {id=>$id}), {err=>1});
-    $REF{$id} = {type=>'cit'};
+    $REF{$id} = {type=>'cit', text=>$REF{$id}{text}};
     my $tmptxt = ref_tmp_txt("id=$id", "type=cit", "lang=$lang");
     foreach my $i (grep {$_ ne 'lang' and $_ ne 'id'} keys %$pars){
       foreach my $x (@{$pars->{$i}}){
         (defined $x) and push(@{$REF{$id}{$i}}, $x);
       }
     }
-    my $cittype = $REF{$id}{cittype} || 'ja';
+    my $cittype  = $REF{$id}{cittype} || 'ja';
+    my $cit_form = "cit_form_${cittype}";
     #$REF{$id}{inline_cit_id} = txt("cit_inline_${cittype}", $lang, {au=>$pars->{au}[0], ye=>$pars->{ye}[-1]})||''; # printf("%s, %s", $au1, ($pars->{yr}[-1]||''));
     foreach my $l (@LANGS){
-      $REF{$id}{text}{$l} = cittxt($pars, 'cit_form', $l); # sprintf("%s, %s", $au1, ($pars->{yr}[-1]||''));  }
+      $REF{$id}{text}{$l} = cittxt($pars, $cit_form, $l); # sprintf("%s, %s", $au1, ($pars->{yr}[-1]||''))
     }
     $REF{$id}{type}    = 'cit';
     $REF{$id}{cittype} = $pars->{cittype}[-1] || '';
