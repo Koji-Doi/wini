@@ -358,6 +358,7 @@ sub init{
   setlocale(LC_ALL, 'C');
   setlocale(LC_TIME, 'C');
   undef %MACROS; undef %VARS; undef %REF; undef %REFASSIGN;
+  deref_init();
   no warnings;
   *Data::Dumper::qquote = sub { return encode "utf8", shift } ;
   $Data::Dumper::Useperl = 1 ;
@@ -734,7 +735,6 @@ sub read_bib{
       my $cit_form     = ($ref->[$i]{cittype}) ? ('cit_form_'.$ref->[$i]{cittype}) : 'cit_form';
       $ref->[$i]{id}   = bib_id($ref->[$i], {n=>1});
       foreach my $l (@LANGS){
-print STDERR ">>>> $i: ${cit_form}: $l\n";
         $ref->[$i]{text}{$l} = cittxt($ref->[$i], $cit_form, $l);
       }
     }
@@ -1273,25 +1273,25 @@ sub markgaab{
 } # sub markgaab
 
 sub add_p{
-  my($t0, $cr, $para, $ptype, $class, $opt) = @_;
-  my @t1;
-  foreach my $t (split(/\n\n/, $t0)){
-    $t=~/^\s*$/ and return('');
-      $t = ($ptype eq 'header' or $ptype eq 'list')                                     ? "$t\n"
-         : ($para eq 'br')                                                              ? "$t<br>$cr"
-         : ($para eq 'nb')                                                              ? $t
-         : $t=~m{<(html|body|head|p|table|img|figure|blockquote|[uod]l)[^>]*>.*</\1>}is ? $t
-         : $t=~m{<!doctype}is                                                           ? $t
-         : $t=~m{${MI}t=citlist}is ? $t
-         : "<p${class}>\n$t" . (($t=~/\n$/)?'':"\n") . "</p>$cr$cr";
-    push(@t1, $t);
-  }
-  return(join("\n\n", @t1));
+  my($t, $cr, $para, $ptype, $class, $opt) = @_;
+  $t=~/^\s*$/ and return('');
+  $t = ($ptype eq 'header' or $ptype eq 'list')                                     ? "$t\n"
+     : ($para eq 'br')                                                              ? "$t<br>$cr"
+     : ($para eq 'nb')                                                              ? $t
+     : $t=~m{<(html|body|head|p|table|img|figure|blockquote|[uod]l)[^>]*>.*</\1>}is ? $t
+     : $t=~m{<!doctype}is                                                           ? $t
+     : $t=~m{${MI}t=citlist}is ? $t
+     : "<p${class}>\n$t" . (($t=~/\n$/)?'':"\n") . "</p>$cr$cr";
+  return($t);
 }
 
 {
 my %ref_cnt;
 my %id_cnt_in_text;
+sub deref_init{
+  undef %ref_cnt;
+  undef %id_cnt_in_text;
+}
 sub deref{
   my($r) = @_;
   my $seq=0;

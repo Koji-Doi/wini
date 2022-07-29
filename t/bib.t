@@ -40,7 +40,8 @@ while(<DATA>){
 }
 
 for(my $i=1; $i<=$#indata; $i++){
-  undef %Text::Markup::Wini::REF;
+#  undef %Text::Markup::Wini::REF;
+  Text::Markup::Wini::init();
   if((scalar @reflist)>0){
     my $tmpreffile = "tempref.$$.enw";
     open(my $fho, '>:utf8', $tmpreffile) or die "Cannot create tempfile: $tmpreffile";
@@ -51,6 +52,13 @@ for(my $i=1; $i<=$#indata; $i++){
   }
 
   my($o1) = Text::Markup::Wini::to_html($indata[$i]{mg});
+open(my $fho_w, '>:utf8', "bib_t$i.wini");
+print {$fho_w} $indata[$i]{mg};
+close $fho_w;
+open(my $fho_h, '>:utf8', "bib_t$i.html");
+print {$fho_h} $o1;
+close $fho_h;
+
 #  $o1              =~s/[\s\n]//g;
 #  $indata[$i]{html}=~s/[\s\n]//g;
   is std($o1), std($indata[$i]{html});
@@ -152,7 +160,7 @@ aaa  (1),  (2).</p>
 
 ---start mg
 
-{{rr|chen2013}}.
+{{cit|gal2021|au='Kadotani, Anzu'|au='Koyama, Yuzuko'|au='Kawashima, Momo'|ye=2021|ti='Practice of Senshado in High School Club Activities'|jo='Research by Highschool Students'}}
 
 {{citlist}}
 
