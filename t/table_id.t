@@ -25,7 +25,6 @@ sub std{
   return($x);
 }
 
-
 {
   my($o, undef) = to_html(<<'EOC');
 ===
@@ -47,13 +46,11 @@ lang: 'en'
 |- (must be tbl100) | #100 @2 |
 | i | j |
 
-
 This is main.
 
 {{rr|id1|id2=a|lang=ja}} = id1 ja (must be tbl1) (mainsect: option ja in macro)
 
 {{rr|id1|id2=b|lang=en}} = id1 en (must be tbl1) (mainsect: option en in macro)
-
 
 ? in jp
 
@@ -90,10 +87,9 @@ EOC
   $o=std($o);
 
 my $p = <<EOC;
-
 <table id="id1" class="mgtable" style="border-collapse: collapse; border-left: solid 2px; border-right: solid 2px; border-bottom: solid 2px; border-top: solid 2px; ">
 <caption>
-Table 1   Here is a caption (must be tbl1)
+<a href="#id1">Table 1 </a>Here is a caption (must be tbl1)
 </caption>
 <tbody>
 <tr><td>a </td><td>b </td></tr>
@@ -101,7 +97,7 @@ Table 1   Here is a caption (must be tbl1)
 </table>
 <table id="tbl2" class="mgtable" style="border-collapse: collapse; border-left: solid 2px; border-right: solid 2px; border-bottom: solid 2px; border-top: solid 2px; ">
 <caption>
-Table 2   (must be tbl2)
+<a href="#tbl2">Table 2 </a>(must be tbl2)
 </caption>
 <tbody>
 <tr><td>c </td><td>d </td></tr>
@@ -114,7 +110,7 @@ Table 2   (must be tbl2)
 </table>
 <table id="id2" class="mgtable" style="border-collapse: collapse; border-left: solid 2px; border-right: solid 2px; border-bottom: solid 2px; border-top: solid 2px; ">
 <caption>
-Table 3   (must be tbl3)
+<a href="#id2">Table 3 </a>(must be tbl3)
 </caption>
 <tbody>
 <tr><td>g </td><td>h </td></tr>
@@ -122,7 +118,7 @@ Table 3   (must be tbl3)
 </table>
 <table id="tbl100" class="mgtable" style="border-collapse: collapse; border-left: solid 2px; border-right: solid 2px; border-bottom: solid 2px; border-top: solid 2px; ">
 <caption>
-Table 100   (must be tbl100)
+<a href="#tbl100">Table 100 </a>(must be tbl100)
 </caption>
 <tbody>
 <tr><td>i </td><td>j </td></tr>
@@ -134,12 +130,12 @@ This is main.
 
 
 <p>
- 表1 = id1 ja (must be tbl1) (mainsect: option ja in macro)
+<a href="#id1"> 表1</a>= id1 ja (must be tbl1) (mainsect: option ja in macro)
 </p>
 
 
 <p>
-Table 1  = id1 en (must be tbl1) (mainsect: option en in macro)
+<a href="#id1">Table 1 </a>= id1 en (must be tbl1) (mainsect: option en in macro)
 </p>
 
 <section class="mg" id="sect1">
@@ -152,29 +148,29 @@ This is sub.
 
 <table id="id3" class="mgtable" style="border-collapse: collapse; border-left: solid 2px; border-right: solid 2px; border-bottom: solid 2px; border-top: solid 2px; ">
 <caption>
- 表4  Here is a caption, which should be in Ja
+<a href="#id3"> 表4</a>Here is a caption, which should be in Ja
 </caption>
 <tbody>
 <tr><td>a </td><td>b </td></tr>
 </tbody>
 </table>
 <p>
- 表1 = id1 ja (subsect: option ja in macro)
+<a href="#id1"> 表1</a>= id1 ja (subsect: option ja in macro)
 </p>
 
 
 <p>
-Table 1  = id1 en (subsect: option en in macro)
+<a href="#id1">Table 1 </a>= id1 en (subsect: option en in macro)
 </p>
 
 
 <p>
- 表1 = id1 ja from section val
+<a href="#id1"> 表1</a>= id1 ja from section val
 </p>
 
 
 <p>
- 表4 = id3 ja from section val
+<a href="#id3"> 表4</a>= id3 ja from section val
 </p>
 </section> <!-- end of "sect1" d=ld=1 lastdepth=1 -->
 
@@ -182,12 +178,12 @@ Table 1  = id1 en (subsect: option en in macro)
 <h1 class="sectiontitle">in en</h1>
 
 <p>
-Table 3  = id2 en from section val
+<a href="#id2">Table 3 </a>= id2 en from section val
 </p>
 
 
 <p>
-Table 1  = id1 en from section val
+<a href="#id1">Table 1 </a>= id1 en from section val
 </p>
 
 </section>

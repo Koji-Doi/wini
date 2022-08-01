@@ -83,7 +83,7 @@ Set input file name to INPUT. If the file named 'INPUT' does not exists, Wini.pm
 
 Set output file name. If both -o and -i are omitted, Wini.pm outputs HTML-translated text to standard output.
 If -o is omitted and the input file name is 'input.wini', the output file will be 'input.wini.html'.
-Users can specify the output directory rather than the file. If -o value ends with 'output/', output file will be output/input.wini.html. if 'output/' does not exist, Wini.pm will create it.
+Users can specify the output directory rather than the file. If -o value ends with 'output/', output file will be output/input.wini.html. If 'output/' does not exist, Wini.pm will create it.
 
 =item B<--whole>
 
@@ -180,37 +180,16 @@ strikes: {{s|striked text}}
 
 =head3 Accents
 
- {{A`}}  : À
- {{A'}}  : Á
- {{A^}}  : Â
- {{A~}}  : Ã
- {{A:}}  : Ä
- {{A%}}  : Å
- {{AE}}  : Æ
- {{C,}}  : Ç
- {{ETH}} : Ð
- {{O/}}  : Ø
- {{P-}}  : Þ
- {{s-}}  : ß
- {{C<}}  : Č
- {{E=}}  : Ĕ
- {{E.}}  : Ė
- {{E,}}  : Ę
- {{I,,}} : Į
- {{'n}}  : ŉ
- {{Eng}} : Ŋ
- {{ss}}  : ſ
- {{O''}} : Ơ
- {{U:-}} : Ǖ
- {{U:'}} : Ǘ
- {{u:'}} : ǘ
- {{U:<}} : Ǚ
- {{U:`}} : Ǜ
- {{A%'}} : Ǻ
- {{AE'}} : Ǽ
- {{O/'}} : Ǿ
- {{'A}}  : Ά
- {{gat}} : ·
+ {{A`}}  : À (A with accent)
+ {{A'}}  : Á (A with acute accent)
+ {{A^}}  : Â (A with circumflex)
+ {{A~}}  : Ã (A with tilde accent)
+ {{A:}}  : Ä (A with diaeresis accent)
+ {{A%}}  : Å (A with ring above)
+ {{AE}}  : Æ (AE dephthong)
+ {{C,}}  : Ç (C with cedilla)
+ {{s-}}  : ß (German sharp s)
+ etc.
 
 =head2 listing
 
@@ -584,11 +563,6 @@ print Dumper $html;
     #  print {$fho_ref} "\n";
     #}
   }
-#  print STDERR "dump for ref: ", Dumper %REF;
-#  print STDERR "dump for refcount: ", Dumper %REFCOUNT;
-#  print STDERR "dump for refassign: ", Dumper %REFASSIGN;
-  $DB::single=$DB::single=1;
-  1;
 } # sub stand_alone
 
 sub read_bib{
@@ -1295,7 +1269,7 @@ sub deref_init{
 sub deref{
   my($r) = @_;
   my $seq=0;
-  $r=~s!(${MI}([^${MI}${MO}]+)${MI}t=(?:(fig|tbl|cit))?(?:${MI}l=([^${MI}${MO}]+))?${MO})!
+  $r=~s! *(${MI}([^${MI}${MO}]+)${MI}t=(?:(fig|tbl|cit))?(?:${MI}l=([^${MI}${MO}]+))?${MO}) *!
     my($r0, $id, $type, $lang) = ($1, $2, $3, $4);
     ($lang) or $lang = $LANG || 'en';
     (not $type and not $REF{$id}) and mes(txt('idnd', '', {id=>$id}), {err=>1});
@@ -1318,12 +1292,13 @@ sub deref{
       $title=~s/<.*?>//g;
       # $REF{$id}{text}{$lang} = $REF{$id}{inline_id};
       my $x = qq{<span id="${id}_$id_cnt_in_text{$id}" title="title">$REF{$id}{inline_id}</span>};
-      print STDERR "id=${id}: type=${type}\n";
       if($type eq 'cit'){
         $REF{$id}{inline_id}{$lang} = qq{<a href="#reflist_${id}">x</a>};
       }
+      sprintf(q|<a href="#%s">%s</a>|, $id, $REF{$id}{inline_id}{$lang});
+    }else{
+      $REF{$id}{inline_id}{$lang};
     }
-    sprintf(q|<a href="#%s">%s</a>|, $id, $REF{$id}{inline_id}{$lang});
   !ge;
 
   #  $r=~s!${MI}([^${MI}${MO}]+)?(?:${MI}t=citlist)(?:${MI}l=([^${MI}${MO}]+))?${MO}!
@@ -1343,8 +1318,6 @@ sub deref{
       }
       $o;
   !ge;
-  $DB::single=$DB::single=1;
-1;
   return($r);
 } # sub deref
 }
