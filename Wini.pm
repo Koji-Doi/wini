@@ -1318,9 +1318,12 @@ sub deref{
       $title=~s/<.*?>//g;
       # $REF{$id}{text}{$lang} = $REF{$id}{inline_id};
       my $x = qq{<span id="${id}_$id_cnt_in_text{$id}" title="title">$REF{$id}{inline_id}</span>};
-      ($type eq 'cit') and local($_) = qq{<a href="#reflist_${id}">x</a>};
+      print STDERR "id=${id}: type=${type}\n";
+      if($type eq 'cit'){
+        $REF{$id}{inline_id}{$lang} = qq{<a href="#reflist_${id}">x</a>};
+      }
     }
-    $REF{$id}{inline_id}{$lang};
+    sprintf(q|<a href="#%s">%s</a>|, $id, $REF{$id}{inline_id}{$lang});
   !ge;
 
   #  $r=~s!${MI}([^${MI}${MO}]+)?(?:${MI}t=citlist)(?:${MI}l=([^${MI}${MO}]+))?${MO}!
@@ -1331,7 +1334,7 @@ sub deref{
       my @citids = grep {($REF{$_}{type} eq 'cit') and ($REF{$_}{order}>0)} keys %REF;
       foreach my $id (sort {$REF{$a}{order} <=> $REF{$b}{order}} @citids){
         $lang = $REF{$id}{lang}[0] || $lang;
-        $o .= qq{<li id="reflist_${id}">} . txt('cit', $lang, {n=>$REF{$id}{order}||''}) . ' ';
+        $o .= qq{<li id="${id}">} . txt('cit', $lang, {n=>$REF{$id}{order}||''}) . ' ';
 # links from mglist to text
         for(my $i=1; $i<=$id_cnt_in_text{$id}; $i++){
           $o .= sprintf(qq{<a href="#%s">%s</a>}, "${id}_$i", "^$i&nbsp; ");
