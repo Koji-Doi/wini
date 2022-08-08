@@ -578,6 +578,8 @@ sub read_bib{
     if($fileformat eq 'endnote'){
 
 =begin c
+Wini.pm original specification: the text specified in %1 is regarded as an Reference ID.
+
 %x: enw firmat, [x]: pubmed reference (nbib) format, (x): ris format
 %A 	Author 	(AU) (A1)
 %B 	Secondary title of a book or conference name	(T2)(CONF)
@@ -658,6 +660,8 @@ sub read_bib{
                     : ($cont eq 'Web page') ? 'wp'
                     : ($cont eq 'Journal Article') ? 'ja' : '';
           $current_rec{cittype} = $cont1;
+        }elsif($type eq '%1'){
+          $current_rec{id} = $cont;
         }elsif(exists $item{$type1}){ # au, ti, etc.
           push(@{$current_rec{$item{$type1}}}, $cont);
         }elsif($type eq '%P'){ # page
@@ -738,6 +742,7 @@ sub bib_id{
   my($ref, $opt)  = @_; # $r: hash reference
   my($pre, $post) = ($opt->{post} || '', $opt->{post} || '');
   if((scalar keys %$ref)>0){
+    (exists $ref->{id}) and return($ref->{id}); # When ref Id is already defined, use that.
     my $id0 = $ref->{tau}[0] || $ref->{au}[0];
     $id0=~s/^["?].*//;
     $id0=~s/[, ].*//;
