@@ -267,7 +267,7 @@ use File::Basename;
 use File::Path 'mkpath';
 use FindBin;
 use Pod::Find qw(pod_where);
-use Pod::Usage;
+use Pod::Usage qw/pod2usage/;
 use Getopt::Long qw(:config no_ignore_case auto_abbrev);
 use Encode;
 use Cwd;
@@ -841,7 +841,7 @@ $ perl Wini.pm -h mg   : Show Markgaab quick-start guide and cheat sheet.
 EOD
 
   }elsif($x eq 'wini'){
-    print pod2usage(-verbose => 1, -input => $FindBin::Bin . "/" . $FindBin::Script);
+    print pod2usage(-verbose => 1, -noperldoc => 1, -input => $FindBin::Bin . "/" . $FindBin::Script);
   }else{
     my $sect = [
        ($x eq 'mg'  or $x eq 'markgaab') ? 'MARKGAAB'
