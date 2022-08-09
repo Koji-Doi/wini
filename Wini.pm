@@ -7,7 +7,7 @@ Text::Markup::Wini.pm - WIki markup ni NIta nanika (Japanese: "Something like wi
 
  use Wini;
 
- my($htmltext) = wini(<<'EOT');
+ my($htmltext) = to_html(<<'EOT');
  ! Large header
  !! Middle header
  !!! Small header
@@ -328,7 +328,7 @@ our $CSS = {
   '.tategaki'  => {'-ms-writing-mode' => 'tb-rl', 'writing-mode' => 'vertical-rl', '-webkit-text-orientation' => 'mixed',   'text-orientation' => 'mixed'},
   '.tatetate'  => {'-ms-writing-mode' => 'tb-rl', 'writing-mode' => 'vertical-rl', '-webkit-text-orientation' => 'upright', 'text-orientation' => 'upright'},
   '.yokoyoko'  => {'-ms-writing-mode' => 'tb-rl', 'writing-mode' => 'vertical-rl', '-webkit-text-orientation' => 'sideways', 'text-orientation' => 'sideways'},
-  '.reflist'   => {'list-style-type: none; margin: 0; padding: 0;'}
+  '.reflist'   => {'list-style-type' => 'none; margin: 0; padding: 0;'}
 };
 
 __PACKAGE__->stand_alone() if !caller() || caller() eq 'PAR';

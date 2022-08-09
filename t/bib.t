@@ -9,6 +9,7 @@ use Data::Dumper;
 
 use lib '.';
 use Wini;
+use is;
 Text::Markup::Wini::init();
 
 sub std{
@@ -61,7 +62,7 @@ close $fho_h;
 
 #  $o1              =~s/[\s\n]//g;
 #  $indata[$i]{html}=~s/[\s\n]//g;
-  is std($o1), std($indata[$i]{html});
+  is1 std($o1), std($indata[$i]{html});
 }
 1;
 done_testing;
