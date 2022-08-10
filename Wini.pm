@@ -1296,11 +1296,12 @@ sub deref{
       my $title = $REF{$id}{text}{$lang} || $REF{$id}{doi};
       $title=~s/<.*?>//g;
       # $REF{$id}{text}{$lang} = $REF{$id}{inline_id};
-      my $x = qq{<span id="${id}_$id_cnt_in_text{$id}" title="title">$REF{$id}{inline_id}</span>};
+      my $x = qq{<span id="${id}_$id_cnt_in_text{$id}" title="title">$REF{$id}{inline_id}{$lang}</span>};
       if($type eq 'cit'){
-        $REF{$id}{inline_id}{$lang} = qq{<a href="#reflist_${id}">x</a>};
+        $REF{$id}{inline_id}{$lang} = qq{<a href="#reflist_${id}">$x</a>};
+      #}else{
+      #  sprintf(q|<a href="#%s">%s</a>|, $id, $REF{$id}{inline_id}{$lang});
       }
-      sprintf(q|<a href="#%s">%s</a>|, $id, $REF{$id}{inline_id}{$lang});
     }else{
       $REF{$id}{inline_id}{$lang};
     }
@@ -1610,7 +1611,14 @@ sub call_macro{
 sub readpars{
   my($p, @list)=@_;
   my %pars; my @pars;
-  my @par0 = (ref $p eq 'ARRAY') ? @$p : split(/\|/, $p);
+#  $p=~s/(?<=\{\{)(.)(?=}})/latin($1)/ge;
+  (ref $p eq '') and $p=[$p];
+#  my @par0 = (ref $p eq 'ARRAY') ? @$p : split(/\|/, $p);
+  my @par0;
+  map { # trim, escape latin chars, for each parameter
+    my $a=$_; $a=~s/^\s+//; $a=~s/\s+$//; $a=~s/\{\{(.)}}/call_macro($1)/ge;
+    push(@par0, split(/\|/,$a));
+  } @$p;
 
   foreach my $x (@par0){
     if(my($k,$v) = $x=~/(\w+)\s*=\s*(.*)\s*/){

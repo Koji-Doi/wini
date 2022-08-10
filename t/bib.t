@@ -128,11 +128,15 @@ __DATA__
 
 ---start mg
 
-Reference 1: {{cit|kirk2022|au='James, T. Kirk'|ye=2022|ti='XXX'}}
+Reference 1: {{cit|kirk2282|au='James, T. Kirk'|ye=2282|ti='Federation Starfleet{{'}}s New Operation Concept.'|jo='Federation Military Review' |vo='100' |pp='201-202' }}
 
-Reference 2: {{cit|gal2021|au='Kadotani, Anzu'|au='Koyama, Yuzuko'|au='Kawashima, Momo'|ye=2021|ti='Practice of Senshado in High School Club Activities'|jo='Research by Highschool Students'}}
+Reference 2: {{cit|gal2021|au='Kadotani, Anzu'|au='Koyama, Yuzuko'|au='Kawashima, Momo' | ye=2021 | ti='Practice of Senshado in High School Club Activities' | jo='Research by Highschool Students' | vo=20 | pp='101-111' }}
 
-aaa {{ref|kirk2022}}, {{ref|gal2021}}.
+Citing ref 1 as {{ref|kirk2282}}.
+
+Citing ref 2 as {{ref|gal2021}}.
+
+Citing ref 1 again as {{ref|kirk2282}}.
 
 {{citlist}}
 

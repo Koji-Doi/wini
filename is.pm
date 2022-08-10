@@ -4,7 +4,9 @@ use warnings;
 my $cnt=0;
 sub is1{
   my(@x) = @_;
+  no warnings;
   is $x[0], $x[1];
+  use warnings;
   foreach my $i (0..1){
     $x[$i]=~/<html>/ or  $x[$i] = whole($x[$i]);
     my $outfile = sprintf('%s_%d_%s.html', $0, $cnt, [qw/got expected/]->[$i]);
@@ -23,6 +25,7 @@ sub whole{
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
+<title>t/bib.t test</title>
 </head>
 <body>
   $x
