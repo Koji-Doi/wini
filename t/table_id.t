@@ -33,14 +33,10 @@ binmode STDOUT,':utf8';
 my $i=-1;
 my $mode = '';
 while(<DATA>){
-#  if(/^---start reflist/ .. /---end reflist/){
-#    /^---/ or push(@reflist, $_);
-#  }else{
-    /^---start mg/   and ($i++, $mode='mg', next);
-    /^---start html/ and ($mode='html', next);
-    /^---end/ and last;
-    $indata[$i]{$mode} .= $_;
-#  }
+  /^---start mg/   and ($i++, $mode='mg', next);
+  /^---start html/ and ($mode='html', next);
+  /^---end/ and last;
+  $indata[$i]{$mode} .= $_;
 }
 
 # do test
@@ -106,7 +102,7 @@ lang: 'en'
 lang: 'en'
 ===
 
-|- Here is a caption (without table No.) | #id1 @2 |
+|- | #id1 @2 |
 | a | b |
 
 |- (must be tbl2) | #2 @2 |
@@ -123,7 +119,7 @@ lang: 'en'
 
 ---start html
 
-<table id="id1" class="mgtable" style="border-collapse: collapse; border-left: solid 2px; border-right: solid 2px; border-bottom: solid 2px; border-top: solid 2px; "><caption><a href="#id1">Table 1</a>Here is a caption (without table No.)</caption>
+<table id="id1" class="mgtable" style="border-collapse: collapse; border-left: solid 2px; border-right: solid 2px; border-bottom: solid 2px; border-top: solid 2px; "><caption><a href="#id1">Table 1</a></caption>
 <tbody><tr><td>a</td><td>b</td></tr>
 </tbody>
 </table>
@@ -147,7 +143,26 @@ lang: 'en'
 </tbody>
 </table>
 
----end
+---start mg
+
+===
+lang: 'en'
+===
+
+|- | #id1 @2 |
+| a | b |
+
+|- (must be tbl2) | #2 @2 |
+| c | d |
+
+|- | @2 |
+| e | f |
+
+|- (must be tbl3) | #id2 @2 |
+| g | h |
+
+|- (must be tbl100) | #100 @2 |
+| i | j |
 
 This is main.
 
@@ -186,17 +201,12 @@ lang: 'en'
 
 ---start html
 <table id="id1" class="mgtable" style="border-collapse: collapse; border-left: solid 2px; border-right: solid 2px; border-bottom: solid 2px; border-top: solid 2px; ">
-<caption>
-Here is a caption (without table No.)
-</caption>
+<caption><a href="#id1">Table 1</a></caption>
 <tbody>
 <tr><td>a </td><td>b </td></tr>
 </tbody>
----end html
-
----end
-
 </table>
+
 <table id="tbl2" class="mgtable" style="border-collapse: collapse; border-left: solid 2px; border-right: solid 2px; border-bottom: solid 2px; border-top: solid 2px; ">
 <caption>
 <a href="#tbl2">Table 2 </a>(must be tbl2)
@@ -205,11 +215,13 @@ Here is a caption (without table No.)
 <tr><td>c </td><td>d </td></tr>
 </tbody>
 </table>
+
 <table class="mgtable" style="border-collapse: collapse; border-left: solid 2px; border-right: solid 2px; border-bottom: solid 2px; border-top: solid 2px; ">
 <tbody>
 <tr><td>e</td><td>f</td></tr>
 </tbody>
 </table>
+
 <table id="id2" class="mgtable" style="border-collapse: collapse; border-left: solid 2px; border-right: solid 2px; border-bottom: solid 2px; border-top: solid 2px; ">
 <caption>
 <a href="#id2">Table 3 </a>(must be tbl3)
@@ -218,6 +230,7 @@ Here is a caption (without table No.)
 <tr><td>g </td><td>h </td></tr>
 </tbody>
 </table>
+
 <table id="tbl100" class="mgtable" style="border-collapse: collapse; border-left: solid 2px; border-right: solid 2px; border-bottom: solid 2px; border-top: solid 2px; ">
 <caption>
 <a href="#tbl100">Table 100 </a>(must be tbl100)
@@ -229,7 +242,6 @@ Here is a caption (without table No.)
 <p>
 This is main.
 </p>
-
 
 <p>
 <a href="#id1"> 表1</a>= id1 ja (must be tbl1) (mainsect: option ja in macro)
