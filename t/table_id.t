@@ -1,6 +1,6 @@
 #!/usr/bin/env perl
 
-package Text::Markup::Wini;
+#package Text::Markup::Wini;
 use utf8;
 use strict;
 use warnings;
@@ -9,10 +9,54 @@ use Encode qw/encode decode/;
 use lib '.';
 use Wini;
 
+our $ENVNAME;
+#our %EXT;
+our @LANGS;
+our $LANG;
+our $QUIET;
+our %MACROS;
+our %VARS;
+our %REF;       # dataset for each reference
+#our %REFCOUNT;  # reference count
+our %REFASSIGN; # reference id definitions
+our %TXT;       # messages and forms
+our($MI, $MO);  # escape chars to 
+our(@INDIR, @INFILE, $OUTFILE);
+our($TEMPLATE, $TEMPLATEDIR);
+
+my @indata;
+
 binmode STDIN, ':utf8';
 binmode STDERR,':utf8';
 binmode STDOUT,':utf8';
-init();
+
+my $i=-1;
+my $mode = '';
+while(<DATA>){
+#  if(/^---start reflist/ .. /---end reflist/){
+#    /^---/ or push(@reflist, $_);
+#  }else{
+    /^---start mg/   and ($i++, $mode='mg', next);
+    /^---start html/ and ($mode='html', next);
+    /^---end/ and last;
+    $indata[$i]{$mode} .= $_;
+#  }
+}
+
+# do test
+for(my $i=0; $i<=$#indata; $i++){
+  Text::Markup::Wini::init();
+  my($o, undef) = Text::Markup::Wini::to_html($indata[$i]{mg});
+  $o=std($o);
+
+  my $p = $indata[$i]{html};
+
+  # $o must be decoded.
+  is $o, std($p);
+#  is std(decode('utf-8',$o)), std($p);
+}
+
+done_testing;
 
 sub std{
   my($x)=@_;
@@ -25,13 +69,44 @@ sub std{
   return($x);
 }
 
-{
-  my($o, undef) = to_html(<<'EOC');
+__DATA__
+---start mg
 ===
 lang: 'en'
 ===
 
-|- Here is a caption (must be tbl1) | #id1 @2 |
+|- Here is a caption | #id1 @2 |
+| a | b |
+
+---start html
+
+<table id="id1" class="mgtable" style="border-collapse: collapse; border-left: solid 2px; border-right: solid 2px; border-bottom: solid 2px; border-top: solid 2px; ">
+<caption><a href="#id1">Table 1</a> Here is a caption</caption>
+<tbody>
+<tr><td>a</td><td>b</td></tr>
+</tbody>
+</table>
+
+---start mg
+|- (must be tbl2) | #2 @2 |
+| c | d |
+
+---start html
+
+<table id="tbl2" class="mgtable" style="border-collapse: collapse; border-left: solid 2px; border-right: solid 2px; border-bottom: solid 2px; border-top: solid 2px; ">
+<caption><a href="#tbl2">Table 2</a>(must be tbl2)</caption>
+<tbody>
+<tr><td>c</td><td>d</td></tr>
+</tbody>
+</table>
+
+---start mg
+
+===
+lang: 'en'
+===
+
+|- Here is a caption (without table No.) | #id1 @2 |
 | a | b |
 
 |- (must be tbl2) | #2 @2 |
@@ -45,6 +120,34 @@ lang: 'en'
 
 |- (must be tbl100) | #100 @2 |
 | i | j |
+
+---start html
+
+<table id="id1" class="mgtable" style="border-collapse: collapse; border-left: solid 2px; border-right: solid 2px; border-bottom: solid 2px; border-top: solid 2px; "><caption><a href="#id1">Table 1</a>Here is a caption (without table No.)</caption>
+<tbody><tr><td>a</td><td>b</td></tr>
+</tbody>
+</table>
+
+<table id="tbl2" class="mgtable" style="border-collapse: collapse; border-left: solid 2px; border-right: solid 2px; border-bottom: solid 2px; border-top: solid 2px; "><caption><a href="#tbl2">Table 2</a>(must be tbl2)</caption>
+<tbody><tr><td>c</td><td>d</td></tr>
+</tbody>
+</table>
+
+<table class="mgtable" style="border-collapse: collapse; border-left: solid 2px; border-right: solid 2px; border-bottom: solid 2px; border-top: solid 2px; "><tbody><tr><td>e</td><td>f</td></tr>
+</tbody>
+</table>
+
+<table id="id2" class="mgtable" style="border-collapse: collapse; border-left: solid 2px; border-right: solid 2px; border-bottom: solid 2px; border-top: solid 2px; "><caption><a href="#id2">Table 3</a>(must be tbl3)</caption>
+<tbody><tr><td>g</td><td>h</td></tr>
+</tbody>
+</table>
+
+<table id="tbl100" class="mgtable" style="border-collapse: collapse; border-left: solid 2px; border-right: solid 2px; border-bottom: solid 2px; border-top: solid 2px; "><caption><a href="#tbl100">Table 100</a>(must be tbl100)</caption>
+<tbody><tr><td>i</td><td>j</td></tr>
+</tbody>
+</table>
+
+---end
 
 This is main.
 
@@ -81,19 +184,18 @@ lang: 'en'
 
 {{rr|id1|id2=h}} = id1 en from section val
 
-EOC
-  open(my $fho, '>:utf8', 'table_id.html');
-  print {$fho} "$o\n"; close $fho;
-  $o=std($o);
-
-my $p = <<EOC;
+---start html
 <table id="id1" class="mgtable" style="border-collapse: collapse; border-left: solid 2px; border-right: solid 2px; border-bottom: solid 2px; border-top: solid 2px; ">
 <caption>
-<a href="#id1">Table 1 </a>Here is a caption (must be tbl1)
+Here is a caption (without table No.)
 </caption>
 <tbody>
 <tr><td>a </td><td>b </td></tr>
 </tbody>
+---end html
+
+---end
+
 </table>
 <table id="tbl2" class="mgtable" style="border-collapse: collapse; border-left: solid 2px; border-right: solid 2px; border-bottom: solid 2px; border-top: solid 2px; ">
 <caption>
@@ -158,16 +260,13 @@ This is sub.
 <a href="#id1"> 表1</a>= id1 ja (subsect: option ja in macro)
 </p>
 
-
 <p>
 <a href="#id1">Table 1 </a>= id1 en (subsect: option en in macro)
 </p>
 
-
 <p>
 <a href="#id1"> 表1</a>= id1 ja from section val
 </p>
-
 
 <p>
 <a href="#id3"> 表4</a>= id3 ja from section val
@@ -181,19 +280,10 @@ This is sub.
 <a href="#id2">Table 3 </a>= id2 en from section val
 </p>
 
-
 <p>
 <a href="#id1">Table 1 </a>= id1 en from section val
 </p>
 
 </section>
 
-EOC
-
-  # $o must be decoded.
-  is $o, std($p);
-#  is std(decode('utf-8',$o)), std($p);
-}
-
-
-done_testing;
+---end

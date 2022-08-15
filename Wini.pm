@@ -1299,8 +1299,8 @@ sub deref{
       my $x = qq{<span id="${id}_$id_cnt_in_text{$id}" title="title">$REF{$id}{inline_id}{$lang}</span>};
       if($type eq 'cit'){
         $REF{$id}{inline_id}{$lang} = qq{<a href="#reflist_${id}">$x</a>};
-      #}else{
-      #  sprintf(q|<a href="#%s">%s</a>|, $id, $REF{$id}{inline_id}{$lang});
+      }else{
+        sprintf(q|<a href="#%s">%s</a>|, $id, $REF{$id}{inline_id}{$lang});
       }
     }else{
       $REF{$id}{inline_id}{$lang};
@@ -2000,7 +2000,7 @@ sub table{
       }
       ($o=~/\.([-\w]+)/) and push(@{$htmlitem[0][0]{copt}{class}}, $1);
 
-      # set table ID
+      # set table ID in caption
       if($o=~/#(\w+)/){
         $tbl_id=$1;
         ($tbl_id=~/^\d+$/) and $tbl_id = "tbl${tbl_id}";
@@ -2010,12 +2010,12 @@ sub table{
           ($tbl_id=~/^\d+$/) and ($tbl_id, $order) = ("tbl${tbl_id}", $tbl_id);
           (exists $REF{$tbl_id}) and mes(txt('did', undef, {id=>$tbl_id}), {err=>1});
           $REF{$tbl_id} = {order=>$order, type=>'tbl'};
-          $caption = ref_txt($tbl_id, 'tbl', $order, $caption, $lang);
+          $caption = ref_txt($tbl_id, 'tbl', $order, $caption, $lang) . ' ';
           #$tbl_id = sprintf(qq{ id="%s"}, $tbl_id); # ref_tmp_txt($tbl_id0, $lang, 'tbl')); # for table->caption tag
         }else{ # free-style table ID
           #my $i=1; $i++ while(exists $REFASSIGN{tbl}{$i});
           $REF{$tbl_id} = {type=>'tbl'};
-          $caption = ref_txt($tbl_id, 'tbl', undef, $caption, $lang);
+          $caption = ref_txt($tbl_id, 'tbl', undef, $caption, $lang) . ' ';
         } # if tbl_id
       } # if defined $tbl_id
       while($o=~/\&([lrcjsebtm]+)/g){
