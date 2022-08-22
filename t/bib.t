@@ -40,8 +40,8 @@ while(<DATA>){
   }
 }
 
-#for(my $i=1; $i<=$#indata; $i++){
-for (my $i=3; $i==3; $i++){
+for(my $i=1; $i<=$#indata; $i++){
+#for (my $i=3; $i==3; $i++){
 #  undef %Text::Markup::Wini::REF;
   Text::Markup::Wini::init();
   if((scalar @reflist)>0){
@@ -181,8 +181,8 @@ Reference 1:<a href="#reflist_kirk2282"><span id="kirk2282_1" title="title">(1)<
 </p>
 
 <p>
-Reference 2:<a href="#reflist_gal2021"><span id="gal2021_1" title="title">(2)</span>
-</a>
+Reference 2:<a href="#reflist_gal2021"><span id="gal2021_1" title="title">(2)</span></a>
+</p>
 
 <p>
 Citing ref 1 as<a href="#reflist_kirk2282"><span id="kirk2282_2" title="title">(1)</span></a>

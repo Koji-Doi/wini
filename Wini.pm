@@ -354,22 +354,24 @@ sub init{
   $SCRIPTNAME = basename($0);
   $VERSION    = "ver. 1.0alpha rel. 20220114";
   while(<Text::Markup::Wini::DATA>){
-    while(/\\\s*$/){
+    chomp;
+    while(s/\\\s*$//){
       $_ .= <Text::Markup::Wini::DATA>;
     }
     /^##/ and next; # comment line
     /^\s*$/ and next;
-    chomp;
     /^"[^"]*$/ and next; # skip dummy line
     my $sp = substr($_, 0, 1);
     ($sp eq '') or $sp = '\\' . $sp;
 #    my($id, $en, $ja) = split($sp, substr($_,1));
     my($id, @txt) = split($sp, substr($_,1));
     for(my $i=0; $i<=$#txt; $i++){
+      $txt[$i]=~s/^\s+/ /;
+      $txt[$i]=~s/\s+$/ /;
       $TXT{$id}{$LANGS[$i]} = $txt[$i];
     }
   }
-}
+} # sub init
 
 # Following function is executed when this script is called as stand-alone script
 sub stand_alone{
@@ -1776,7 +1778,7 @@ sub cit{
     my $cit_form = "cit_form_${cittype}";
     #$REF{$id}{inline_cit_id} = txt("cit_inline_${cittype}", $lang, {au=>$pars->{au}[0], ye=>$pars->{ye}[-1]})||''; # printf("%s, %s", $au1, ($pars->{yr}[-1]||''));
     foreach my $l (@LANGS){
-      $REF{$id}{text}{$l} = cittxt($pars, $cit_form, $l); # sprintf("%s, %s", $au1, ($pars->{yr}[-1]||''))
+      $REF{$id}{text}{$l} = "lang=$l: cit_form=${cit_form}: ".cittxt($pars, $cit_form, $l); # sprintf("%s, %s", $au1, ($pars->{yr}[-1]||''))
     }
     $REF{$id}{type}    = 'cit';
     $REF{$id}{cittype} = $cittype;
@@ -2909,7 +2911,7 @@ __DATA__
 |cit_inline_ja| ({{au}}, {{ye}}) | ({{au}}, {{ye}})|
 !cit_form! [au|&ini_f|&last_first_ini,|&join;a2e] [ye|&q_()] [ti|&r_] [jo|&ita] [vo][is|&q_()] ! [au|&lastname|&join,2e] [ye|&q_()] [ti|&r_] [jo|&ita] [vo][is|&q_()] !
 ## journal article, citation in reference list
-!cit_form_ja! [au|&ini_f|&last_first_ini,|&join;a2e] [ye|&q_()] [ti|&r_] [jo|&ita] [vo][is|&q_()]! [au|&lastname|&join,2e] [ye|&q_()] [ti|&r_] [jo|&ita] [vo][is|&q_()] !
+!cit_form_ja! [au|&ini_f|&last_first_ini,|&join;a2e] [ye|&q_()] [ti|&r_] [jo|&ita] [vo][is|&q_()]![au|&lastname|&join,2e] [ye|&q_()] [ti|&r_] [jo|&ita] [vo][is|&q_()] !
 ## book chapter, citation in reference list
 !cit_form_bc! BC [au|&ini_f|&last_first_ini,|&join;&2e] [ye|&q_()] [ti|&r_] In [bo] ! [au|&ini_f|&last_first|&join,2e] [ye|&q_()] [ti|&r_] [jo|&ita] [vo][is|&q_()] !
 ## conference proceedings
