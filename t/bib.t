@@ -40,7 +40,8 @@ while(<DATA>){
   }
 }
 
-for(my $i=1; $i<=$#indata; $i++){
+#for(my $i=1; $i<=$#indata; $i++){
+for (my $i=3; $i==3; $i++){
 #  undef %Text::Markup::Wini::REF;
   Text::Markup::Wini::init();
   if((scalar @reflist)>0){
@@ -126,7 +127,40 @@ __DATA__
 %I IEEE
 ---end reflist
 
----start mg
+---start mg 1
+
+Reference 1: {{cit|kirk2282|au='James, T. Kirk'|ye=2282|ti='Federation Starfleet{{'}}s New Operation Concept.'|jo='Federation Military Review' |vo='100' |pp='201-202' }}
+
+---start html 1
+
+<p>
+Reference 1:<a href="#reflist_kirk2282"><span id="kirk2282_1" title="title">(1)</span></a>
+</p>
+
+---start mg 2
+
+Reference 1: {{cit|kirk2282|au='James, T. Kirk'|ye=2282|ti='Federation Starfleet{{'}}s New Operation Concept.'|jo='Federation Military Review' |vo='100' |pp='201-202' }}
+
+Reference 2: {{cit|gal2021|au='Kadotani, Anzu'|au='Koyama, Yuzuko'|au='Kawashima, Momo' | ye=2021 | ti='Practice of Senshado in High School Club Activities' | jo='Research by Highschool Students' | vo=20 | pp='101-111' }}
+
+Citing ref 1 as {{ref|kirk2282}}.
+
+Citing ref 2 as {{ref|gal2021}}.
+
+---start html 2
+
+<p>
+Reference 1:<a href="#reflist_kirk2282"><span id="kirk2282_1" title="title">(1)</span></a>
+</p>
+
+<p>
+Reference 2:<a href="#reflist_gal2021"><span id="gal2021_1" title="title">(2)</span></a>
+</p>
+
+<p>Citing ref 1 as<a href="#reflist_kirk2282"><span id="kirk2282_2" title="title">(1)</span></a>.</p>
+<p>Citing ref 2 as<a href="#reflist_gal2021"><span id="gal2021_2" title="title">(2)</span></a>.</p>
+
+---start mg 3
 
 Reference 1: {{cit|kirk2282|au='James, T. Kirk'|ye=2282|ti='Federation Starfleet{{'}}s New Operation Concept.'|jo='Federation Military Review' |vo='100' |pp='201-202' }}
 
@@ -140,35 +174,41 @@ Citing ref 1 again as {{ref|kirk2282}}.
 
 {{citlist}}
 
----start html
-<p>
-Reference 1:  (1) </p>
-
+---start html 3
 
 <p>
-Reference 2:  (2) </p>
-
+Reference 1:<a href="#reflist_kirk2282"><span id="kirk2282_1" title="title">(1)</span></a>
+</p>
 
 <p>
-aaa  (1),  (2).</p>
+Reference 2:<a href="#reflist_gal2021"><span id="gal2021_1" title="title">(2)</span>
+</a>
 
+<p>
+Citing ref 1 as<a href="#reflist_kirk2282"><span id="kirk2282_2" title="title">(1)</span></a>
+.</p>
+<p>
+Citing ref 2 as<a href="#reflist_gal2021"><span id="gal2021_2" title="title">(2)</span></a>
+.</p>
+<p>Citing ref 1 again as<a href="#reflist_kirk2282"><span id="kirk2282_3" title="title">(1)</span></a>
+.</p>
 
-
-<ul class="mglist reflist">
-<li>
- kirk2022
-</li>
-<li>
- gal2021
-</li>
+<ul class="citlist">
+<li id="kirk2282">[1]<a href="#kirk2282_1">^1&nbsp;</a>
+<a href="#kirk2282_2">^2&nbsp;</a>
+<a href="#kirk2282_3">^3&nbsp;</a>
+J, T (2282) Federation Starfleet&#x27;s New Operation Concept.. Federation Military Review 100()</li>
+<li id="gal2021">[2]<a href="#gal2021_1">^1&nbsp;</a>
+<a href="#gal2021_2">^2&nbsp;</a>
+K, A &nbsp; and &nbsp; K, Y et al. (2021) Practice of Senshado in High School Club Activities. Research by Highschool Students 20()</li>
 </ul>
 
----start mg
+---start mg 4
 
 {{cit|gal2021|au='Kadotani, Anzu'|au='Koyama, Yuzuko'|au='Kawashima, Momo'|ye=2021|ti='Practice of Senshado in High School Club Activities'|jo='Research by Highschool Students'}}
 
 {{citlist}}
 
----start html
+---start html 4
 
 ---end

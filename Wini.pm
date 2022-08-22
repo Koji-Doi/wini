@@ -354,6 +354,9 @@ sub init{
   $SCRIPTNAME = basename($0);
   $VERSION    = "ver. 1.0alpha rel. 20220114";
   while(<Text::Markup::Wini::DATA>){
+    while(/\\\s*$/){
+      $_ .= <Text::Markup::Wini::DATA>;
+    }
     /^##/ and next; # comment line
     /^\s*$/ and next;
     chomp;
@@ -724,8 +727,8 @@ Wini.pm original specification: the text specified in %1 is regarded as an Refer
         map { push(@{$REF{$id}{$k}}, $_) } @{$x->{$k}};
       }
       $REF{$id}{source}  = $i+1; # reference No. (1,2,3,...) refs from '{{ref|..}}' should be 0.
-      $REF{$id}{type}    = 'cit'; # 220510 temp (book, proceedings...?)
-      $REF{$id}{cittype} = $x->{cittype};
+      $REF{$id}{type}    = 'cit';
+      $REF{$id}{cittype} = $x->{cittype} || 'ja';
       $REF{$id}{text}    = $x->{text};
       (defined $REF{$id}{lang}) or $REF{$id}{lang}[0] = 'en';
       my $au  = (defined $x->{au}[0])  ? join(' & ', grep {/\S/} @{$x->{au}})  : '';
@@ -1776,7 +1779,7 @@ sub cit{
       $REF{$id}{text}{$l} = cittxt($pars, $cit_form, $l); # sprintf("%s, %s", $au1, ($pars->{yr}[-1]||''))
     }
     $REF{$id}{type}    = 'cit';
-    $REF{$id}{cittype} = $pars->{cittype}[-1] || '';
+    $REF{$id}{cittype} = $cittype;
     $REF{$id}{lang}    = [$lang];
     $REF{$id}{source}  = 0;
     return($tmptxt);
@@ -2431,7 +2434,7 @@ sub ev{ # <, >, %in%, and so on
       # 2e: a, b et al.
       # 3e: a, b, c et al.
       my $sep = ($1) ? "$1 " : ', ';
-      my $a0  = ($2 eq '') ? ' ' : ($2 eq 'a') ? ' and ' : ' &amp; ';
+      my $a0  = ($2 eq '') ? ' ' : ($2 eq 'a') ? txt('and', $lang) : ' &amp; ';
       my $and = txt('cit_and', $lang, {and=>$a0});
       my $n   = ($3 and $3<scalar @stack) ? $3 : scalar @stack;
       my $etal= $4;
@@ -2897,15 +2900,16 @@ sub question{
 __DATA__
 " <- dummy quotation mark to cancel meddling emacs cperl-mode auto indentation
 |LOCALE|en_US.utf8|ja_JP.utf8|
+|and| and |，|
 |cft|Cannot find template {{t}} in {{d}}|テンプレートファイル{{t}}はディレクトリ{{d}}内に見つかりません|
 |chkbibfile| Check reference ID list ({{f}}) | リファレンスID対応表（{{f}}）を確認してください|
 |cit| [{{n}}] | [{{n}}] |
-|cit_and| &nbsp;{{and}}&nbsp; |，|
+|cit_and| &nbsp;{{and}}&nbsp; | &nbsp;{{and}}&nbsp; |
 ## jornal article, in-line citation
 |cit_inline_ja| ({{au}}, {{ye}}) | ({{au}}, {{ye}})|
 !cit_form! [au|&ini_f|&last_first_ini,|&join;a2e] [ye|&q_()] [ti|&r_] [jo|&ita] [vo][is|&q_()] ! [au|&lastname|&join,2e] [ye|&q_()] [ti|&r_] [jo|&ita] [vo][is|&q_()] !
 ## journal article, citation in reference list
-!cit_form_ja! [au|&ini_f|&last_first_ini,|&join;a2e] [ye|&q_()] [ti|&r_] [jo|&ita] [vo][is|&q_()] ! [au|&lastname|&join,2e] [ye|&q_()] [ti|&r_] [jo|&ita] [vo][is|&q_()] !
+!cit_form_ja! [au|&ini_f|&last_first_ini,|&join;a2e] [ye|&q_()] [ti|&r_] [jo|&ita] [vo][is|&q_()]! [au|&lastname|&join,2e] [ye|&q_()] [ti|&r_] [jo|&ita] [vo][is|&q_()] !
 ## book chapter, citation in reference list
 !cit_form_bc! BC [au|&ini_f|&last_first_ini,|&join;&2e] [ye|&q_()] [ti|&r_] In [bo] ! [au|&ini_f|&last_first|&join,2e] [ye|&q_()] [ti|&r_] [jo|&ita] [vo][is|&q_()] !
 ## conference proceedings
