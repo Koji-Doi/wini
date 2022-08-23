@@ -1571,41 +1571,41 @@ sub call_macro{
   ($macroname eq '') and return(span(\@f, $class_id));
 
   my($sep, @f1);
-  (defined $MACROS{$macroname})     and return($MACROS{$macroname}(@f));
-  ($macroname=~m{^[!?]+[=^]{0,2}$}) and return(question($macroname, @f));
+  (defined $MACROS{$macroname})      and return($MACROS{$macroname}(@f));
+  ($macroname=~m{^[!?]+[=^]{0,2}$})  and return(question($macroname, @f));
   (($macroname=~m{^[a-zA-Z][-^~"%'`:,.<=/]{1,2}$})     or
   ($macroname=~m{^(AE|ETH|IJ|KK|Eng|CE|ss|AE'|gat)$}i) or
   ($macroname=~m{^'[a-zA-Z]{1,2}$}))                   and return(latin($macroname));
-  ($macroname=~/^l$/i)              and return('&#x7b;'); # {
-  ($macroname=~/^bar$/i )           and return('&#x7c;'); # |
-  ($macroname=~/^r$/i)              and return('&#x7d;'); # }
+  ($macroname=~/^l$/i)               and return('&#x7b;'); # {
+  ($macroname=~/^bar$/i )            and return('&#x7c;'); # |
+  ($macroname=~/^r$/i)               and return('&#x7d;'); # }
   ($macroname=~/^([=-]([fh*]*-)?+[>v^ud]+|[<v^ud]+[=-]([fh*]*-)?+)/i)
-                                    and return(arrow($macroname, @f));
-  ($macroname=~m{^[!-/:-@\[-~]$})   and (not defined $f[0]) and 
+                                     and return(arrow($macroname, @f));
+  ($macroname=~m{^[!-/:-@\[-~]$})    and (not defined $f[0]) and 
     return('&#x'.unpack('H*',$macroname).';'); # char -> ascii code
-  ($macroname=~/^\@$/)              and return(term(\@f)); # abbr
-  ($macroname=~/^(rr|ref|cit)$/i)   and return(cit(\@f, $opt->{_v})); # reference
+  ($macroname=~/^\@$/)               and return(term(\@f)); # abbr
+  ($macroname=~/^(rr|ref|cit)$/i)    and return(cit(\@f, $opt->{_v})); # reference
 #  ($macroname=~/^(cit|ref)list$/i)  and return("${MI}###${MI}t=citlist${MO}");
-  ($macroname=~/^(cit|ref)list$/i)  and return(citlist(\@f, $opt->{_v}));
-  ($macroname=~/^(date|time|dt)$/i) and return(date([@f, "type=$1"],  $opt->{_v}));
-  ($macroname=~/^(stack)$/i)      and (
+  ($macroname=~/^(cit|ref)list$/i)   and return(citlist(\@f, $opt->{_v}));
+  ($macroname=~/^(date|time|dt)$/i)  and return(date([@f, "type=$1"],  $opt->{_v}));
+  ($macroname=~/^(stack)$/i)         and (
      ($sep, @f1) = ($f[0], @f[1..$#f]),
      return(join($sep, (ev(\@f1, $opt->{_v}))))
   );
-  ($macroname=~/^calc$/i)           and return((ev(\@f, $opt->{_v}))[-1]);
-  ($macroname=~/^va$/i)             and return(
+  ($macroname=~/^(ev|eval|calc)$/i)  and return((ev(\@f, $opt->{_v}))[-1]);
+  ($macroname=~/^va$/i)              and return(
     (defined $opt->{_v}{$f[0]}) ? $opt->{_v}{$f[0]} : (mes(txt('vnd', {v=>$f[0]}), {warn=>1}), '')
   );
-  ($macroname=~/^envname$/i)      and return($ENVNAME);
-  ($macroname=~/^([oun]l)$/i)     and return(listmacro($1, \@f));
-  ($macroname=~/^[IBUS]$/)        and $_=lc($macroname), return("<$_${class_id}>$f[0]</$_>");
-  ($macroname eq 'i')             and return(qq!<span${class_id} style="font-style:italic;">$f[0]</span>!);
-  ($macroname eq 'b')             and return(qq!<span${class_id} style="font-weight:bold;">$f[0]</span>!);
-  ($macroname eq 'u')             and return(qq!<span${class_id} style="border-bottom: solid 1px;">$f[0]</span>!);
-  ($macroname eq 's')             and return(qq!<span${class_id} style="text-decoration: line-through;">$f[0]</span>!);
-  ($macroname=~/^ruby$/i)         and return(ruby(@f));
-  ($macroname=~/^v$/i)            and return(qq!<span class="tategaki">$f[0]</span>!);
-  ($macroname=~/^vv$/i)           and return(qq!<span class="tatetate">$f[0]</span>!);
+  ($macroname=~/^envname$/i)         and return($ENVNAME);
+  ($macroname=~/^([oun]l)$/i)        and return(listmacro($1, \@f));
+  ($macroname=~/^[IBUS]$/)           and $_=lc($macroname), return("<$_${class_id}>$f[0]</$_>");
+  ($macroname eq 'i')                and return(qq!<span${class_id} style="font-style:italic;">$f[0]</span>!);
+  ($macroname eq 'b')                and return(qq!<span${class_id} style="font-weight:bold;">$f[0]</span>!);
+  ($macroname eq 'u')                and return(qq!<span${class_id} style="border-bottom: solid 1px;">$f[0]</span>!);
+  ($macroname eq 's')                and return(qq!<span${class_id} style="text-decoration: line-through;">$f[0]</span>!);
+  ($macroname=~/^ruby$/i)            and return(ruby(@f));
+  ($macroname=~/^v$/i)               and return(qq!<span class="tategaki">$f[0]</span>!);
+  ($macroname=~/^vv$/i)              and return(qq!<span class="tatetate">$f[0]</span>!);
 
   ($macroname=~m!([-_/*]+[-_/* ]*)!) and return(symmacro($1, $f[0]));
 
@@ -2386,17 +2386,17 @@ sub ev{ # <, >, %in%, and so on
   my @stack;
   for(my $i=0; $i<=$#token; $i++){
     my $t  = $token[$i];
-    my $sep0;
+    my($ini, $sep0);
     if($t eq '&uc_all'){
       @stack = (map {uc $_} @stack);
       #      push(@stack, uc      $stack[-1]); # $token[$i-2]);
-    }elsif($t eq '&last_first' or ($sep0)=$t=~/\&last_first_ini([,.])?/ or # "Lastname, Firstname"
-           $t eq '&first_last' or ($sep0)=$t=~/\&first_last_ini([,.])?/){  # "Firstname Lastname"
+    }elsif(($ini, $sep0)=$t=~/\&last_first(_ini)?([,.])?/ or # "Lastname, Firstname"
+           ($ini, $sep0)=$t=~/\&first_last(_ini)?([,.])?/){  # "Firstname Lastname"
       my $sep    = ($sep0 eq ',') ? ', ' : ' ';
-      my $period = ($sep0 eq '.') ? '.'  : '';
+      my $period = ($sep0 eq '.') ? '.'  : ''; # for initial
       @stack = map {
          my($last, $first) = /([^,]*)(?:, *(.*))?/;
-         ($t=~/ini/) and ($last, $first) = ((uc(substr($last,0,1))).$period, ((uc(substr($first,0,1))).$period));
+         $ini and ($last, $first) = ((uc(substr($last,0,1))).$period, ((uc(substr($first,0,1))).$period));
          join($sep, ($t=~/\&last/) ? ($last, $first) : ($first, $last));
       } @stack;
     }elsif($t=~/^\&morethan *(\d+)/){
@@ -2427,7 +2427,7 @@ sub ev{ # <, >, %in%, and so on
           ''
         }
       } @stack;
-    }elsif($t=~/^\&join([,;])?([a&])?(\d*)(e)?$/){ #join
+    }elsif($t=~/^\&join([,;])?([a&,;])?(\d*)(e)?$/){ #join
       # , : a, b, c,
       # ; : a; b; c;
       # ,a: a, b and c
@@ -2436,8 +2436,11 @@ sub ev{ # <, >, %in%, and so on
       # 2e: a, b et al.
       # 3e: a, b, c et al.
       my $sep = ($1) ? "$1 " : ', ';
-      my $a0  = ($2 eq '') ? ' ' : ($2 eq 'a') ? txt('and', $lang) : ' &amp; ';
-      my $and = txt('cit_and', $lang, {and=>$a0});
+      my $and  = ($2 eq '') ? ' '
+               :  txt('cit_and', $lang, 
+                    {a => (($2 eq 'a') ? ' and ' : ($2 eq '&') ? ' &amp; ' : "$2 ")}
+                  );
+      #my $and = txt('cit_and', $lang, {a=>$a0});
       my $n   = ($3 and $3<scalar @stack) ? $3 : scalar @stack;
       my $etal= $4;
       my $yy  = ($n) ? [(@stack)[0..($n-1)]] : [@stack];
@@ -2906,12 +2909,12 @@ __DATA__
 |cft|Cannot find template {{t}} in {{d}}|テンプレートファイル{{t}}はディレクトリ{{d}}内に見つかりません|
 |chkbibfile| Check reference ID list ({{f}}) | リファレンスID対応表（{{f}}）を確認してください|
 |cit| [{{n}}] | [{{n}}] |
-|cit_and| &nbsp;{{and}}&nbsp; | &nbsp;{{and}}&nbsp; |
+|cit_and|{{a}}|&nbsp;{{a}}&nbsp;|
 ## jornal article, in-line citation
 |cit_inline_ja| ({{au}}, {{ye}}) | ({{au}}, {{ye}})|
 !cit_form! [au|&ini_f|&last_first_ini,|&join;a2e] [ye|&q_()] [ti|&r_] [jo|&ita] [vo][is|&q_()] ! [au|&lastname|&join,2e] [ye|&q_()] [ti|&r_] [jo|&ita] [vo][is|&q_()] !
 ## journal article, citation in reference list
-!cit_form_ja! [au|&ini_f|&last_first_ini,|&join;a2e] [ye|&q_()] [ti|&r_] [jo|&ita] [vo][is|&q_()]![au|&lastname|&join,2e] [ye|&q_()] [ti|&r_] [jo|&ita] [vo][is|&q_()] !
+!cit_form_ja! [au|&ini_f|&last_first,|&join;a2e] [ye|&q_()] [ti|&r_] [jo|&ita] [vo][is|&q_()]![au|&lastname|&join,2e] [ye|&q_()] [ti|&r_] [jo|&ita] [vo][is|&q_()] !
 ## book chapter, citation in reference list
 !cit_form_bc! BC [au|&ini_f|&last_first_ini,|&join;&2e] [ye|&q_()] [ti|&r_] In [bo] ! [au|&ini_f|&last_first|&join,2e] [ye|&q_()] [ti|&r_] [jo|&ita] [vo][is|&q_()] !
 ## conference proceedings
