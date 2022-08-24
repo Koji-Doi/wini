@@ -111,4 +111,80 @@ Aa, B., Cc, D. &amp; Ee, F.
 Aa, B., Cc, D. and Ee, F.
 </p>
 
+---start mg 5
+
+{{ev|"Aa, Bb"|"Cc, Dd"|"Ee, Ff"|&lastname|&join,a}}
+
+---start html 5
+
+<p>
+Aa, Cc and Ee
+</p>
+
+---start mg 6
+
+{{ev|"Aa, Bb"|"Cc, Dd"|"Ee, Ff"|&lastname|&join,&}}
+
+---start html 6
+
+<p>
+Aa, Cc &amp; Ee
+</p>
+
+---start mg 7 sort
+
+{{ev|1|3|2|&lastname|&sort|&join,&}}
+{{ev|10|3|2|&lastname|&sort|&join,&}}
+{{ev|1|3|20|4|&lastname|&sort|&join,&}}
+{{ev|1|3|20|4|&lastname|&sortn|&join,&}}
+
+---start html 7 sort
+
+<p>
+1, 2 &amp; 3
+10, 2 &amp; 3
+1, 20, 3 &amp; 4
+1, 3, 4 &amp; 20
+</p>
+
+---start mg 8 quote
+
+{{ev|"abc"|&q_}}
+
+---start html 8 quote
+
+<p>
+'abc'
+</p>
+
+---start mg 9 numeric calc
+
+{{ev|2022|1965|-}}
+{{ev|1|1|+}}
+{{ev|1|1|+|4|-}}
+
+---start html 9 numeric calc
+
+<p>
+57
+2
+-2
+</p>
+
+---start mg 10 numeric sort
+
+{{ev|1|3|2|&lastname|&sort|&join,&}}
+{{ev|10|3|2|&lastname|&sort|&join,&}}
+{{ev|1|3|20|4|&lastname|&sort|&join,&}}
+{{ev|1|3|20|4|&lastname|&sortn|&join,&}}
+
+---start html 10 numeric sort
+
+<p>
+1, 2 &amp; 3
+10, 2 &amp; 3
+1, 20, 3 &amp; 4
+1, 3, 4 &amp; 20
+</p>
+
 ---end

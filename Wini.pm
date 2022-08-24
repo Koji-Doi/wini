@@ -557,7 +557,7 @@ print Dumper $html;
     } @$inf;
     my($htmlout) = to_html($winitxt, {indir=>$ind, dir=>getcwd(), whole=>$whole, cssfile=>$cssfile, title=>$title, cssflameworks=>\@cssflameworks});
     print {$fho} $htmlout;
-    save_bib((defined $outf->[0]) ? $outf->[0].'.ref' : 'STDOUT.ref');
+    (scalar keys %REF) and save_bib((defined $outf->[0]) ? $outf->[0].'.ref' : 'STDOUT.ref');
     #open(my $fho_ref, '>:utf8', (defined $outf->[0]) ? $outf->[0].'.ref' : 'STDOUT.ref');
     #print {$fho_ref} join("\t", 'id', @flds), "\n";
     #foreach my $id (sort keys %REF){
@@ -2427,6 +2427,14 @@ sub ev{ # <, >, %in%, and so on
           ''
         }
       } @stack;
+    }elsif($t=~/^\&sort([nr])*/){ #sort #sortn #sortr #sortnr
+      my $x=$1;
+      my($n,$r) = ($x=~/n/?1:0, $x=~/r/?1:0);
+      if($r){
+        @stack = sort {($n) ? ($b <=> $a) : ($b cmp $a)} @stack;
+      }else{
+        @stack = sort {($n) ? ($a <=> $b) : ($a cmp $b)} @stack;
+      }
     }elsif($t=~/^\&join([,;])?([a&,;])?(\d*)(e)?$/){ #join
       # , : a, b, c,
       # ; : a; b; c;
@@ -2470,11 +2478,11 @@ sub ev{ # <, >, %in%, and so on
 #====
     }elsif($t eq '&ucase'){
       push(@stack, ucfirst $stack[-1]); # $token[$i-2]);
-    }elsif($t eq '&ucase_f'){
+    }elsif($t eq '&ucase1'){
       push(@stack, ucfirst $stack[-1]); # $token[$i-2]);
     }elsif($t eq '&lcase'){
       push(@stack, lc      $stack[-1]); # $token[$i-2]);
-    }elsif($t eq '&lcase_f'){
+    }elsif($t eq '&lcase1'){
       push(@stack, lcfirst $stack[-1]); # $token[$i-2]);
     }elsif($t=~/^\&cat([^|]*)$/){
       my $sep=$1;
@@ -2542,7 +2550,7 @@ sub ev{ # <, >, %in%, and so on
     }
   }
   return(@stack);
-} # end of ev
+} # sub ev
 
 sub escape_metachar{
   my($x, $format) = @_;
@@ -2912,7 +2920,7 @@ __DATA__
 |cit_and|{{a}}|&nbsp;{{a}}&nbsp;|
 ## jornal article, in-line citation
 |cit_inline_ja| ({{au}}, {{ye}}) | ({{au}}, {{ye}})|
-!cit_form! [au|&ini_f|&last_first_ini,|&join;a2e] [ye|&q_()] [ti|&r_] [jo|&ita] [vo][is|&q_()] ! [au|&lastname|&join,2e] [ye|&q_()] [ti|&r_] [jo|&ita] [vo][is|&q_()] !
+!cit_form! [au|&ini_f|&last_first,|&join;a2e] [ye|&q_()] [ti|&r_] [jo|&ita] [vo][is|&q_()] ! [au|&lastname|&join,2e] [ye|&q_()] [ti|&r_] [jo|&ita] [vo][is|&q_()] !
 ## journal article, citation in reference list
 !cit_form_ja! [au|&ini_f|&last_first,|&join;a2e] [ye|&q_()] [ti|&r_] [jo|&ita] [vo][is|&q_()]![au|&lastname|&join,2e] [ye|&q_()] [ti|&r_] [jo|&ita] [vo][is|&q_()] !
 ## book chapter, citation in reference list
