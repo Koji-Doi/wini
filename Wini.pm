@@ -1,4 +1,5 @@
 #!/usr/bin/env perl
+=encoding utf8
 =head1 NAME
 
 Text::Markup::Wini.pm - WIki markup ni NIta nanika (Japanese: "Something like wiki") - The supporting tool of Markgaab, a novel lightweight markup language
@@ -847,6 +848,7 @@ First of all, see online help:
 
 $ perl Wini.pm -h      : Show this brief help.
 $ perl Wini.pm -h wini : Show Wini.pm help.
+$ perl Wini.pm -h opt  : Show command-line options.
 $ perl Wini.pm -h mg   : Show Markgaab quick-start guide and cheat sheet.
 EOD
 
@@ -1778,7 +1780,7 @@ sub cit{
     my $cit_form = "cit_form_${cittype}";
     #$REF{$id}{inline_cit_id} = txt("cit_inline_${cittype}", $lang, {au=>$pars->{au}[0], ye=>$pars->{ye}[-1]})||''; # printf("%s, %s", $au1, ($pars->{yr}[-1]||''));
     foreach my $l (@LANGS){
-      $REF{$id}{text}{$l} = "lang=$l: cit_form=${cit_form}: ".cittxt($pars, $cit_form, $l); # sprintf("%s, %s", $au1, ($pars->{yr}[-1]||''))
+      $REF{$id}{text}{$l} = cittxt($pars, $cit_form, $l); # sprintf("%s, %s", $au1, ($pars->{yr}[-1]||''))
     }
     $REF{$id}{type}    = 'cit';
     $REF{$id}{cittype} = $cittype;
@@ -2373,7 +2375,7 @@ sub date{
    $res=~s{(明治|大正|昭和|平成|令和)(\d)(?!\d)}{$1 . '0' . $2}ge;
   }
   return($res);
-}
+} # sub date
 
 sub ev{ # <, >, %in%, and so on
   my($x, $v, $lang) = @_;
@@ -2459,13 +2461,13 @@ sub ev{ # <, >, %in%, and so on
       @stack  = ($j);
     }elsif($t=~/^\&l_(.*)$/){ # "abc"|l* -> "*abc"
       my $p = $1 || '*';
-      @stack = map {s/^\s*//; "$p$_"} @stack;
+      @stack = map {s/^\s*//; ($_ ne '') ? "$p$_" : ''} @stack;
     }elsif($t=~/^\&r_(.*)$/){ # "abc"|r* -> "abc*"
       my $p = $1 || '.';
-      @stack = map {s/\s*$//; "$_$p"} @stack;
+      @stack = map {s/\s*$//; ($_ ne '') ? "$_$p" : ''} @stack;
     }elsif($t=~/^\&q_(.)?(.)?$/){ # "abc"|&q_ -> "'abc'"; "abc"|&q_() -> "(abc)"
       my($l, $r) = ($1||"'", $2||"'");
-      @stack = map {"${l}$_${r}"} @stack;
+      @stack = map {($_ ne '') ? "${l}$_${r}" : ''} @stack;
     }elsif($t eq '&bold'){
       map {qq{&nbsp;<span style="font-weight:bold">$_</span>}} @stack;
     }elsif($t eq '&ita' or $t eq '&italic'){

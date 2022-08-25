@@ -172,8 +172,6 @@ Citing ref 2 as {{ref|gal2021}}.
 
 Citing ref 1 again as {{ref|kirk2282}}.
 
-{{citlist}}
-
 ---start html 3
 
 <p>
@@ -193,16 +191,6 @@ Citing ref 2 as<a href="#reflist_gal2021"><span id="gal2021_2" title="title">(2)
 <p>Citing ref 1 again as<a href="#reflist_kirk2282"><span id="kirk2282_3" title="title">(1)</span></a>
 .</p>
 
-<ul class="citlist">
-<li id="kirk2282">[1]<a href="#kirk2282_1">^1&nbsp;</a>
-<a href="#kirk2282_2">^2&nbsp;</a>
-<a href="#kirk2282_3">^3&nbsp;</a>
-J, T (2282) Federation Starfleet&#x27;s New Operation Concept.. Federation Military Review 100()</li>
-<li id="gal2021">[2]<a href="#gal2021_1">^1&nbsp;</a>
-<a href="#gal2021_2">^2&nbsp;</a>
-K, A &nbsp; and &nbsp; K, Y et al. (2021) Practice of Senshado in High School Club Activities. Research by Highschool Students 20()</li>
-</ul>
-
 ---start mg 4
 
 {{cit|gal2021|au='Kadotani, Anzu'|au='Koyama, Yuzuko'|au='Kawashima, Momo'|ye=2021|ti='Practice of Senshado in High School Club Activities'|jo='Research by Highschool Students'}}
@@ -210,5 +198,10 @@ K, A &nbsp; and &nbsp; K, Y et al. (2021) Practice of Senshado in High School Cl
 {{citlist}}
 
 ---start html 4
+
+<p><a href="#reflist_gal2021"><span id="gal2021_1" title="title">(1)</span></a></p>
+<ul class="citlist"><li id="gal2021">[1]<a href="#gal2021_1">^1&nbsp;</a>
+Kadotani, A. and Koyama, Y. et al. (2021) Practice of Senshado in High School Club Activities. Research by Highschool Students</li>
+</ul>
 
 ---end

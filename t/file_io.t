@@ -45,7 +45,7 @@ for my $x (0..3){
   system("perl Wini.pm -o $outdir/0.html < $indir/0.wini 2>/dev/null");
   my $o = join("\n", <$outdir/*>);
   $o=~s/\s//gs;
-  is $o, "$outdir/0.html$outdir/0.html.ref";
+  is $o, "$outdir/0.html";
   map { unlink $_} <$outdir/*>;
 }
 
@@ -53,7 +53,7 @@ for my $x (0..3){
   system("perl Wini.pm -i $indir/0.wini -o $outdir/0.html 2>/dev/null");
   my $o = join("\n", <$outdir/*>);
   $o=~s/\s//gs;
-  is $o, "$outdir/0.html$outdir/0.html.ref";
+  is $o, "$outdir/0.html";
   map { unlink $_} <$outdir/*>;
 }
 
@@ -65,7 +65,7 @@ for my $x (0..3){
   $o .= join('', <$fhi>);
   close $fhi;
   $o=~s/[\n\s]//g;
-  is $o, "$outdir/0.html$outdir/0.html.ref<p>0</p><p>1</p><p>2</p><p>3</p>";
+  is $o, "$outdir/0.html<p>0</p><p>1</p><p>2</p><p>3</p>";
   map { unlink $_} <$outdir/*>;
 }
 
