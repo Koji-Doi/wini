@@ -367,8 +367,10 @@ sub init{
 #    my($id, $en, $ja) = split($sp, substr($_,1));
     my($id, @txt) = split($sp, substr($_,1));
     for(my $i=0; $i<=$#txt; $i++){
+      no warnings; # work around to cancel "Wide character in substitution (s///)"
       $txt[$i]=~s/^\s+/ /;
       $txt[$i]=~s/\s+$/ /;
+      use warnings;
       $TXT{$id}{$LANGS[$i]} = $txt[$i];
     }
   }
