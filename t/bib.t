@@ -40,7 +40,7 @@ while(<DATA>){
   }
 }
 
-for(my $i=1; $i<=$#indata; $i++){
+SKIP: for(my $i=1; $i<=$#indata; $i++){
 #for (my $i=3; $i==3; $i++){
 #  undef %Text::Markup::Wini::REF;
   Text::Markup::Wini::init();
