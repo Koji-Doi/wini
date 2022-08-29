@@ -257,7 +257,6 @@ strikes: {{s|striked text}}
 =cut
 
 package Text::Markup::Wini;
-#use Text::Wini;
 use 5.8.1;
 use strict;
 use POSIX qw/locale_h/;
@@ -267,14 +266,11 @@ use Data::Dumper;
 use File::Basename;
 use File::Path 'mkpath';
 use FindBin;
-use Pod::Find qw(pod_where);
 use Pod::Usage qw/pod2usage/;
 use Getopt::Long qw(:config no_ignore_case auto_abbrev);
 use Encode;
 use Cwd;
 use Time::Piece;
-use Module::Load qw( load );
-#load('YAML::Tiny');
 
 our $ENVNAME;
 #our %EXT;
@@ -440,69 +436,6 @@ sub stand_alone{
   #test
   if($test){
     init();
-    my($date) = call_macro('date');
-    $date=~s/\D//g;
-    my @x = (
-      {au => ['A,a', 'B,b'], jo => []},
-      {au => ['A,a', 'B,b'], jo => ['Journal of Biology']},
-    );
-
-    my $txt = <<'EOD';
-===
-lang: 'ja'
-===
-
-|- Here is a caption | #1 @2 |
-| a | b |
-
-|- Here is a caption | #tbl2 @2 |
-| c | d |
-
-|- Here is a caption (must be tbl 3) | #tblx @2 |
-| e | f |
-
-|- Here is a caption (No ID) | @2 |
-| g | h |
-
-|- Here is a caption | #tblx2 @2 |
-| i | j |
-
-[!example.png|#1]
-
-[!example2.png|#pngx]
-
-{{rr|fig1}} = fig1
-
-{{rr|pngx}} = fig2
-
-{{rr|tbl1|id2=a|lang=ja}} = tbl1 ja (mainsect: option ja in macro)
-
-{{rr|tbl1|id2=b|lang=en}} = tbl1 en (mainsect: option en in macro)
-
-Reference 1: {{cit|kirk2022|au='James, T. Kirk'|ye=2022|ti='XXX'}}
-
-Reference 2: {{cit|gal2021|au='Kadotani, Anzu'|au='Koyama, Yuzuko'|au='Kawashima, Momo'|ye=2021|ti='Practice of Senshado in High School Club Activities'|jo='Research by Highschool Students'}}
-
-aaa {{ref|kirk2022}}, {{ref|gal2021}}.
-
-{{citlist}}
-
-
-EOD
-    my($o, undef) = to_html($txt);
-    print $o;
-exit;
-
-    foreach my $x (@x){
-      print "\n====\n",Dumper $x;
-      foreach my $form ("au|&join", "au|&lastname|&join,&", "au|&if_empty jo|&join,&", "au|&unless_empty jo|&join,&"){
-        my $r = cittxt_vals($x, $form);
-        print "f=$form: r=$r\n";
-      }
-    }
-    my($deref, $html) = to_html('[!a.png|#123]');
-print Dumper $deref;
-print Dumper $html;
     exit;
   }
 
@@ -526,16 +459,6 @@ print Dumper $html;
       my($htmlout) = to_html($winitxt, {indir=>$ind, dir=>getcwd(), whole=>$whole, cssfile=>$cssfile, title=>$title, cssflameworks=>\@cssflameworks});
       print {$fho} $htmlout;
       save_bib($outreffile);
-#      open(my $fho_ref, '>:utf8', (defined $outf->[0]) ? $outf->[0].'.ref' : 'STDOUT.ref');
-     # open(my $fho_ref, '>:utf8', $outreffile);
-     # print {$fho_ref} join("\t", 'id', @flds), "\n";
-     # foreach my $id (sort keys %REF){
-     #   print {$fho_ref} $id;
-     #   foreach my $f (@flds){
-     #     print {$fho_ref} "\t$REF{$f}";
-     #   }
-     #   print {$fho_ref} "\n";
-     # }
     }
   }else{
     # 2. infiles -> one outfile or STDOUT
@@ -561,15 +484,6 @@ print Dumper $html;
     my($htmlout) = to_html($winitxt, {indir=>$ind, dir=>getcwd(), whole=>$whole, cssfile=>$cssfile, title=>$title, cssflameworks=>\@cssflameworks});
     print {$fho} $htmlout;
     (scalar keys %REF) and save_bib((defined $outf->[0]) ? $outf->[0].'.ref' : 'STDOUT.ref');
-    #open(my $fho_ref, '>:utf8', (defined $outf->[0]) ? $outf->[0].'.ref' : 'STDOUT.ref');
-    #print {$fho_ref} join("\t", 'id', @flds), "\n";
-    #foreach my $id (sort keys %REF){
-    #  print {$fho_ref} $id;
-    #  foreach my $f (@flds){
-    #    print {$fho_ref} "\t$REF{$f}";
-    #  }
-    #  print {$fho_ref} "\n";
-    #}
   }
 } # sub stand_alone
 
