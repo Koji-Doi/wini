@@ -33,7 +33,7 @@ while(<DATA>){
   if(/^---start reflist/ .. /---end reflist/){
     /^---/ or push(@reflist, $_);
   }else{
-    /^---start mg/   and ($i++, $mode='mg', next);
+    /^---start mg/   and ($i++, $mode='mg', $indata[$i]{tag}=$_, next);
     /^---start html/ and ($mode='html', next);
     /^---end/ and last;
     $indata[$i]{$mode} .= $_;
@@ -57,25 +57,14 @@ SKIP: for(my $i=1; $i<=$#indata; $i++){
   #my($o1) = Text::Markup::Wini::to_html($indata[$i]{mg});
   my $infile  = "bib_t$i.wini";
   my $outfile = "bib_t$i.html";
+  my $errfile = "bib_t$i.err.txt";
   open(my $fho_w, '>:utf8', $infile);
   print {$fho_w} $indata[$i]{mg};
   close $fho_w;
-  system("perl Wini.pm --quiet --bib $tmpreffile < $infile > $outfile");
+  system("perl Wini.pm --quiet --bib $tmpreffile < $infile > $outfile 2>$errfile");
   open(my $fho, '<:utf8', $outfile);
   my $got = join("\n", <$fho>);
   is std($got), std($indata[$i]{html});
-#open(my $fho_h, '>:utf8', "bib_t$i.html");
-#print {$fho_h} $o1;
-#close $fho_h;
-
-#  $o1              =~s/[\s\n]//g;
-#  $indata[$i]{html}=~s/[\s\n]//g;
-#  is1 std($o1), std($indata[$i]{html});
-}
-
-{
-  Text::Markup::Wini::init();
-
 }
 
 1;
@@ -219,7 +208,7 @@ Kadotani, A. and Koyama, Y. et al. (2021) Practice of Senshado in High School Cl
 
 ---start mg 5 ext ref
 
-Kadotani, 2022. {{cit|kadotani_2022_001}}
+Kadotani, 2022. {{cit|kadotani2022_001}}
 
 Kadotani et al., 2022. {{cit|kadotani_2022_001}}
 
@@ -231,5 +220,15 @@ Kadotani et al., 2022. {{cit|kadotani_2022_001}}
 <p>Kadotani et al., 2022.<a href="#reflist_kadotani_2022_001"><span id="kadotani_2022_001_2" title="title">(1)</span>
 </a>
 </p>
+
+---start mg 6 ext ref
+
+Kadotani, 2022. {{cit|kadotani_2022_001}}
+
+Kadotani et al., 2022. {{cit|kadotani_2022_001}}
+
+{{citlist}}
+
+---start html 6 ext ref
 
 ---end
