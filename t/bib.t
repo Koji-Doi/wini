@@ -35,6 +35,7 @@ while(<DATA>){
   }else{
     /^---start mg/   and ($i++, $mode='mg', $indata[$i]{tag}=$_, next);
     /^---start html/ and ($mode='html', next);
+    /^---start log/  and ($mode='log', next);
     /^---end/ and last;
     $indata[$i]{$mode} .= $_;
   }
@@ -54,17 +55,21 @@ SKIP: for(my $i=1; $i<=$#indata; $i++){
 #  undef %Text::Markup::Wini::REF;
   Text::Markup::Wini::init();
 
-  #my($o1) = Text::Markup::Wini::to_html($indata[$i]{mg});
-  my $infile  = "bib_t$i.wini";
-  my $outfile = "bib_t$i.html";
-  my $errfile = "bib_t$i.err.txt";
+  my $infile   = "bib_t$i.wini";
+  my $htmlfile = "bib_t$i.html";
+  my $errfile  = "bib_t$i.err.txt";
   open(my $fho_w, '>:utf8', $infile);
   print {$fho_w} $indata[$i]{mg};
   close $fho_w;
-  system("perl Wini.pm --quiet --bib $tmpreffile < $infile > $outfile 2>$errfile");
-  open(my $fho, '<:utf8', $outfile);
-  my $got = join("\n", <$fho>);
-  is std($got), std($indata[$i]{html});
+  system("perl Wini.pm --quiet --bib $tmpreffile < $infile > $htmlfile 2>$errfile");
+  open(my $fh_h, '<:utf8', $htmlfile);
+  my $got = join("\n", <$fh_h>);
+  is1 std($got), std($indata[$i]{html});
+  if($indata[$i]{tag}=~/ e /){
+    open(my $fh_log, '<:utf8', $errfile);
+    my $got_e = join('', <$fh_log>);
+    is std($got_e), std($indata[$i]{log});
+  }
 }
 
 1;
@@ -230,5 +235,21 @@ Kadotani et al., 2022. {{cit|kadotani_2022_001}}
 {{citlist}}
 
 ---start html 6 ext ref
+
+---start mg 7 e illegal ref
+
+Illegal refference: {{cit|xxxx_2022_001}}
+
+{{citlist}}
+
+---start html 7
+
+<p>Illegal refference: %%%xxxx_2022_001%%%l=en###</p>
+<ul class="citlist"></ul>
+
+---start log 7
+
+undefined reference ID: xxxx_2022_001
+outreffile=STDOUT.ref.
 
 ---end
