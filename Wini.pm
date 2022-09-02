@@ -1262,7 +1262,8 @@ sub whole_html{
   my $style   = '';
   $title = $title || 'Markgaab page';
   (defined $opt->{cssflameworks}[0]) and map {$style .= qq{<link rel="stylesheet" type="text/css" href="$_">\n}} @{$opt->{cssflameworks}};
-  $style   .= ($cssfile)?qq{<link rel="stylesheet" type="text/css" href="$cssfile">} : "<style>\n".css($CSS)."</style>\n";
+  $style   .= ($cssfile)?qq{<link rel="stylesheet" type="text/css" href="$cssfile">\n} : "<style>\n".css($CSS)."</style>\n";
+  $style   .= qq{<link rel="stylesheet" type="text/css" href="wini_final.css">\n};
   return <<"EOD";
 <!DOCTYPE html>
 <html lang="ja">
@@ -1825,16 +1826,30 @@ sub anchor{
 
   # options
   my $style            = ($opts=~/</) ? "float: left;" : ($opts=~/>/) ? "float: right;" : '';
-  ($style) and $style  = qq{ style="$style"};
   my($id)              = $opts=~/#([-\w]+)/;
   ($id=~/^\d+$/)     and $id="fig$id";
   ($id=~/^fig(\d+)/) and my $id_n = $1;
   my @classes          = $opts=~/\.([-\w]+)/g;
-  my($width,$height)   = ($opts=~/(\d+)x(\d+)/)?($1,$2):(0,0);
-  my $imgopt           = ($width>0)?qq{ width="$width"}:'';
-  $height and $imgopt .= qq{ height="$height"};
+  my($crop0, $width, $width_u, $height, $height_u)
+    = ($opts=~/(c(?:[news]*))?(\d+)(px|%|vw|vh|em|ex)?x(\d+)(px|%|vw|vh|em|ex)?/) ? ($1,$2,$3,$4,$5) : ('',0,'',0,'');
+  my $crop             = ($crop0 eq '')   ? ''
+                       : ($crop0 eq 'c' or $crop0 eq 'cc') ? '50% 50%'
+                       : ($crop0 eq 'cnw') ? '0 0'
+                       : ($crop0 eq 'cn')  ? '50% 0'
+                       : ($crop0 eq 'cne') ? '100% 0'
+                       : ($crop0 eq 'cw')  ? '0 50%'
+                       : ($crop0 eq 'ce')  ? '100% 50%'
+                       : ($crop0 eq 'csw') ? '0 100%'
+                       : ($crop0 eq 'cs')  ? '50% 100%'
+                       : ($crop0 eq 'cse') ? '100% 100%' : '';
+  ($crop ne '') and $crop = " object-fit: cover; object-position: $crop";
+  my $imgstyle         = ($crop ne '') ? qq{style="$crop"} : '';
+  my $imgopt           = ($width>0)?qq{ width="$width${width_u}"}:'';
+  $height and $imgopt .= qq{ height="$height${height_u}"};
+  ($crop ne '') and $imgopt .=qq{ style="$crop"};
   my $target           = ($opts=~/@@/)?'_blank':($opts=~/@(\w+)/)?($1):'_self';
   my $img_id           = '';  # ID for <img ...>
+  ($style) and $style  = qq{ style="$style"};
   if($prefix=~/[!?]/){ # img, figure
     my $class = join(' ', @classes); ($class) and $class = qq{ class="$class"};
     if(defined $id){
