@@ -219,22 +219,36 @@ Kadotani et al., 2022. {{cit|kadotani_2022_001}}
 
 ---start html 5
 
-<p>Kadotani, 2022.<a href="#reflist_kadotani_2022_001"><span id="kadotani_2022_001_1" title="title">(1)</span>
+<p>Kadotani, 2022.<a href="#reflist_kadotani2022_001"><span id="kadotani2022_001_1" title="title">(1)</span>
 </a>
 </p>
-<p>Kadotani et al., 2022.<a href="#reflist_kadotani_2022_001"><span id="kadotani_2022_001_2" title="title">(1)</span>
+<p>Kadotani et al., 2022.<a href="#reflist_kadotani_2022_001"><span id="kadotani_2022_001_1" title="title">(2)</span>
 </a>
 </p>
 
 ---start mg 6 ext ref
 
-Kadotani, 2022. {{cit|kadotani_2022_001}}
+Kadotani, 2022. {{cit|kadotani2022_001}}
 
 Kadotani et al., 2022. {{cit|kadotani_2022_001}}
 
 {{citlist}}
 
 ---start html 6 ext ref
+
+<p>
+Kadotani, 2022.<a href="#reflist_kadotani2022_001"><span id="kadotani2022_001_1" title="title"> (1) </span></a>
+</p>
+
+<p>
+Kadotani et al., 2022.<a href="#reflist_kadotani_2022_001"><span id="kadotani_2022_001_1" title="title"> (2) </span></a>
+</p>
+
+<ul class="citlist">
+<li id="kadotani2022_001"> [1]  <a href="#kadotani2022_001_1">^1&nbsp; </a>  Kadotani, A. (2022) sample 1 title. sample 1 journal </li>
+<li id="kadotani_2022_001"> [2]  <a href="#kadotani_2022_001_1">^1&nbsp; </a>  Kadotani, A. and Koyama, Y. (2022) sample 3 title. sample 3 journal </li>
+
+</ul>
 
 ---start mg 7 e illegal ref
 
