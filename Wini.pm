@@ -257,7 +257,7 @@ strikes: {{s|striked text}}
 =cut
 
 package Text::Markup::Wini;
-use 5.8.1;
+use 5.9.5;
 use strict;
 use POSIX qw/locale_h/;
 use locale;
@@ -811,15 +811,18 @@ sub css{
 }
 
 sub winifiles{
-  my($in, $out) = @_;
+  my($in, $out, $cssoutfile0) = @_;
   # $in: string or array reference
   # $out: string (not array reference)
-  my($indir, @infile, $outdir, @outfile);
+  my($indir, @infile, $outdir, @outfile, @cssfile);
   my @in;
   (defined $in) and @in = (ref $in eq 'ARRAY') ? @$in : ($in);
 
   # check $indir
   foreach my $in1 (@in){
+    my $css1  = (defined $cssoutfile0) ? $cssoutfile0 : $in1;
+    $in1=~s{\.html}{.css};
+
     my(@in1x) = ($in1);
     (not -e $in1) and map {my $a="$in1.$_"; push(@in1x, $a); (-f $a) and $in1=$a} qw/mg wini par/;
     (not -e $in1) and mes(txt('fnf').": ". join(" / ", @in1x), {err=>1});
@@ -836,15 +839,20 @@ sub winifiles{
     }
   }
   if((not defined $infile[0]) and (defined $indir)){
-    findfile($indir, sub{$_[0]=~/\.(wini|par|mg)$/ and push(@infile, $_[0])});
+    findfile($indir, sub{
+      my $x=$_[0];
+      if($x=~/(.*)\.(wini|par|mg)$/){
+        push(@infile,  $x); push(@cssfile, (defined $cssoutfile0) ?  $cssoutfile0 : "$1.css");
+      } 
+    });
   }
 
   # check $outdir
   if (defined $out and $out eq ''){
     foreach my $in1 (@infile){
-      my $out1=$in1;
-      $out1=~s{(\.\w+$)}{.html};
-      push(@outfile, $out1);
+      my $out1 = $in1; $out1=~s{(\.\w+$)}{.html};
+      my $css1 = $in1; $css1=~s{(\.\w+$)}{.css};
+      push(@outfile, $out1); push(@cssfile, $css1);
     }
   }elsif(not defined $out){
     if(not defined $in){
@@ -879,12 +887,13 @@ sub winifiles{
     "indir:   " . (($indir)?$indir:'undef') . "\n" .
     "infile:  " . (($infile[0])?join(' ', @infile):'undef') . "\n" .
     "outdir:  " . (($outdir)?$outdir:'undef') . "\n" .
-    "outfile: " . (($outfile[0])?join(' ',@outfile):'undef'), {q=>1}
+    "outfile: " . (($outfile[0])?join(' ',@outfile):'undef') .
+    "cssfile: " . (($cssfile[0])?join(' ',@cssfile):'undef'), {q=>1}
      );
   (defined $indir  or defined $infile[0])  or mes(txt('din'), {q=>1});
   (defined $outdir or defined $outfile[0]) or mes(txt('rout'), {q=>1});
-  return($indir, \@infile, $outdir, \@outfile);
-}
+  return($indir, \@infile, $outdir, \@outfile, \@cssfile);
+} # sub winifiles
 
 sub findfile{  # recursive file search.
   # Any files or dirs of which name begin with '_' are ignored.
@@ -1859,9 +1868,10 @@ sub anchor{
       $caption = ref_txt($id, 'fig', $id_n, $caption, $lang);
       $img_id     = qq! id="$id"!; # ID for <img ...>
     }
-    my $alttext = $caption;
-    $alttext=~s{<[^<>]+>}{}gs;
-    ($alttext eq '') and $alttext=$url;
+    #my $alttext = $caption;
+    #$alttext=~s{<[^<>]+>}{}gs;
+    #($alttext eq '') and $alttext=$url;
+    my $alttext = $url;
     if($prefix eq '!!'){
       return(qq!<figure$style><img src="$url" alt="$alttext"${img_id}$class$imgopt><figcaption>$caption</figcaption></figure>!);
     }elsif($prefix eq '??'){
@@ -1957,10 +1967,14 @@ sub table{
         } # if tbl_id
       } # if defined $tbl_id
       while($o=~/\&([lrcjsebtm]+)/g){
-        my $h = {qw/l left r right c center j justify s start e end/}->{$1};
-        (defined $h) and push(@{$htmlitem[0][0]{copt}{style}{'text-align'}}, $h);
-        my $v = {qw/t top m middle b bottom/}->{$1};
-        (defined $v) and push(@{$htmlitem[0][0]{copt}{style}{'vertical-align'}}, $v);
+        foreach my $x (split('',$1)){
+          my $h = {qw/l left r right c center j justify s start e end/}->{$x};
+          (defined $h) and push(@{$htmlitem[0][0]{copt}{style}{'text-align'}}, $h);
+          my $v = {qw/t top m middle b bottom/}->{$x};
+          (defined $v) and push(@{$htmlitem[0][0]{copt}{style}{'vertical-align'}}, $v);
+        }
+        $DB::single=$DB::single=1;
+        print STDERR "Check htmlitem[0][0] at ",__LINE__,"\n";
       }
     } # foreach $o
     ($caption)=markgaab($caption, {para=>'nb', nocr=>1});
