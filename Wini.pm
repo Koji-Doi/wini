@@ -1933,7 +1933,7 @@ sub table{
         $htmlitem[0][0]{copt}{style}{float}[0] = ($1 eq '<')?'left':'right';
       }
       if($o=~/^@@(\d*)([a-zA-Z]+|#[\da-fA-F]{3}|#[\da-fA-F]{6})?$/){ # @@1red -> {copt}{borderall} for each cell
-        $htmlitem[0][0]{copt}{borderall} = 'solid ' . (($1)?$1:1) . 'px' . (($2)?" $2":'') . ';';
+        $htmlitem[0][0]{copt}{borderall} = 'solid ' . (($1)?$1:1) . 'px' . (($2)?" $2":'') ;
         #(defined $htmlitem[0][0]{copt}{$1.'border'}) or $htmlitem[0][0]{copt}{$1.'border'} = ($2)?$2:1; 
       }elsif($o=~/^([tbf])@(\d*)([a-zA-Z]+|#[\da-fA-F]{3}|#[\da-fA-F]{6})?$/){ # @1red -> {copt}{xborder}
         my($attr, $w, $col) = ($1, $2||1, $3||'black');
