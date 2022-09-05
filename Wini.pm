@@ -821,7 +821,7 @@ sub winifiles{
   # check $indir
   foreach my $in1 (@in){
     my $css1  = (defined $cssoutfile0) ? $cssoutfile0 : $in1;
-    $in1=~s{\.html}{.css};
+    $css1=~s{\.html}{.css};
 
     my(@in1x) = ($in1);
     (not -e $in1) and map {my $a="$in1.$_"; push(@in1x, $a); (-f $a) and $in1=$a} qw/mg wini par/;
@@ -835,7 +835,7 @@ sub winifiles{
       ($in1=~m{/$}) ? ($indir = $in1) : push(@infile, $in1);
     }else{ # existing normal file
 #      mes(txt('fci',undef, {f=>$in1}), {q=>1});
-      push(@infile, $in1);
+      push(@infile, $in1); #push(@cssfile, $css1);
     }
   }
   if((not defined $infile[0]) and (defined $indir)){
@@ -887,7 +887,7 @@ sub winifiles{
     "indir:   " . (($indir)?$indir:'undef') . "\n" .
     "infile:  " . (($infile[0])?join(' ', @infile):'undef') . "\n" .
     "outdir:  " . (($outdir)?$outdir:'undef') . "\n" .
-    "outfile: " . (($outfile[0])?join(' ',@outfile):'undef') .
+    "outfile: " . (($outfile[0])?join(' ',@outfile):'undef') . "\n" .
     "cssfile: " . (($cssfile[0])?join(' ',@cssfile):'undef'), {q=>1}
      );
   (defined $indir  or defined $infile[0])  or mes(txt('din'), {q=>1});
