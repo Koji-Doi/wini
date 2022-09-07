@@ -9,8 +9,10 @@ use File::Path qw(remove_tree);
 use lib '.';
 use Wini;
 
-my $indir  = tempdir('wini_inXXXX');
-my $outdir = tempdir('wini_outXXXX');
+my $DEBUG=1;
+
+my $indir  = tempdir('wini_in_XXXX');
+my $outdir = tempdir('wini_out_XXXX');
 #($indir, $outdir) = qw/wini_in wini_out/; #test
 if(<$indir/*>){
   remove_tree($indir); mkdir $indir;
@@ -70,12 +72,12 @@ for my $x (0..3){
 }
 
 { #6 dir -> dir
-  my $outdir2 = tempdir('wini_testoutXXXX');
-  my $cmd = "perl Wini.pm -i $indir -o $outdir2";
+  my $outdir2 = tempdir('wini_testout_XXXX');
+  my $cmd = "perl Wini.pm -i $indir -o $outdir2/";
   #print STDERR "$cmd\n";
   system("$cmd 2>/dev/null");
   my $i = join("\n", <$indir/*.wini>);
-  $i=~s/(\w+)\.wini/$1\.html $1\.html\.ref/sg;
+  $i=~s/(\w+\.wini)/$1\.html $1\.html\.ref/sg;
   $i=~s{${indir}/}{}sg;
   $i=~s/[\n\s]+/ /g;
   my $o = join("\n", <$outdir2/*>);
@@ -86,7 +88,24 @@ for my $x (0..3){
   (-d $outdir2) and print("remove $outdir2\n"),remove_tree($outdir2);
 }
 
-(-d $indir)   and print("remove $indir\n"),  remove_tree($indir);
-(-d $outdir)  and print("remove $outdir\n"), remove_tree($outdir);
+{ #6a dir -> dir (with -outcssfile)
+  my $outdir2 = tempdir('wini_testout_XXXX');
+  my $cmd = "perl Wini.pm -outcssfile -i $indir -o $outdir2/";
+  ($DEBUG) and print STDERR "$cmd\n";
+  system("$cmd 2>/dev/null");
+  my $i = join("\n", <$indir/*.wini>);
+  $i=~s/(\w+\.wini)/$1\.html $1\.html\.ref/sg;
+  $i=~s{${indir}/}{}sg;
+  $i=~s/[\n\s]+/ /g;
+  my $o = join("\n", <$outdir2/*>);
+  $o=~s{${outdir2}/}{}sg;
+  $o=~s/[\n\s]+/ /gs;
+  is $o, $i;
+  map { unlink $_} <$outdir2/*>;
+  (!$DEBUG) and (-d $outdir2) and print("remove $outdir2\n"),remove_tree($outdir2);
+  ($DEBUG)  and print STDERR "remained $indir, $outdir, $outdir2\n";
+}
 
+(!$DEBUG) and (-d $indir)  and print("remove $indir\n"),  remove_tree($indir);
+(!$DEBUG) and (-d $outdir) and print("remove $outdir\n"), remove_tree($outdir);
 done_testing;

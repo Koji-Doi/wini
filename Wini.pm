@@ -426,7 +426,8 @@ sub stand_alone{
     (defined $inf->[0]) or
     (defined $ind and defined $outd)
   ){
-    print STDERR "File spec OK\n";
+    #print STDERR "File spec OK\n";
+    mes(txt('fso'), {q=>1});
   }else{
     print STDERR "check ind  ", Dumper $ind;
     print STDERR "check inf  ", Dumper $inf;
@@ -442,8 +443,6 @@ sub stand_alone{
   } else {
     push(@$inf, '');
   }
-  
-  (defined $cssfile) and ($cssfile eq '') and $cssfile="wini.css";
 
   #test
   if($test){
@@ -465,10 +464,10 @@ sub stand_alone{
         mes(txt('conv', undef, {from=>$inf->[$i], to=>$outfile}), {q=>1});
         open($fhi, '<:utf8', $inf->[$i]);
       }
-      open(my $fho, '>:utf8', $outfile);
+      open(my $fho, '>:utf8', $outfile) or mes(txt('fnw', undef, {f=>$outfile}), {err=>1});
       my $winitxt = join('', <$fhi>);
       $winitxt=~s/\x{FEFF}//; # remove BOM if exists
-      my($htmlout) = to_html($winitxt, {indir=>$ind, dir=>getcwd(), whole=>$whole, cssfile=>$cssfile, title=>$title, cssflameworks=>\@cssflameworks});
+      my($htmlout) = to_html($winitxt, {indir=>$ind, dir=>getcwd(), whole=>$whole, cssfile=>$outcss->[$i], title=>$title, cssflameworks=>\@cssflameworks});
       print {$fho} $htmlout;
       save_bib($outreffile);
     }
@@ -485,7 +484,7 @@ sub stand_alone{
     map {
       my $fhi;
       ($_ eq '') ? $fhi=*STDIN : (
-         open($fhi, '<:utf8', $_) or die txt('cno', undef, {f=>$_}) || mes(txt('ou', undef, {f=>$_}), {q=>1})
+         open($fhi, '<:utf8', $_) or die txt('fnf', undef, {f=>$_}) || mes(txt('ou', undef, {f=>$_}), {q=>1})
       );
       while(<$fhi>){
         s/[\n\r]*$//; s/\x{FEFF}//; # remove BOM if exists
@@ -493,10 +492,10 @@ sub stand_alone{
       }
       $winitxt .= "\n\n";
     } @$inf;
-    my($htmlout) = to_html($winitxt, {indir=>$ind, dir=>getcwd(), whole=>$whole, cssfile=>$cssfile, title=>$title, cssflameworks=>\@cssflameworks});
+    my($htmlout) = to_html($winitxt, {indir=>$ind, dir=>getcwd(), whole=>$whole, cssfile=>$cssfile->[0], title=>$title, cssflameworks=>\@cssflameworks});
     print {$fho} $htmlout;
     (scalar keys %REF) and save_bib((defined $outf->[0]) ? $outf->[0].'.ref' : 'STDOUT.ref');
-  }
+  } # if scalar @$outf>1
 } # sub stand_alone
 
 sub read_bib{
@@ -650,7 +649,7 @@ Wini.pm original specification: the text specified in %1 is regarded as an Refer
         $ref->[$i]{text}{$l} = cittxt($ref->[$i], $cit_form, $l);
       }
     }
-    open(my $fho, '>:utf8', $outbibfile) or die txt('cno', undef, {f=>$outbibfile});
+    open(my $fho, '>:utf8', $outbibfile) or die mes(txt('fnf', undef, {f=>$outbibfile}), {err=>1});
     foreach my $x (sort {$a->{id} cmp $b->{id}} @$ref){
       my $id = $x->{id};
       foreach my $k (grep {$_ ne 'text' and $_ ne 'id' and $_ ne 'type' and $_ ne 'cittype'} keys %$x){
@@ -701,7 +700,7 @@ sub save_bib{
   print STDERR "outreffile=$outfile.\n";
   my $fho;
   if($outfile){
-    open($fho, '>:utf8', $outfile)
+    open($fho, '>:utf8', $outfile) or mes(txt('fnw', undef, {f=>$outfile}), {err=>1});
   }else{
     $fho = *STDOUT;
   }
@@ -828,80 +827,77 @@ sub winifiles{
   # $out: string (not array reference)
   my($indir, @infile, $outdir, @outfile, @cssfile);
   my @in;
-  (defined $in) and @in = (ref $in eq 'ARRAY') ? @$in : ($in);
+  if(defined $in){
+    @in = (ref $in eq 'ARRAY') ? @$in : ($in);
 
   # check $indir
-  foreach my $in1 (@in){
-    my(@in1x) = ($in1);
-    (not -e $in1) and map {my $a="$in1.$_"; push(@in1x, $a); (-f $a) and $in1=$a} qw/mg wini par/;
-    (not -e $in1) and mes(txt('fnf').": ". join(" / ", @in1x), {err=>1});
-    if(not defined $in1){
-    }elsif(-d $in1){
-      mes(txt('dci', {d=>$in1}), {q=>1});
-      $indir = $in1;
-      $indir=~s{/$}{};
-    }elsif(not -f $in1){ # non-existing entry, x/=dir x.wini=file
-      ($in1=~m{/$}) ? ($indir = $in1) : push(@infile, $in1);
-    }else{ # existing normal file
+    foreach my $in1 (@in){
+      my(@in1x) = ($in1);
+      (not -e $in1) and map {my $a="$in1.$_"; push(@in1x, $a); (-f $a) and $in1=$a} qw/mg wini par/;
+      (not -e $in1) and mes(txt('fnf').": ". join(" / ", @in1x), {err=>1});
+      if(not defined $in1){
+      }elsif(-d $in1){
+        mes(txt('dci', undef, {d=>$in1}), {q=>1});
+        $indir = $in1;
+        $indir=~s{/$}{};
+      }elsif(not -f $in1){ # non-existing entry, x/=dir x.wini=file
+        ($in1=~m{/$}) ? ($indir = $in1) : push(@infile, $in1);
+      }else{ # existing normal file
 #      mes(txt('fci',undef, {f=>$in1}), {q=>1});
-      push(@infile, $in1);
+        push(@infile, $in1);
+      }
     }
-  }
-  if((not defined $infile[0]) and (defined $indir)){
-    findfile($indir, sub{$_[0]=~/\.(wini|par|mg)$/ and push(@infile, $_[0])});
-  }
+    if((not defined $infile[0]) and (defined $indir)){
+      findfile($indir, sub{$_[0]=~/\.(wini|par|mg)$/ and push(@infile, $_[0])});
+    }
 
   # check $outdir
-  if ((not defined $out) or (defined $out and $out eq '')){
-    foreach my $in1 (@infile){
-      my($out1, $css1) = ("$in1.html", "$in1.css");
-#      $out1=~s{\.\w+$}{.html};
-#      $css1=~s{\.\w+$}{.css};
-      push(@outfile, $out1); push(@cssfile, $css1);
-    }
-#  }elsif(not defined $out){
-#print STDERR "out not defined\n";
-#    if(not defined $in){
-#    }
-#  
-}elsif(-d $out){
-    mes(txt('dco', {d=>$out}), {q=>1});
-    $outdir = $out;
-    ($outdir=~m{^/}) or $outdir = cwd()."/$outdir";
-  }elsif(-f $out){
-    my $css = (defined $css) ? $css : "$out.css";
-    ($outfile[0], $cssfile[0]) = ($out, $css);
-  }else{ # new entry
-    if($out=~m{(.*)/$}){
-      $outdir = $1;
-    }else{
-      my $outcss;
-      if(defined $css){
-        $outcss = $css;
-      }else{
-        $outcss = (defined $in[0]) ? "$in[0].css" : 'wini.css';
+    if ((not defined $out) or (defined $out and $out eq '')){
+      foreach my $in1 (@infile){
+        my($out1, $css1) = ("$in1.html", (defined $css) ? $css : "$in1.css");
+        push(@outfile, $out1); push(@cssfile, $css1);
       }
-      $outfile[0] = $out;
-      $cssfile[0] = $outcss;
+    }elsif(-d $out){
+      mes(txt('dco', undef, {d=>$out}), {q=>1});
+      $outdir = $out;
+      ($outdir=~m{^/}) or $outdir = cwd()."/$outdir";
+    }elsif(-f $out){
+      my $css = (defined $css) ? $css : "$out.css";
+      ($outfile[0], $cssfile[0]) = ($out, $css);
+    }else{ # new entry
+      if($out=~m{(.*)/$}){
+        $outdir = $1;
+      }else{
+        my $outcss;
+        if(defined $css){
+          $outcss = $css;
+        }else{
+          $outcss = (defined $in[0]) ? "$in[0].css" : 'wini.css';
+        }
+        $outfile[0] = $out;
+        $cssfile[0] = $outcss;
+      }
     }
-  }
   
-  if(defined $outdir){
-    if(($outdir eq '.') or ($outdir=~m{/\.+$})){
-      $outdir = cwd();
-    }
-    #$outdir=~s{/$}{};
-    foreach my $in1 (@infile){
-      my($base, $indir1, $ext) = fileparse($in1, qw/.wini .par .mg/);
-      ($indir1 eq './') and $indir1='';
-      $indir1=~s{/$}{};
-      (defined $indir) and $indir1=~s{^$indir(/|$)}{};
-      my $outdir1 = "$outdir" . (($indir1 eq '') ? '' : "/$indir1");
-      (-d $outdir1) or (mkpath $outdir1) or die "Failed to create $outdir";
-      push(@outfile, "$outdir1/$base.html");
-      push(@cssfile, "$outdir1/" . ((defined $css) ? $css : "$base.css"));
-    }
-  }
+    if(defined $outdir){
+      if(($outdir eq '.') or ($outdir=~m{/\.+$})){
+        $outdir = cwd();
+      }
+      #$outdir=~s{/$}{};
+      foreach my $in1 (@infile){
+        my($base, $indir1, $ext) = fileparse($in1, qw/.wini .par .mg/);
+        ($indir1 eq './') and $indir1='';
+        $indir1=~s{/$}{};
+        (defined $indir) and $indir1=~s{^$indir(/|$)}{};
+        my $outdir1 = "$outdir" . (($indir1 eq '') ? '' : "/$indir1");
+        (-d $outdir1) or (mkpath $outdir1) or die "Failed to create $outdir";
+        push(@outfile, "${outdir1}${base}${ext}.html");
+        push(@cssfile, $outdir1 . ((defined $css and $css ne '') ? $css : "${base}${ext}.css"));
+      } # foreach @infile
+    } # if defined $outdir
+  }else{ # $in not defined (</dev/stdin)
+    push(@cssfile, ((defined $css and $css ne '') ? $css : "wini.css"));
+  } # if defined $in
 
   mes(
     "indir:   " . (($indir)?$indir:'undef') . "\n" .
@@ -1064,17 +1060,17 @@ sub to_html{
         foreach my $d (@testdirs){
           my $t = "$d/$TEMPLATE";
           if(-f $t){
-            mes(txt('ftf', {t=>$t}), {q=>1});
+            mes(txt('ftf', undef, {t=>$t}), {q=>1});
             $template = $t;
             last L1;
           }else{
-            mes(txt('snf', {t=>$t}), {q=>1});
+            mes(txt('snf', undef, {t=>$t}), {q=>1});
           }
         }
         mes(txt('cft', undef, {t=>$TEMPLATE, d=>join(q{', '}, @testdirs)}), {err=>1});
       }  # L1
     }
-    open(my $fhi, '<:utf8', $template);
+    open(my $fhi, '<:utf8', $template) or mes(txt('fof', undef, {f=>$template}), {err=>1});
     my $tmpltxt = join('', <$fhi>);
     $tmpltxt=~s!\[\[(.*?)]]!
       if(exists $maintxt{$1}){
@@ -1083,10 +1079,10 @@ sub to_html{
         (defined $opt1->{_v}{$1}) ? ($opt1->{_v}{$1}) : '';
       }
     !ge;
-    (defined $opt->{whole}) and $tmpltxt = whole_html($htmlout, $opt->{title}, $opt);
+    (defined $opt->{whole}) and $tmpltxt = whole_html($htmlout, $opt);
     return(deref($tmpltxt));
   }else{ # non-template
-    (defined $opt->{whole}) and $htmlout = whole_html($htmlout, $opt->{title}, $opt);
+    (defined $opt->{whole}) and $htmlout = whole_html($htmlout, $opt);
     $htmlout = deref($htmlout);
     return(deref($htmlout), \@html);
   }
@@ -1193,7 +1189,7 @@ sub markgaab{
   my $r = join("\n", @r);
   $r=~s/${MI}i=(\d+)${MO}/$save[$1]/ge;
   if($cssfile){
-    open(my $fho, '>', $cssfile) or die "Cannot modify $cssfile";
+    open(my $fho, '>', $cssfile) or mes(txt('fnw', undef, {f=>$cssfile}), {err=>1});# "Cannot modify $cssfile";
     print {$fho} css($CSS);
     close $fho;
   }
@@ -1229,9 +1225,9 @@ sub deref{
   $r=~s! *(${MI}([^${MI}${MO}]+)${MI}t=(?:(fig|tbl|cit))?(?:${MI}l=([^${MI}${MO}]+))?${MO}) *!
     my($r0, $id, $type, $lang) = ($1, $2, $3, $4);
     ($lang) or $lang = $LANG || 'en';
-    (not $type and not $REF{$id}) and mes(txt('idnd', '', {id=>$id}), {err=>1});
+    (not $type and not $REF{$id}) and mes(txt('idnd', undef, {id=>$id}), {err=>1});
     if(defined $REF{$id}{order}){
-      $type = $REF{$id}{type} || mes(txt('idnd', '', {id=>$id}), {warn=>1});
+      $type = $REF{$id}{type} || mes(txt('idnd', undef, {id=>$id}), {warn=>1});
     }else{
       (defined $ref_cnt{$type}) or $ref_cnt{$type}=1;
       while(defined $REFASSIGN{$type}{$ref_cnt{$type}}){
@@ -1281,7 +1277,7 @@ sub deref{
 }
 
 sub whole_html{
-  my($x, $title, $opt) = @_;
+  my($x, $opt) = @_;
   $x=~s/[\s\n\r]*$//s;
   #  my($cssfile, $cssflameworks) = map {$opt->{$_}} qw/cssfile cssflameworks/;
   # lang -> css font
@@ -1289,7 +1285,7 @@ sub whole_html{
 
   my $cssfile = $opt->{cssfile} || '';
   my $style   = '';
-  $title = $title || 'Markgaab page';
+  my $title   = $opt->{title} || 'Markgaab page';
   (defined $opt->{cssflameworks}[0]) and map {$style .= qq{<link rel="stylesheet" type="text/css" href="$_">\n}} @{$opt->{cssflameworks}};
   $style   .= ($cssfile)?qq{<link rel="stylesheet" type="text/css" href="$cssfile">\n} : "<style>\n".css($CSS)."</style>\n";
   $style   .= qq{<link rel="stylesheet" type="text/css" href="wini_final.css">\n};
@@ -1542,7 +1538,7 @@ sub call_macro{
   );
   ($macroname=~/^(ev|eval|calc)$/i)  and return((ev(\@f, $opt->{_v}))[-1]);
   ($macroname=~/^va$/i)              and return(
-    (defined $opt->{_v}{$f[0]}) ? $opt->{_v}{$f[0]} : (mes(txt('vnd', {v=>$f[0]}), {warn=>1}), '')
+    (defined $opt->{_v}{$f[0]}) ? $opt->{_v}{$f[0]} : (mes(txt('vnd', undef, {v=>$f[0]}), {warn=>1}), '')
   );
   ($macroname=~/^envname$/i)         and return($ENVNAME);
   ($macroname=~/^([oun]l)$/i)        and return(listmacro($1, \@f));
@@ -1710,11 +1706,11 @@ sub cit{
   my $lang         = $pars->{lang}[-1] || $opt->{lang} || $LANG || 'en';
   my $id           = $pars->{id}[-1];
   my @bibopts = grep {!/^(id\d*|type|lang)$/ and defined $pars->{$_}[0] and $pars->{$_}[0]} keys %$pars;
-  ($id) or mes(txt('idnd', {id=>''}), {err=>1});
+  ($id) or mes(txt('idnd', undef, {id=>''}), {err=>1});
 
   if((scalar @bibopts)>0){
     # is newly-defined bibliography
-    (defined $REF{$id}) and mes(txt('did', {id=>$id}), {err=>1});
+    (defined $REF{$id}) and mes(txt('did', undef, {id=>$id}), {err=>1});
     $REF{$id} = {type=>'cit', text=>$REF{$id}{text}};
     my $tmptxt = ref_tmp_txt("id=$id", "type=cit", "lang=$lang");
     foreach my $i (grep {$_ ne 'lang' and $_ ne 'id'} keys %$pars){
@@ -2897,7 +2893,6 @@ __DATA__
 ## web site, citation in reference list
 !cit_form_ws! WS [au|&ini_f|&last_first_ini,|&join;&2e] [ye|&q_()] [ti|&r_] [jo|&ita] in [] eds. [] ! [au|&ini_f|&last_first|&join,2e] [ye|&q_()] [ti|&r_] [jo|&ita] [vo][is|&q_()] !
 ##
-|cno|Could not open {{f}}|{{f}}を開けません|
 |conv|Conv {{from}} -> {{to}}|変換 {{from}} -> {{to}}|
 |date|%Y-%m-%d|%Y年%m月%d日|
 |date_days|Sun Mon Tue Wed Thu Fri Sat|日 月 火 水 木 金 土|
@@ -2918,8 +2913,10 @@ __DATA__
 |fail|failed|失敗|
 |fci|File {{f}} is chosen as input|ファイル{{f}}が入力元ファイルです|
 |fin|completed|終了|
-|fnf|File not found|ファイルが見つかりません|
+|fnf|File not found ({{f}})|ファイルが見つかりません ({{f}})|
+|fnw|File not writable ({{f}})|ファイルへの書き込みができません ({{f}})|
 |font|"Helvetica Neue", Arial, sans-serif|"Helvetica Neue", Arial, "Hiragino Kaku Gothic ProN", "Hiragino Sans", "BIZ UDPGothic", Meiryo, sans-serif|
+|fso|File specification: OK|ファイル指定：有効|
 |ftf|Found {{t}} as template file|テンプレートファイル{{t}}が見つかりました|
 |idnd|ID {{id}} not defined|ID '{{id}}'は定義されていません|
 |if|input file:|入力ファイル：|
