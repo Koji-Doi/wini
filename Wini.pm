@@ -86,6 +86,10 @@ Set output file name. If both -o and -i are omitted, Wini.pm outputs HTML-transl
 If -o is omitted and the input file name is 'input.wini', the output file will be 'input.wini.html'.
 Users can specify the output directory rather than the file. If -o value ends with 'output/', output file will be output/input.wini.html. If 'output/' does not exist, Wini.pm will create it.
 
+=item B<--outcssfile> I<FILENAME>
+
+Set CSS file name. If this option is set, CSS is written to the specified file. Otherwise, CSS is written in the style element of the result HTML document. If '--cssfile' is set without a file name, "wini.css" is the output css file name.
+
 =item B<--whole>
 
 Add HTML Live Standard headar and footer to output. The result output will be a complete HTML5 document.
@@ -93,10 +97,6 @@ Add HTML Live Standard headar and footer to output. The result output will be a 
 =item B<--cssflamework> I<[url]>
 
 Specify the url of CSS flamework (especially "classless" flameworks are supposed). If the URL is omitted, it is set to "https://unpkg.com/mvp.css".
-
-=item B<--cssfile> I<[out.css]>
-
-CSS is output to an independent css file, rather than the html file. If '--cssfile' is set without a file name, "wini.css" is the output css file name.
 
 =item B<--extralib> I<LIB>, B<-E> I<LIB>
 
@@ -382,7 +382,7 @@ sub stand_alone{
     "i=s"            => \@input,
     "o:s"            => \$output,
     "title=s"        => \$title,
-    "cssfile:s"      => \$cssfile,
+    "outcssfile:s"   => \$cssfile,
     "E|extralib:s"   => \@libs,
     "I|libpath:s"    => \@libpaths,
     "lang=s"         => \$LANG,
@@ -420,7 +420,19 @@ sub stand_alone{
   ($test) and ($INFILE[0], $OUTFILE)=("test.wini", "test.html");
 
   # check input/output
-  my($ind, $inf, $outd, $outf) = winifiles(\@input, $output);
+  my($ind, $inf, $outd, $outf, $outcss) = winifiles(\@input, $output, $cssfile);
+  if(
+    (not defined $input[0] and not defined $outf->[0]) or
+    (defined $inf->[0]) or
+    (defined $ind and defined $outd)
+  ){
+    print STDERR "File spec OK\n";
+  }else{
+    print STDERR "check ind  ", Dumper $ind;
+    print STDERR "check inf  ", Dumper $inf;
+    print STDERR "check outd ", Dumper $outd;
+    print STDERR "check outf ", Dumper $outf;
+  }
   if(defined $outd){
     (-f $outd) and unlink $outd;
     (-d $outd) or mkdir $outd;
@@ -811,7 +823,7 @@ sub css{
 }
 
 sub winifiles{
-  my($in, $out, $cssoutfile0) = @_;
+  my($in, $out, $css) = @_;
   # $in: string or array reference
   # $out: string (not array reference)
   my($indir, @infile, $outdir, @outfile, @cssfile);
@@ -820,9 +832,6 @@ sub winifiles{
 
   # check $indir
   foreach my $in1 (@in){
-    my $css1  = (defined $cssoutfile0) ? $cssoutfile0 : $in1;
-    $css1=~s{\.html}{.css};
-
     my(@in1x) = ($in1);
     (not -e $in1) and map {my $a="$in1.$_"; push(@in1x, $a); (-f $a) and $in1=$a} qw/mg wini par/;
     (not -e $in1) and mes(txt('fnf').": ". join(" / ", @in1x), {err=>1});
@@ -835,37 +844,46 @@ sub winifiles{
       ($in1=~m{/$}) ? ($indir = $in1) : push(@infile, $in1);
     }else{ # existing normal file
 #      mes(txt('fci',undef, {f=>$in1}), {q=>1});
-      push(@infile, $in1); #push(@cssfile, $css1);
+      push(@infile, $in1);
     }
   }
   if((not defined $infile[0]) and (defined $indir)){
-    findfile($indir, sub{
-      my $x=$_[0];
-      if($x=~/(.*)\.(wini|par|mg)$/){
-        push(@infile,  $x); push(@cssfile, (defined $cssoutfile0) ?  $cssoutfile0 : "$1.css");
-      } 
-    });
+    findfile($indir, sub{$_[0]=~/\.(wini|par|mg)$/ and push(@infile, $_[0])});
   }
 
   # check $outdir
-  if (defined $out and $out eq ''){
+  if ((not defined $out) or (defined $out and $out eq '')){
     foreach my $in1 (@infile){
-      my $out1 = $in1; $out1=~s{(\.\w+$)}{.html};
-      my $css1 = $in1; $css1=~s{(\.\w+$)}{.css};
+      my($out1, $css1) = ("$in1.html", "$in1.css");
+#      $out1=~s{\.\w+$}{.html};
+#      $css1=~s{\.\w+$}{.css};
       push(@outfile, $out1); push(@cssfile, $css1);
     }
-  }elsif(not defined $out){
-    if(not defined $in){
-    }
-
-  }elsif(-d $out){
+#  }elsif(not defined $out){
+#print STDERR "out not defined\n";
+#    if(not defined $in){
+#    }
+#  
+}elsif(-d $out){
     mes(txt('dco', {d=>$out}), {q=>1});
     $outdir = $out;
     ($outdir=~m{^/}) or $outdir = cwd()."/$outdir";
   }elsif(-f $out){
-    $outfile[0] = $out;
+    my $css = (defined $css) ? $css : "$out.css";
+    ($outfile[0], $cssfile[0]) = ($out, $css);
   }else{ # new entry
-    ($out=~m{(.*)/$}) ? ($outdir = $1) : ($outfile[0] = $out);
+    if($out=~m{(.*)/$}){
+      $outdir = $1;
+    }else{
+      my $outcss;
+      if(defined $css){
+        $outcss = $css;
+      }else{
+        $outcss = (defined $in[0]) ? "$in[0].css" : 'wini.css';
+      }
+      $outfile[0] = $out;
+      $cssfile[0] = $outcss;
+    }
   }
   
   if(defined $outdir){
@@ -881,14 +899,16 @@ sub winifiles{
       my $outdir1 = "$outdir" . (($indir1 eq '') ? '' : "/$indir1");
       (-d $outdir1) or (mkpath $outdir1) or die "Failed to create $outdir";
       push(@outfile, "$outdir1/$base.html");
+      push(@cssfile, "$outdir1/" . ((defined $css) ? $css : "$base.css"));
     }
   }
+
   mes(
     "indir:   " . (($indir)?$indir:'undef') . "\n" .
     "infile:  " . (($infile[0])?join(' ', @infile):'undef') . "\n" .
     "outdir:  " . (($outdir)?$outdir:'undef') . "\n" .
-    "outfile: " . (($outfile[0])?join(' ',@outfile):'undef') . "\n" .
-    "cssfile: " . (($cssfile[0])?join(' ',@cssfile):'undef'), {q=>1}
+    "cssfile: " . (($cssfile[0])?join(' ',@cssfile):'undef') . "\n" .
+    "outfile: " . (($outfile[0])?join(' ',@outfile):'undef'), {q=>1}
      );
   (defined $indir  or defined $infile[0])  or mes(txt('din'), {q=>1});
   (defined $outdir or defined $outfile[0]) or mes(txt('rout'), {q=>1});

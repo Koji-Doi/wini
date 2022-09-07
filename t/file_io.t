@@ -72,15 +72,15 @@ for my $x (0..3){
 { #6 dir -> dir
   my $outdir2 = tempdir('wini_testoutXXXX');
   my $cmd = "perl Wini.pm -i $indir -o $outdir2";
-  print STDERR "$cmd\n";
-  system("perl Wini.pm -i $indir -o $outdir2 2>/dev/null");
-  my $i = join("\n", <$indir/*>);
-  $i=~s/(\w+)\.wini/$1\.html$1\.html\.ref/sg;
+  #print STDERR "$cmd\n";
+  system("$cmd 2>/dev/null");
+  my $i = join("\n", <$indir/*.wini>);
+  $i=~s/(\w+)\.wini/$1\.html $1\.html\.ref/sg;
   $i=~s{${indir}/}{}sg;
-  $i=~s/[\n\s]//g;
+  $i=~s/[\n\s]+/ /g;
   my $o = join("\n", <$outdir2/*>);
   $o=~s{${outdir2}/}{}sg;
-  $o=~s/[\n\s]//gs;
+  $o=~s/[\n\s]+/ /gs;
   is $o, $i;
   map { unlink $_} <$outdir2/*>;
   (-d $outdir2) and print("remove $outdir2\n"),remove_tree($outdir2);
