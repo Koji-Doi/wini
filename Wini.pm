@@ -492,7 +492,7 @@ sub stand_alone{
       }
       $winitxt .= "\n\n";
     } @$inf;
-    my($htmlout) = to_html($winitxt, {indir=>$ind, dir=>getcwd(), whole=>$whole, cssfile=>$cssfile->[0], title=>$title, cssflameworks=>\@cssflameworks});
+    my($htmlout) = to_html($winitxt, {indir=>$ind, dir=>getcwd(), whole=>$whole, cssfile=>$outcss->[0], title=>$title, cssflameworks=>\@cssflameworks});
     print {$fho} $htmlout;
     (scalar keys %REF) and save_bib((defined $outf->[0]) ? $outf->[0].'.ref' : 'STDOUT.ref');
   } # if scalar @$outf>1
@@ -854,32 +854,33 @@ sub winifiles{
   # check $outdir
     if ((not defined $out) or (defined $out and $out eq '')){
       foreach my $in1 (@infile){
-        my($out1, $css1) = ("$in1.html", (defined $css) ? $css : "$in1.css");
+        my($out1, $css1) = ("$in1.html", cssfilename($in1, $css));  # (defined $css) ? $css : "$in1.css");
         push(@outfile, $out1); push(@cssfile, $css1);
       }
     }elsif(-d $out){
-      mes(txt('dco', undef, {d=>$out}), {q=>1});
+      mes(txt('dco', undef, {d=>$out}), {q=>1, ln=>1});
       $outdir = $out;
       ($outdir=~m{^/}) or $outdir = cwd()."/$outdir";
     }elsif(-f $out){
-      my $css = (defined $css) ? $css : "$out.css";
-      ($outfile[0], $cssfile[0]) = ($out, $css);
+      my $css1 = cssfilename($out, $css); # ($css ne '') ? $css : "$out.css";
+      ($outfile[0], $cssfile[0]) = ($out, $css1);
     }else{ # new entry
       if($out=~m{(.*)/$}){
         $outdir = $1;
       }else{
-        my $outcss;
-        if(defined $css){
-          $outcss = $css;
-        }else{
-          $outcss = (defined $in[0]) ? "$in[0].css" : 'wini.css';
-        }
+        my $outcss = cssfilename($in[0], $css);
+        #if(defined $css){
+        #  $outcss = $css;
+        #}else{
+        #  $outcss = (defined $in[0]) ? "$in[0].css" : 'wini.css';
+        #}
         $outfile[0] = $out;
         $cssfile[0] = $outcss;
       }
     }
   
     if(defined $outdir){
+      $outdir=~s{/$}{};
       if(($outdir eq '.') or ($outdir=~m{/\.+$})){
         $outdir = cwd();
       }
@@ -890,9 +891,14 @@ sub winifiles{
         $indir1=~s{/$}{};
         (defined $indir) and $indir1=~s{^$indir(/|$)}{};
         my $outdir1 = "$outdir" . (($indir1 eq '') ? '' : "/$indir1");
-        (-d $outdir1) or (mkpath $outdir1) or die "Failed to create $outdir";
-        push(@outfile, "${outdir1}${base}${ext}.html");
-        push(@cssfile, $outdir1 . ((defined $css and $css ne '') ? $css : "${base}${ext}.css"));
+        if(-e $outdir1){
+          (-d $outdir1) or mes(txt('dnw', undef, {d=>$outdir1}), {err=>1});
+        }else{
+          (mkpath $outdir1) || mes(txt('dnw', undef, {d=>$outdir}), {err=>1});
+        }
+        push(@outfile, "${outdir1}/${base}${ext}.html");
+#        push(@cssfile, "$outdir1/" . ((defined $css and $css ne '') ? $css : "${base}${ext}.css"));
+        push(@cssfile, cssfilename("$outdir1/$base", $css));
       } # foreach @infile
     } # if defined $outdir
   }else{ # $in not defined (</dev/stdin)
@@ -910,6 +916,19 @@ sub winifiles{
   (defined $outdir or defined $outfile[0]) or mes(txt('rout'), {q=>1});
   return($indir, \@infile, $outdir, \@outfile, \@cssfile);
 } # sub winifiles
+
+sub cssfilename{
+  my($body, $default_css) = @_;
+  my $outcss;
+  if(defined $default_css and $default_css eq ''){
+    $outcss = (defined $body) ? $body : 'wini';
+    $outcss=~s/\.\w+$/.css/;
+    ($outcss=~/\.css$/) or $outcss = $outcss.'.css';
+  }else{
+    $outcss = $default_css;
+  }
+  return($outcss);
+}
 
 sub findfile{  # recursive file search.
   # Any files or dirs of which name begin with '_' are ignored.
@@ -2903,24 +2922,26 @@ __DATA__
 |dtdow|%a. %Y-%m-%dT%H:%M:%S|%Y年%m月%d日 (%a) %H時%M分%S秒|
 |dttrad|%b %d, %Y %H:%M:%S|%EY(%Y年)%m月%d日 %H時%M分%S秒|
 |dtdowtrad|%a. %b %d, %Y %H:%M:%S|%EY(%Y年)%m月%d日 (%a) %H時%M分%S秒|
-|dci|Input: Dir {{d}}|入力元ディレクトリ: {{d}}|
-|dco|Output: Dir {{d}}|出力先ディレクトリ: {{d}}|
+|dci|Input: Dir {{d}}|入力元ディレクトリ： {{d}}|
+|dco|Output: Dir {{d}}|出力先ディレクトリ： {{d}}|
 |did|Duplicated ID:{{id}}|ID:{{id}}が重複しています|
 |din|Input:   STDIN|入力元: 標準入力|
+|dnf|Directory not found: ({{d}})|ディレクトリが見つかりません： ({{d}})|
+|dnw|Directory not writable: ({{d}})|ディレクトリの書き込みができません： ({{d}})|
 |elnf|{{d}} for extra library not found|{{d}}が見たらず、エキストラライブラリに登録できません|
 |Error|error|エラー|
 |etal| et al.|他|
 |fail|failed|失敗|
 |fci|File {{f}} is chosen as input|ファイル{{f}}が入力元ファイルです|
 |fin|completed|終了|
-|fnf|File not found ({{f}})|ファイルが見つかりません ({{f}})|
-|fnw|File not writable ({{f}})|ファイルへの書き込みができません ({{f}})|
+|fnf|File not found: ({{f}})|ファイルが見つかりません： ({{f}})|
+|fnw|File not writable: ({{f}})|ファイルへの書き込みができません： ({{f}})|
 |font|"Helvetica Neue", Arial, sans-serif|"Helvetica Neue", Arial, "Hiragino Kaku Gothic ProN", "Hiragino Sans", "BIZ UDPGothic", Meiryo, sans-serif|
 |fso|File specification: OK|ファイル指定：有効|
 |ftf|Found {{t}} as template file|テンプレートファイル{{t}}が見つかりました|
 |idnd|ID {{id}} not defined|ID '{{id}}'は定義されていません|
 |if|input file:|入力ファイル：|
-|ilfi|Illegal filter: {{x}}|不正なフィルター：{{x}}|
+|ilfi|Illegal filter: {{x}}|不正なフィルター： {{x}}|
 |ll|loaded library: {{lib}}|ライブラリロード完了： {{lib}}|
 |llf|failed to load library '{{lib}}'|ライブラリロード失敗： {{lib}}|
 |mnf|Cannot find Macro '{{m}}'|マクロ「{{m}}」が見つかりません|
