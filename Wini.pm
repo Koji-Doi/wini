@@ -898,7 +898,7 @@ sub winifiles{
         }
         push(@outfile, "${outdir1}/${base}${ext}.html");
 #        push(@cssfile, "$outdir1/" . ((defined $css and $css ne '') ? $css : "${base}${ext}.css"));
-        push(@cssfile, cssfilename("$outdir1/$base", $css));
+        push(@cssfile, cssfilename("${outdir1}/${base}${ext}.css", $css));
       } # foreach @infile
     } # if defined $outdir
   }else{ # $in not defined (</dev/stdin)
@@ -922,7 +922,7 @@ sub cssfilename{
   my $outcss;
   if(defined $default_css and $default_css eq ''){
     $outcss = (defined $body) ? $body : 'wini';
-    $outcss=~s/\.\w+$/.css/;
+    $outcss = $body;
     ($outcss=~/\.css$/) or $outcss = $outcss.'.css';
   }else{
     $outcss = $default_css;
