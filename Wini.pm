@@ -922,7 +922,6 @@ sub cssfilename{
   my $outcss;
   if(defined $default_css and $default_css eq ''){
     $outcss = (defined $body) ? $body : 'wini';
-    $outcss = $body;
     ($outcss=~/\.css$/) or $outcss = $outcss.'.css';
   }else{
     $outcss = $default_css;

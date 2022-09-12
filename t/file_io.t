@@ -28,12 +28,21 @@ sub test1{
   my($testname, $cmd, $indir, $exp_outfiles) = @_;
   my $outdir2 = tempdir('wini_testout_XXXX');
   my $err="${outdir2}/err.log";
-  $cmd=~s/\{\{indir}}/$indir/g;
-  $cmd=~s/\{\{outdir}}/$outdir2/g;
+  $cmd=~s!\{\{indir}}!$indir!g;
+  $cmd=~s!\{\{outdir}}!$outdir2!g;
+  $cmd=~s!\{\{infile}}!${indir}/1.wini!g;
+  $cmd=~s!\{\{outfile}}!${outdir2}/1.html!g;
   $cmd=~s/\{\{err}}/$err/g;
 
   ($DEBUG) and print STDERR "$cmd\n";
-  system("$cmd 2>/dev/null");
+  my $r = system($cmd);
+  ($r>0) and $r = $r >> 8;
+  if($r>0){
+    die(<<"EOD");
+    Errror occured in trying '$cmd'.
+    Return=$r
+EOD
+  }
 #  my $i = join("\n", <$indir/*.wini>);
 #  $i=~s/(\w+\.wini)/$1\.html $1\.css$1\.html\.ref/sg;
 #  $i=~s{${indir}/}{}sg;
@@ -130,7 +139,8 @@ for my $x (0..3){
 }
 
 my $exp_outfiles = [map {my $base = basename($_); ("$base.css", "$base.html")} @infiles];
-test1('"dir -> dir": with -outcssfile', "perl Wini.pm -outcssfile -i {{indir}} -o {{outdir}}/ 2>{{err}}", $indir, $exp_outfiles);
+test1('"dir -> dir": with -outcssfile',   "perl Wini.pm -outcssfile -i {{indir}} -o {{outdir}}/ 2>{{err}}",   $indir, $exp_outfiles);
+test1('"file -> file": with -outcssfile', "perl Wini.pm -outcssfile -i {{infile}} -o {{outfile}} 2>{{err}}", $indir, [qw/1.wini.html 1.wini.css/]);
 =begin c
 
 { #6a dir -> dir (with -outcssfile)
