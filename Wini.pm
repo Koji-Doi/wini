@@ -78,13 +78,13 @@ Try "perl Wini.pm -h mg", and you can read a brief document about Markgaab.
 
 =item B<-i> I<INPUT>
 
-Set input file name to INPUT. If the file named 'INPUT' does not exists, Wini.pm looks for 'INPUT.wini'. If -i is not set, Wini.pm takes data from standard input.
+Set input file name to INPUT. If -i is not set, Wini.pm takes data from standard input.
 
 =item B<-o> I<OUTPUT>
 
 Set output file name. If both -o and -i are omitted, Wini.pm outputs HTML-translated text to standard output.
-If -o is omitted and the input file name is 'input.wini', the output file will be 'input.wini.html'.
-Users can specify the output directory rather than the file. If -o value ends with 'output/', output file will be output/input.wini.html. If 'output/' does not exist, Wini.pm will create it.
+If -o is omitted and the input file name is set to, for example, 'input.wini', the output file will be 'input.wini.html'.
+Users can specify the output directory rather than the file. If -o value ends with '/', for example 'output/', output file will be output/input.wini.html. If 'output/' does not exist, Wini.pm will create it.
 
 =item B<--outcssfile> I<FILENAME>
 
@@ -502,7 +502,7 @@ sub read_bib{
   my(@bibfiles) = @_;
   for(my $i=0; $i<=$#bibfiles; $i++){
     my($ref, $fileformat) = ([], 'endnote'); # fileformat: endnote(default) or pubmed
-    open(my $fhi, '<:utf8', $bibfiles[$i]) or mes(txt('fnf').": $bibfiles[$i]", {err=>1});
+    open(my $fhi, '<:utf8', $bibfiles[$i]) or mes(txt('fnf', undef, {f => $bibfiles[$i]}), {err=>1});
     unless($fileformat){
       ($bibfiles[$i]=~/.nbib$/) and $fileformat = 'pubmed';
     }
@@ -834,7 +834,7 @@ sub winifiles{
     foreach my $in1 (@in){
       my(@in1x) = ($in1);
       (not -e $in1) and map {my $a="$in1.$_"; push(@in1x, $a); (-f $a) and $in1=$a} qw/mg wini par/;
-      (not -e $in1) and mes(txt('fnf').": ". join(" / ", @in1x), {err=>1});
+      (not -e $in1) and mes(txt('fnf', undef, {f=>join(" / ", @in1x)}), {err=>1});
       if(not defined $in1){
       }elsif(-d $in1){
         mes(txt('dci', undef, {d=>$in1}), {q=>1});
@@ -1052,7 +1052,7 @@ sub to_html{
   
   # template?
   if(defined $sectdata_depth[0][-1]{val}{template}){ # template mode
-    $TEMPLATE = $sectdata_depth[0][-1]{val}{template};
+    (defined $TEMPLATE) or $TEMPLATE = $sectdata_depth[0][-1]{val}{template};
   }
   if(defined $TEMPLATE){
     # read vals
@@ -1068,27 +1068,28 @@ sub to_html{
       $maintxt{$id} = $txt;
     }
 
-    # read tmpl data
-    my $template = $TEMPLATE;
-    my $tmpldir  = (defined $TEMPLATEDIR) ? $TEMPLATEDIR : cwd();
-    if($template=~m{^/}){ # absolute path
-    }else{
-      my @testdirs = ($tmpldir, $opt->{dir}, (map {"$_/_template"} ($tmpldir, $opt->{dir})));
+    # set tmpl directory
+    my $tmplfile;
+    my @tmpldir  = (defined $TEMPLATEDIR) ? ($TEMPLATEDIR, cwd()) : (cwd());
+
+    # search tmpl file in $tmpldir
     L1:{
-        foreach my $d (@testdirs){
-          my $t = "$d/$TEMPLATE";
-          if(-f $t){
-            mes(txt('ftf', undef, {t=>$t}), {q=>1});
-            $template = $t;
-            last L1;
-          }else{
-            mes(txt('snf', undef, {t=>$t}), {q=>1});
-          }
-        }
-        mes(txt('cft', undef, {t=>$TEMPLATE, d=>join(q{', '}, @testdirs)}), {err=>1});
-      }  # L1
+      foreach my $d (@tmpldir){
+        my $f = "$d/$TEMPLATE";
+        (-f $f) and ($tmplfile = $f, last L1);
+      }
+      map { mes(txt('cft', undef, {t=>$TEMPLATE, d=>$_}), {q=>1}) } @tmpldir;
+      foreach my $d (@tmpldir){
+        my $f = "$d/_template";
+        (-f $f) and ($tmplfile = $f, last L1);
+      }
+      map { mes(txt('cft', undef, {t=>'_template', d=>$_}), {q=>1}) } @tmpldir;
+      # no template file found
+      mes(txt('stc',undef), {err=>1});
     }
-    open(my $fhi, '<:utf8', $template) or mes(txt('fof', undef, {f=>$template}), {err=>1});
+    open(my $fhi, '<:utf8', $tmplfile) or mes(txt('fnf', undef, {f=>$tmplfile}), {err=>1});
+    mes(txt('ftf', undef, {t=>$tmplfile}), {q=>1});
+
     my $tmpltxt = join('', <$fhi>);
     $tmpltxt=~s!\[\[(.*?)]]!
       if(exists $maintxt{$1}){
@@ -2953,6 +2954,7 @@ __DATA__
 |rout|Output:  STDOUT|出力先: 標準出力|
 |secnames|part chapter section subsection|部 章 節 項|
 |snf|Searched {{t}}, but not found|{{t}}の内部を検索しましたが見つかりません|
+|stc|Specify template file correctly|テンプレートファイルを正しく設定してください|
 |time|%H:%M:%S|%H時%M分%S秒|
 |timetrad|%H:%M:%S|%H時%M分%S秒|
 |timedowtrad|%H:%M:%S|%H時%M分%S秒|
