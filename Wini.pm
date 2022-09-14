@@ -88,7 +88,7 @@ Users can specify the output directory rather than the file. If -o value ends wi
 
 =item B<--outcssfile> I<FILENAME>
 
-Set CSS file name. If this option is set, CSS is written to the specified file. Otherwise, CSS is written in the style element of the result HTML document. If '--cssfile' is set without a file name, "wini.css" is the output css file name.
+Set CSS file name. If this option is set, CSS is written to the specified file. Otherwise, CSS is written in the style element of the result HTML document. If '--cssfile' is set without a file name, the output css file name is generated from input file name. if input file name is not set (when markgaab data is input from STDIN), "wini.css" is the output css file name.
 
 =item B<--whole>
 
@@ -923,8 +923,10 @@ sub cssfilename{
   if(defined $default_css and $default_css eq ''){
     $outcss = (defined $body) ? $body : 'wini';
     ($outcss=~/\.css$/) or $outcss = $outcss.'.css';
-  }else{
+  }elsif(defined $default_css){
     $outcss = $default_css;
+  }else{
+    $outcss = 'wini.css';
   }
   return($outcss);
 }
@@ -1061,11 +1063,11 @@ sub to_html{
       $opt1->{_v}{$k} = $sectdata_depth[0][-1]{val}{$k};
     }
 
-    # read main text
-    my %maintxt;
+    # read parameters from input
+    my %par;
     foreach my $html (@html){
       my($id, $txt) = ($html->{sect_id}, $html->{txt});
-      $maintxt{$id} = $txt;
+      $par{$id} = $txt;
     }
 
     # set tmpl directory
@@ -1091,19 +1093,20 @@ sub to_html{
     mes(txt('ftf', undef, {t=>$tmplfile}), {q=>1});
 
     my $tmpltxt = join('', <$fhi>);
+    # replace vals in tmpl with pars set above
     $tmpltxt=~s!\[\[(.*?)]]!
-      if(exists $maintxt{$1}){
-       $maintxt{$1};
+      if(exists $par{$1}){
+       $par{$1};
       }else{
         (defined $opt1->{_v}{$1}) ? ($opt1->{_v}{$1}) : '';
       }
     !ge;
-    (defined $opt->{whole}) and $tmpltxt = whole_html($htmlout, $opt);
+    (defined $opt->{whole}) and $tmpltxt = whole_html($tmpltxt, $opt);
     return(deref($tmpltxt));
   }else{ # non-template
     (defined $opt->{whole}) and $htmlout = whole_html($htmlout, $opt);
-    $htmlout = deref($htmlout);
-    return(deref($htmlout), \@html);
+    #$htmlout = deref($htmlout);
+    return(deref($htmlout));
   }
 } # sub to_html
 
