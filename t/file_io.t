@@ -25,9 +25,11 @@ sub std{
 }
 
 sub test1{
-  my($testname, $cmd, $indir, $exp_outfiles) = @_;
-  my $outdir2 = tempdir('wini_testout_XXXX');
-  my $err="${outdir2}/err.log";
+  my($testname, $cmd, $indir, $infile, $outdir, $outfiles) = @_;
+  my $infile2  = $infile || "$indir/1.wini";
+  my $outdir2  = $outdir || tempdir('wini_testout_XXXX');
+  my $outfile2 = (defined $outfiles->[0]) ? $outfiles : ["$outdir2/1.html"]; 
+  my $err="err.log";
   $cmd=~s!\{\{indir}}!$indir!g;
   $cmd=~s!\{\{outdir}}!$outdir2!g;
   $cmd=~s!\{\{infile}}!${indir}/1.wini!g;
@@ -38,7 +40,7 @@ sub test1{
   my $r = system($cmd);
   ($r>0) and $r = $r >> 8;
   if($r>0){
-    die(<<"EOD");
+    print STDERR (<<"EOD");
     Errror occured in trying '$cmd'.
     Return=$r
 EOD
@@ -47,7 +49,7 @@ EOD
 #  $i=~s/(\w+\.wini)/$1\.html $1\.css$1\.html\.ref/sg;
 #  $i=~s{${indir}/}{}sg;
 #  $i=~s/[\n\s]+/ /g;
-  my $exp = join("\n", sort @$exp_outfiles);
+  my $exp = join("\n", sort @$outfile2);
   my $got = join("\n", sort (<$outdir2/*.html>, <$outdir2/*.css>));
   $got=~s{${outdir2}/}{}sg;
   $got=~s/[\n\s]+/ /gs;
@@ -139,8 +141,17 @@ for my $x (0..3){
 }
 
 my $exp_outfiles = [map {my $base = basename($_); ("$base.css", "$base.html")} @infiles];
-test1('"dir -> dir": with -outcssfile',   "perl Wini.pm -outcssfile -i {{indir}} -o {{outdir}}/ 2>{{err}}",   $indir, $exp_outfiles);
-test1('"file -> file": with -outcssfile', "perl Wini.pm -outcssfile -i {{infile}} -o {{outfile}} 2>{{err}}", $indir, [qw/1.wini.html 1.wini.css/]);
+$outdir = tempdir('wini_testout_XXXX');
+print STDERR "created: $outdir\n";
+test1('"dir -> dir": with -outcssfile',
+  "perl Wini.pm -outcssfile -i {{indir}} -o {{outdir}}/ 2>{{err}}",  $indir, undef,   $outdir,  $exp_outfiles);
+test1('"file -> file in existing dir": with -outcssfile',
+  "perl Wini.pm -outcssfile -i {{infile}} -o {{outfile}} 2>{{err}}", $indir, undef, $outdir, [qw/1.wini.html 1.wini.css/]);
+remove_tree($outdir);
+print STDERR "removed: $outdir\n";
+test1('"file -> file in non-existing dir": with -outcssfile',
+  "perl Wini.pm -outcssfile -i {{infile}} -o {{outfile}} 2>{{err}}", $indir, undef, $outdir, [qw/1.wini.html 1.wini.css/]);
+
 =begin c
 
 { #6a dir -> dir (with -outcssfile)
