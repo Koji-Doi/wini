@@ -36,6 +36,7 @@ sub test1{
   $cmd=~s!\{\{outfile}}!${outdir2}/1.html!g;
   $cmd=~s/\{\{err}}/$err/g;
 
+  print STDERR "\n--- $testname\n";
   ($DEBUG) and print STDERR "$cmd\n";
   my $r = system($cmd);
   ($r>0) and $r = $r >> 8;
@@ -45,10 +46,6 @@ sub test1{
     Return=$r
 EOD
   }
-#  my $i = join("\n", <$indir/*.wini>);
-#  $i=~s/(\w+\.wini)/$1\.html $1\.css$1\.html\.ref/sg;
-#  $i=~s{${indir}/}{}sg;
-#  $i=~s/[\n\s]+/ /g;
   my $exp = join("\n", sort @$outfile2);
   my $got = join("\n", sort (<$outdir2/*.html>, <$outdir2/*.css>));
   $got=~s{${outdir2}/}{}sg;
@@ -56,8 +53,10 @@ EOD
   is std($got), std($exp), $testname;
 
   map { unlink $_} <$outdir2/*>;
-  (!$DEBUG) and (-d $outdir2) and print("remove $outdir2\n"),remove_tree($outdir2);
-  ($DEBUG)  and print STDERR "remained $indir, $outdir2\n";
+  if(-d $outdir2){
+    ($DEBUG) ? (print("remained $outdir2\n"))
+             : (print("remove $outdir2\n"),remove_tree($outdir2));
+  }
 }
 
 my $indir  = tempdir('wini_in_XXXX');
@@ -142,13 +141,11 @@ for my $x (0..3){
 
 my $exp_outfiles = [map {my $base = basename($_); ("$base.css", "$base.html")} @infiles];
 $outdir = tempdir('wini_testout_XXXX');
-print STDERR "created: $outdir\n";
 test1('"dir -> dir": with -outcssfile',
   "perl Wini.pm -outcssfile -i {{indir}} -o {{outdir}}/ 2>{{err}}",  $indir, undef,   $outdir,  $exp_outfiles);
 test1('"file -> file in existing dir": with -outcssfile',
   "perl Wini.pm -outcssfile -i {{infile}} -o {{outfile}} 2>{{err}}", $indir, undef, $outdir, [qw/1.wini.html 1.wini.css/]);
 remove_tree($outdir);
-print STDERR "removed: $outdir\n";
 test1('"file -> file in non-existing dir": with -outcssfile',
   "perl Wini.pm -outcssfile -i {{infile}} -o {{outfile}} 2>{{err}}", $indir, undef, $outdir, [qw/1.wini.html 1.wini.css/]);
 
@@ -175,6 +172,6 @@ test1('"file -> file in non-existing dir": with -outcssfile',
 =end c
 =cut
 
-(!$DEBUG) and (-d $indir)  and print("remove $indir\n"),  remove_tree($indir);
-(!$DEBUG) and (-d $outdir) and print("remove $outdir\n"), remove_tree($outdir);
+(!$DEBUG) and (-d $indir)  and (print("remove $indir\n"),  remove_tree($indir));
+(!$DEBUG) and (-d $outdir) and (print("remove $outdir\n"), remove_tree($outdir));
 done_testing;

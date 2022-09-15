@@ -860,9 +860,9 @@ sub winifiles{
     }elsif(-d $out){
       mes(txt('dco', undef, {d=>$out}), {q=>1, ln=>1});
       $outdir = $out;
-      ($outdir=~m{^/}) or $outdir = cwd()."/$outdir";
+      ($outdir=~m{^/}) or $outdir = getcwd()."/$outdir";
     }elsif(-f $out){
-      my $css1 = cssfilename($out, $css); # ($css ne '') ? $css : "$out.css";
+      my $css1 = cssfilename($out, $css, dirname($out)); # ($css ne '') ? $css : "$out.css";
       ($outfile[0], $cssfile[0]) = ($out, $css1);
     }else{ # new entry
       if($out=~m{(.*)/$}){
@@ -882,7 +882,7 @@ sub winifiles{
     if(defined $outdir){
       $outdir=~s{/$}{};
       if(($outdir eq '.') or ($outdir=~m{/\.+$})){
-        $outdir = cwd();
+        $outdir = getcwd();
       }
       #$outdir=~s{/$}{};
       foreach my $in1 (@infile){
@@ -898,7 +898,7 @@ sub winifiles{
         }
         push(@outfile, "${outdir1}/${base}${ext}.html");
 #        push(@cssfile, "$outdir1/" . ((defined $css and $css ne '') ? $css : "${base}${ext}.css"));
-        push(@cssfile, cssfilename("${outdir1}/${base}${ext}.css", $css));
+        push(@cssfile, cssfilename("${outdir1}/${base}${ext}.css", $css, $outdir1));
       } # foreach @infile
     } # if defined $outdir
   }else{ # $in not defined (</dev/stdin)
@@ -918,11 +918,13 @@ sub winifiles{
 } # sub winifiles
 
 sub cssfilename{
-  my($body, $default_css) = @_;
+  my($out, $default_css, $outdir) = @_;
+  (defined $outdir) or $outdir = getcwd();
+  $outdir=~s{/$}{};
   my $outcss;
   if(defined $default_css and $default_css eq ''){
-    $outcss = (defined $body) ? $body : 'wini';
-    ($outcss=~/\.css$/) or $outcss = $outcss.'.css';
+    my $body = basename($out, qw/.css/);
+    $outcss  = "$outdir/" . ((defined $out) ? "${body}.css" : "wini.css");
   }elsif(defined $default_css){
     $outcss = $default_css;
   }else{
@@ -1072,7 +1074,7 @@ sub to_html{
 
     # set tmpl directory
     my $tmplfile;
-    my @tmpldir  = (defined $TEMPLATEDIR) ? ($TEMPLATEDIR, cwd()) : (cwd());
+    my @tmpldir  = (defined $TEMPLATEDIR) ? ($TEMPLATEDIR, getcwd()) : (getcwd());
 
     # search tmpl file in $tmpldir
     L1:{
