@@ -865,15 +865,10 @@ sub winifiles{
       my $css1 = cssfilename($out, $css, dirname($out)); # ($css ne '') ? $css : "$out.css";
       ($outfile[0], $cssfile[0]) = ($out, $css1);
     }else{ # new entry
-      if($out=~m{(.*)/$}){
-        $outdir = $1;
-      }else{
-        my $outcss = cssfilename($in[0], $css);
-        #if(defined $css){
-        #  $outcss = $css;
-        #}else{
-        #  $outcss = (defined $in[0]) ? "$in[0].css" : 'wini.css';
-        #}
+      if($out=~m{/$}){ # "out/": not file but dir is specified as output
+        $outdir = dirname($out);
+      }else{ # not dir but file is specified as output
+        my $outcss = cssfilename($in[0], $css, dirname($out));
         $outfile[0] = $out;
         $cssfile[0] = $outcss;
       }
@@ -920,6 +915,7 @@ sub winifiles{
 sub cssfilename{
   my($out, $default_css, $outdir) = @_;
   (defined $outdir) or $outdir = getcwd();
+
   $outdir=~s{/$}{};
   my $outcss;
   if(defined $default_css and $default_css eq ''){
@@ -930,6 +926,8 @@ sub cssfilename{
   }else{
     $outcss = 'wini.css';
   }
+mes();
+print STDERR ">>>>> outcss=$outcss\n";
   return($outcss);
 }
 
@@ -1311,7 +1309,12 @@ sub whole_html{
   my $style   = '';
   my $title   = $opt->{title} || 'Markgaab page';
   (defined $opt->{cssflameworks}[0]) and map {$style .= qq{<link rel="stylesheet" type="text/css" href="$_">\n}} @{$opt->{cssflameworks}};
-  $style   .= ($cssfile)?qq{<link rel="stylesheet" type="text/css" href="$cssfile">\n} : "<style>\n".css($CSS)."</style>\n";
+  if(defined $cssfile and $cssfile ne ''){
+    my $cssfile1 = basename($cssfile);
+    $style .= qq{<link rel="stylesheet" type="text/css" href="$cssfile1">\n};
+  }else{
+    $style .= "<style>\n".css($CSS)."</style>\n";
+  }
   $style   .= qq{<link rel="stylesheet" type="text/css" href="wini_final.css">\n};
   return <<"EOD";
 <!DOCTYPE html>

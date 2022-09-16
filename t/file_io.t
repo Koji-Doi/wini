@@ -24,19 +24,21 @@ sub std{
   return($x);
 }
 
+{
+my $cnt=1;
 sub test1{
   my($testname, $cmd, $indir, $infile, $outdir, $outfiles) = @_;
   my $infile2  = $infile || "$indir/1.wini";
   my $outdir2  = $outdir || tempdir('wini_testout_XXXX');
   my $outfile2 = (defined $outfiles->[0]) ? $outfiles : ["$outdir2/1.html"]; 
-  my $err="err.log";
+  my $err="err${cnt}.log";
   $cmd=~s!\{\{indir}}!$indir!g;
   $cmd=~s!\{\{outdir}}!$outdir2!g;
   $cmd=~s!\{\{infile}}!${indir}/1.wini!g;
   $cmd=~s!\{\{outfile}}!${outdir2}/1.html!g;
   $cmd=~s/\{\{err}}/$err/g;
 
-  print STDERR "\n--- $testname\n";
+  print STDERR "\n[$cnt]--- $testname\n";
   ($DEBUG) and print STDERR "$cmd\n";
   my $r = system($cmd);
   ($r>0) and $r = $r >> 8;
@@ -50,13 +52,16 @@ EOD
   my $got = join("\n", sort (<$outdir2/*.html>, <$outdir2/*.css>));
   $got=~s{${outdir2}/}{}sg;
   $got=~s/[\n\s]+/ /gs;
+  print STDERR "[$cnt] got at '$testname': $got\n";
   is std($got), std($exp), $testname;
 
-  map { unlink $_} <$outdir2/*>;
+  ($DEBUG) or map { unlink $_} <$outdir2/*>;
   if(-d $outdir2){
     ($DEBUG) ? (print("remained $outdir2\n"))
              : (print("remove $outdir2\n"),remove_tree($outdir2));
   }
+  $cnt++;
+} # test1
 }
 
 my $indir  = tempdir('wini_in_XXXX');
@@ -142,12 +147,13 @@ for my $x (0..3){
 my $exp_outfiles = [map {my $base = basename($_); ("$base.css", "$base.html")} @infiles];
 $outdir = tempdir('wini_testout_XXXX');
 test1('"dir -> dir": with -outcssfile',
-  "perl Wini.pm -outcssfile -i {{indir}} -o {{outdir}}/ 2>{{err}}",  $indir, undef,   $outdir,  $exp_outfiles);
+  "perl Wini.pm --whole --outcssfile -i {{indir}} -o {{outdir}}/ 2>{{err}}",  $indir, undef,   $outdir,  $exp_outfiles);
+map { unlink $_} <$outdir/*>;
 test1('"file -> file in existing dir": with -outcssfile',
-  "perl Wini.pm -outcssfile -i {{infile}} -o {{outfile}} 2>{{err}}", $indir, undef, $outdir, [qw/1.wini.html 1.wini.css/]);
-remove_tree($outdir);
+  "perl Wini.pm --whole --outcssfile -i {{infile}} -o {{outfile}} 2>{{err}}", $indir, undef, $outdir, [qw/1.html 1.html.css/]);
+
 test1('"file -> file in non-existing dir": with -outcssfile',
-  "perl Wini.pm -outcssfile -i {{infile}} -o {{outfile}} 2>{{err}}", $indir, undef, $outdir, [qw/1.wini.html 1.wini.css/]);
+  "perl Wini.pm --whole -outcssfile -i {{infile}} -o {{outfile}} 2>{{err}}", $indir, undef, undef, [qw/1.wini.html 1.wini.css/]);
 
 =begin c
 
@@ -172,6 +178,7 @@ test1('"file -> file in non-existing dir": with -outcssfile',
 =end c
 =cut
 
-(!$DEBUG) and (-d $indir)  and (print("remove $indir\n"),  remove_tree($indir));
-(!$DEBUG) and (-d $outdir) and (print("remove $outdir\n"), remove_tree($outdir));
+(!$DEBUG) and (-d $indir)   and (print("remove $indir\n"),   remove_tree($indir));
+(!$DEBUG) and (-d $outdir)  and (print("remove $outdir\n"),  remove_tree($outdir));
+#(!$DEBUG) and (-d $outdir2) and (print("remove $outdir2\n"), remove_tree($outdir2));
 done_testing;
