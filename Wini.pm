@@ -822,25 +822,84 @@ sub css{
 }
 
 sub winifiles{
-  my($in, $out, $css) = @_;
+  my($in0, $out, $css) = @_;
   # $in: string or array reference
   # $out: string (not array reference)
-  my($indir, @infile, $outdir, @outfile, @cssfile);
-  my @in;
+#  my($indir, @infile, $outdir, @outfile, @cssfile);
+  my(@infile, $outdir, @outfile, @cssfile);
+  my @in = (ref $in0 eq 'ARRAY') ? @$in0 : ($in0);
 
 =begin c
 
-|!!  |  -i   |-                    |-                  |-                      |-                          |-       |
+|!!  |  -i   |-                    |-                  |-                      |-                             |-       |
 ----------------------------------------------------------------------------------------------------------------------
-|!!  |!!!    | undefined           | existing(ex)-file | non-existing(ne)-file | ex-dir                    | ne-dir | 
-| -o | undef | <stdin >stdout      | <i >i.html        | ERROR                 | <i/*.(wini|par) >./*.html | ERROR  |  
-|    | file  | <stdin >o           | <i >o             |^                      | ERROR                     |^       |
-|    | dir   | <stdin >o/wini.html | <i >o/i.html      |^                      | <i/*.(wini|par) >o/*.html  |^       |
+|!!  |!!!    | undefined           | existing(ex)-file | non-existing(ne)-file | ex-dir                       | ne-dir |
+| -o | undef | <stdin >stdout      | <i >i.html        | ERROR                 | <i/*.(wini|mg|par) >./*.html | ERROR  |
+|    | file  | <stdin >o           | <i >o             |^                      | ERROR                        |^       |
+|    | dir   | <stdin >o/wini.html | <i >o/i.html      |^                      | <i/*.(wini|mg|par) >o/*.html |^       |
 
 =end c
+
 =cut
 
-my($mode_in, $mode_out);
+  my(%mode_in, $mode_out);
+
+  foreach my $in (@in){
+    if(not defined $in){
+      $mode_in{'--'} = 1;
+      last;
+    }elsif(-d $in){
+      (exists $mode_in{ed}) and mes(txt('mds'), {err=>1});
+      (exists $mode_in{ef}) and mes(txt('dfs'), {err=>1});
+      $mode_in{ed} = 1;
+    }elsif(-f $in){
+      (exists $mode_in{ed} or exists $mode_in{nd}) and mes(txt('dfs'), {err=>1});
+      $mode_in{ef} = 1;
+    }elsif($in=~m{/$}){
+      (exists $mode_in{ef}) and mes(txt('dfs'), {err=>1});
+      $mode_in{nd} = 1;
+    }else{
+      mes(txt('fnf', undef, {f=>$in}), {err=>1});
+    }
+  }
+  (defined $in[0]) or $mode_in{'--'} = 1;
+
+  $mode_out = (not defined $out) ? '--'
+            : (-d $out) ? 'ed'
+            : (-f $out) ? 'ef'
+            : ($out=~m{/$}) ? 'nd' : 'nf';
+
+print STDERR "*** ", Dumper %mode_in, "\nout=$out; mode_out=${mode_out}\n";
+
+if(exists $mode_in{ef}){
+  push(@infile, @in);
+}elsif(exists $mode_in{ed}){
+  push(@infile, map { <$_/*.wini>, <$_/*.par> } @in);
+}else{ # '--' = STDIN
+}
+
+($mode_out eq 'nd') and mkdir $out;
+if($mode_out eq 'ef' or $mode_out eq 'nf'){
+  my $outcss = cssfilename($in[0], $css, dirname($out));
+  ($outfile[0], $cssfile[0]) = ($out, $outcss);
+}elsif($mode_out eq 'ed' or $mode_out eq 'nd'){
+  foreach my $in1 (@infile){
+    my($base, $indir1, $ext) = fileparse($in1, qw/.wini .par .mg/);
+    ($indir1 eq './') and $indir1='';
+    $indir1=~s{/$}{};
+    #(defined $indir) and $indir1=~s{^$indir(/|$)}{};
+    #my $outdir1 = "$outdir" . (($indir1 eq '') ? '' : "/$indir1");
+    my $outdir1 = $out;
+    $outdir1=~s{/$}{};
+    if(-e $outdir1){
+      (-d $outdir1) or mes(txt('dnw', undef, {d=>$outdir1}), {err=>1});
+    }else{
+      (mkpath $outdir1) || mes(txt('dnw', undef, {d=>$outdir1}), {err=>1});
+    }
+    push(@outfile, "${outdir1}/${base}${ext}.html");
+    push(@cssfile, cssfilename("${outdir1}/${base}${ext}.css", $css, $outdir1));
+  } # foreach @infile
+}
 
 =begin c
   if(defined $in){
@@ -920,15 +979,16 @@ my($mode_in, $mode_out);
 =cut
 
   mes(
-    "indir:   " . (($indir)?$indir:'undef') . "\n" .
+#    "indir:   " . (($indir)?$indir:'undef') . "\n" .
     "infile:  " . (($infile[0])?join(' ', @infile):'undef') . "\n" .
-    "outdir:  " . (($outdir)?$outdir:'undef') . "\n" .
+#    "outdir:  " . (($outdir)?$outdir:'undef') . "\n" .
     "cssfile: " . (($cssfile[0])?join(' ',@cssfile):'undef') . "\n" .
     "outfile: " . (($outfile[0])?join(' ',@outfile):'undef'), {q=>1}
      );
-  (defined $indir  or defined $infile[0])  or mes(txt('din'), {q=>1});
+#  (defined $indir  or defined $infile[0])  or mes(txt('din'), {q=>1});
   (defined $outdir or defined $outfile[0]) or mes(txt('rout'), {q=>1});
-  return($indir, \@infile, $outdir, \@outfile, \@cssfile);
+#  return($indir, \@infile, $outdir, \@outfile, \@cssfile);
+  return(undef, \@infile, $outdir, \@outfile, \@cssfile);
 } # sub winifiles
 
 sub cssfilename{
@@ -2949,6 +3009,7 @@ __DATA__
 |dtdowtrad|%a. %b %d, %Y %H:%M:%S|%EY(%Y年)%m月%d日 (%a) %H時%M分%S秒|
 |dci|Input: Dir {{d}}|入力元ディレクトリ： {{d}}|
 |dco|Output: Dir {{d}}|出力先ディレクトリ： {{d}}|
+|dfs|A directory and a file cannot be specified at the same time.|ディレクトリとファイルは同時に指定できません。|
 |did|Duplicated ID:{{id}}|ID:{{id}}が重複しています|
 |din|Input:   STDIN|入力元: 標準入力|
 |dnf|Directory not found: ({{d}})|ディレクトリが見つかりません： ({{d}})|
@@ -2969,6 +3030,7 @@ __DATA__
 |ilfi|Illegal filter: {{x}}|不正なフィルター： {{x}}|
 |ll|loaded library: {{lib}}|ライブラリロード完了： {{lib}}|
 |llf|failed to load library '{{lib}}'|ライブラリロード失敗： {{lib}}|
+|mds|Multiple directories cannot be specified|ディレクトリを複数指定することはできません|
 |mnf|Cannot find Macro '{{m}}'|マクロ「{{m}}」が見つかりません|
 |Message|Message|メッセージ|
 |mt|{{col}}{{mestype}}{{reset}} at line {{ln}}. |{{reset}}{{ln}}行目にて{{col}}{{mestype}}{{reset}}：|
