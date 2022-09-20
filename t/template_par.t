@@ -26,7 +26,7 @@ sub std{
 
 my @indata;
 my $basename = basename($0, qw/.t .pl .pm/);
-my($parfile0, $tmplfile0) = ($basename.'templatetest.par', $basename.'templatetest.wini');
+my($parfile0, $tmplfile0) = ($basename.'_tmpl.par', $basename.'_tmpl.wini');
 my $i=0;
 my $mode="";
 $_=<DATA>;
@@ -44,7 +44,9 @@ for(my $i=1; $i<=$#indata; $i++){
   my %infile = (par=>"no${i}$parfile0", tmpl=>"no${i}$tmplfile0");
   foreach my $k (keys %infile){
     open(my $fho, '>:utf8', $infile{$k}) or die "Failed to modify $infile{$k}";
-    print {$fho} $indata[$i]{$k};
+    my $out = $indata[$i]{$k};
+    $out=~s/template:.*$/template: '$infile{tmpl}'/gm;
+    print {$fho} $out;
     close $fho;
   }
 }
@@ -55,7 +57,7 @@ SKIP: for(my $i=1; $i<=$#indata; $i++){
   foreach my $whole ('', '--whole'){
     my $outfile = "$parfile${whole}.html";
     my $cmd = "perl Wini.pm ${whole} -q -i $parfile -o $outfile --outcssfile";
-    print STDERR "$indata[$i]{tag}: $cmd\n";
+    #print STDERR "$indata[$i]{tag}: $cmd\n";
     my $r = system($cmd);
     if($r!=0){
       die "Failure: $cmd";
@@ -81,7 +83,7 @@ Var x from par file is [[x]], which should be 'abc'.
 ---start par 1
 ===
 x: 'abc'
-template: 'no1templatetest.wini'
+template: 
 ===
 
 ---start html 1
@@ -99,7 +101,7 @@ Section text which should be 'sect1text':
 ---start par 2
 ===
 x: 'abc'
-template: 'no2templatetest.wini'
+template: 
 ===
 
 main text

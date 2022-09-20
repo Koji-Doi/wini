@@ -148,12 +148,24 @@ my $exp_outfiles = [map {my $base = basename($_); ("$base.css", "$base.html")} @
 $outdir = tempdir('wini_testout_XXXX');
 test1('"dir -> dir": with -outcssfile',
   "perl Wini.pm --whole --outcssfile -i {{indir}} -o {{outdir}}/ 2>{{err}}",  $indir, undef,   $outdir,  $exp_outfiles);
+
 map { unlink $_} <$outdir/*>;
 test1('"file -> file in existing dir": with -outcssfile',
-  "perl Wini.pm --whole --outcssfile -i {{infile}} -o {{outfile}} 2>{{err}}", $indir, undef, $outdir, [qw/1.html 1.html.css/]);
+  "perl Wini.pm --whole --outcssfile -i {{infile}} -o {{outfile}} 2>{{err}}", $indir, undef, $outdir, [qw/1.html 1.wini.css/]);
 
+map { unlink $_} <$outdir/*>;
+rmdir $outdir;
 test1('"file -> file in non-existing dir": with -outcssfile',
-  "perl Wini.pm --whole -outcssfile -i {{infile}} -o {{outfile}} 2>{{err}}", $indir, undef, undef, [qw/1.wini.html 1.wini.css/]);
+  "perl Wini.pm --whole -outcssfile -i {{infile}} -o {{outfile}} 2>{{err}}", $indir, undef, undef, [qw/1.html 1.wini.css/]);
+
+test1('"file -> dir in existing dir": with -outcssfile',
+  "perl Wini.pm --whole --outcssfile -i {{infile}} -o {{outdir}}/ 2>{{err}}", $indir, undef, $outdir, [qw/1.html 1.wini.css/]);
+
+map { unlink $_} <$outdir/*>;
+rmdir $outdir;
+test1('"file -> dir in non-existing dir": with -outcssfile',
+  "perl Wini.pm --whole -outcssfile -i {{infile}} -o {{outdir}}/ 2>{{err}}", $indir, undef, undef, [qw/1.html 1.wini.css/]);
+
 
 =begin c
 

@@ -9,7 +9,7 @@ use Data::Dumper;
 
 use lib '.';
 use Wini;
-use is;
+#use is;
 Text::Markup::Wini::init();
 
 sub std{
@@ -41,24 +41,30 @@ while(<DATA>){
   }
 }
 
+my @files;
 SKIP: for(my $i=1; $i<=$#indata; $i++){
   Text::Markup::Wini::init();
 
   my $infile   = "links_t$i.wini";
   my $htmlfile = "links_t$i.html";
   my $errfile  = "links_t$i.err.txt";
+  push(@files, $infile, $htmlfile, $errfile);
   open(my $fho_w, '>:utf8', $infile);
   print {$fho_w} $indata[$i]{mg};
   close $fho_w;
   system("perl Wini.pm --quiet < $infile > $htmlfile 2>$errfile");
   open(my $fh_h, '<:utf8', $htmlfile);
   my $got = join("\n", <$fh_h>);
-  is1 std($got), std($indata[$i]{html});
+  is std($got), std($indata[$i]{html});
   if($indata[$i]{tag}=~/ e /){
     open(my $fh_log, '<:utf8', $errfile);
     my $got_e = join('', <$fh_log>);
     is std($got_e), std($indata[$i]{log});
   }
+}
+
+foreach my $f (@files){
+  unlink $f;
 }
 
 1;

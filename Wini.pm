@@ -827,6 +827,22 @@ sub winifiles{
   # $out: string (not array reference)
   my($indir, @infile, $outdir, @outfile, @cssfile);
   my @in;
+
+=begin c
+
+|!!  |  -i   |-                    |-                  |-                      |-                          |-       |
+----------------------------------------------------------------------------------------------------------------------
+|!!  |!!!    | undefined           | existing(ex)-file | non-existing(ne)-file | ex-dir                    | ne-dir | 
+| -o | undef | <stdin >stdout      | <i >i.html        | ERROR                 | <i/*.(wini|par) >./*.html | ERROR  |  
+|    | file  | <stdin >o           | <i >o             |^                      | ERROR                     |^       |
+|    | dir   | <stdin >o/wini.html | <i >o/i.html      |^                      | <i/*.(wini|par) >o/*.html  |^       |
+
+=end c
+=cut
+
+my($mode_in, $mode_out);
+
+=begin c
   if(defined $in){
     @in = (ref $in eq 'ARRAY') ? @$in : ($in);
 
@@ -866,7 +882,7 @@ sub winifiles{
       ($outfile[0], $cssfile[0]) = ($out, $css1);
     }else{ # new entry
       if($out=~m{/$}){ # "out/": not file but dir is specified as output
-        $outdir = dirname($out);
+        $outdir = $out;
       }else{ # not dir but file is specified as output
         my $outcss = cssfilename($in[0], $css, dirname($out));
         $outfile[0] = $out;
@@ -900,6 +916,9 @@ sub winifiles{
     push(@cssfile, ((defined $css and $css ne '') ? $css : "wini.css"));
   } # if defined $in
 
+=end c
+=cut
+
   mes(
     "indir:   " . (($indir)?$indir:'undef') . "\n" .
     "infile:  " . (($infile[0])?join(' ', @infile):'undef') . "\n" .
@@ -926,8 +945,6 @@ sub cssfilename{
   }else{
     $outcss = 'wini.css';
   }
-mes();
-print STDERR ">>>>> outcss=$outcss\n";
   return($outcss);
 }
 
