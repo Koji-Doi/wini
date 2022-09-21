@@ -69,7 +69,6 @@ EOD
   my $got = join("\n", sort (<$outdir2/*.html>, <$outdir2/*.css>));
   $got=~s{${outdir2}/}{}sg;
   $got=~s/[\n\s]+/ /gs;
-  print STDERR "[$cnt] got at '$testname': $got\n";
   is std($got), std($exp), $testname;
 
   ($DEBUG) or map { unlink $_} <$outdir2/*>;
@@ -150,12 +149,12 @@ test1('"file -> file in non-existing dir": with -outcssfile',
   "perl Wini.pm --whole -outcssfile -i {{infile}} -o {{outfile}} 2>{{err}}", $indir, undef, undef, [qw/1.html 1.wini.css/]);
 
 test1('"file -> dir in existing dir": with -outcssfile',
-  "perl Wini.pm --whole --outcssfile -i {{infile}} -o {{outdir}}/ 2>{{err}}", $indir, undef, $outdir, [qw/1.html 1.wini.css/]);
+  "perl Wini.pm --whole --outcssfile -i {{infile}} -o {{outdir}}/ 2>{{err}}", $indir, undef, $outdir, [qw/1.wini.html 1.wini.css/]);
 
 map { unlink $_} <$outdir/*>;
 rmdir $outdir;
 test1('"file -> dir in non-existing dir": with -outcssfile',
-  "perl Wini.pm --whole -outcssfile -i {{infile}} -o {{outdir}}/ 2>{{err}}", $indir, undef, undef, [qw/1.html 1.wini.css/]);
+  "perl Wini.pm --whole -outcssfile -i {{infile}} -o {{outdir}}/ 2>{{err}}", $indir, undef, undef, [qw/1.wini.html 1.wini.css/]);
 
 (!$DEBUG) and (-d $indir)   and (print("remove $indir\n"),   remove_tree($indir));
 (!$DEBUG) and (-d $outdir)  and (print("remove $outdir\n"),  remove_tree($outdir));

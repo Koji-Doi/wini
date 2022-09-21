@@ -420,16 +420,14 @@ sub stand_alone{
   ($test) and ($INFILE[0], $OUTFILE)=("test.wini", "test.html");
 
   # check input/output
-  my($ind, $inf, $outd, $outf, $outcss) = winifiles(\@input, $output, $cssfile);
+  my($inf, $outd, $outf, $outcss) = winifiles(\@input, $output, $cssfile);
   if(
     (not defined $input[0] and not defined $outf->[0]) or
-    (defined $inf->[0]) or
-    (defined $ind and defined $outd)
+    (defined $inf->[0])
   ){
     #print STDERR "File spec OK\n";
     mes(txt('fso'), {q=>1});
   }else{
-    print STDERR "check ind  ", Dumper $ind;
     print STDERR "check inf  ", Dumper $inf;
     print STDERR "check outd ", Dumper $outd;
     print STDERR "check outf ", Dumper $outf;
@@ -467,7 +465,7 @@ sub stand_alone{
       open(my $fho, '>:utf8', $outfile) or mes(txt('fnw', undef, {f=>$outfile}), {err=>1});
       my $winitxt = join('', <$fhi>);
       $winitxt=~s/\x{FEFF}//; # remove BOM if exists
-      my($htmlout) = to_html($winitxt, {indir=>$ind, dir=>getcwd(), whole=>$whole, cssfile=>$outcss->[$i], title=>$title, cssflameworks=>\@cssflameworks});
+      my($htmlout) = to_html($winitxt, {dir=>getcwd(), whole=>$whole, cssfile=>$outcss->[$i], title=>$title, cssflameworks=>\@cssflameworks});
       print {$fho} $htmlout;
       save_bib($outreffile);
     }
@@ -492,7 +490,7 @@ sub stand_alone{
       }
       $winitxt .= "\n\n";
     } @$inf;
-    my($htmlout) = to_html($winitxt, {indir=>$ind, dir=>getcwd(), whole=>$whole, cssfile=>$outcss->[0], title=>$title, cssflameworks=>\@cssflameworks});
+    my($htmlout) = to_html($winitxt, {dir=>getcwd(), whole=>$whole, cssfile=>$outcss->[0], title=>$title, cssflameworks=>\@cssflameworks});
     print {$fho} $htmlout;
     (scalar keys %REF) and save_bib((defined $outf->[0]) ? $outf->[0].'.ref' : 'STDOUT.ref');
   } # if scalar @$outf>1
@@ -869,12 +867,10 @@ sub winifiles{
             : (-f $out) ? 'ef'
             : ($out=~m{/$}) ? 'nd' : 'nf';
 
-print STDERR "*** ", Dumper %mode_in, "\nout=$out; mode_out=${mode_out}\n";
-
 if(exists $mode_in{ef}){
   push(@infile, @in);
 }elsif(exists $mode_in{ed}){
-  push(@infile, map { <$_/*.wini>, <$_/*.par> } @in);
+  push(@infile, map { <$_/*.wini>, <$_/*.par>, <$_/*.mg>} @in);
 }else{ # '--' = STDIN
 }
 
@@ -901,82 +897,6 @@ if($mode_out eq 'ef' or $mode_out eq 'nf'){
   } # foreach @infile
 }
 
-=begin c
-  if(defined $in){
-    @in = (ref $in eq 'ARRAY') ? @$in : ($in);
-
-  # check $indir
-    foreach my $in1 (@in){
-      my(@in1x) = ($in1);
-      (not -e $in1) and map {my $a="$in1.$_"; push(@in1x, $a); (-f $a) and $in1=$a} qw/mg wini par/;
-      (not -e $in1) and mes(txt('fnf', undef, {f=>join(" / ", @in1x)}), {err=>1});
-      if(not defined $in1){
-      }elsif(-d $in1){
-        mes(txt('dci', undef, {d=>$in1}), {q=>1});
-        $indir = $in1;
-        $indir=~s{/$}{};
-      }elsif(not -f $in1){ # non-existing entry, x/=dir x.wini=file
-        ($in1=~m{/$}) ? ($indir = $in1) : push(@infile, $in1);
-      }else{ # existing normal file
-#      mes(txt('fci',undef, {f=>$in1}), {q=>1});
-        push(@infile, $in1);
-      }
-    }
-    if((not defined $infile[0]) and (defined $indir)){
-      findfile($indir, sub{$_[0]=~/\.(wini|par|mg)$/ and push(@infile, $_[0])});
-    }
-
-  # check $outdir
-    if ((not defined $out) or (defined $out and $out eq '')){
-      foreach my $in1 (@infile){
-        my($out1, $css1) = ("$in1.html", cssfilename($in1, $css));  # (defined $css) ? $css : "$in1.css");
-        push(@outfile, $out1); push(@cssfile, $css1);
-      }
-    }elsif(-d $out){
-      mes(txt('dco', undef, {d=>$out}), {q=>1, ln=>1});
-      $outdir = $out;
-      ($outdir=~m{^/}) or $outdir = getcwd()."/$outdir";
-    }elsif(-f $out){
-      my $css1 = cssfilename($out, $css, dirname($out)); # ($css ne '') ? $css : "$out.css";
-      ($outfile[0], $cssfile[0]) = ($out, $css1);
-    }else{ # new entry
-      if($out=~m{/$}){ # "out/": not file but dir is specified as output
-        $outdir = $out;
-      }else{ # not dir but file is specified as output
-        my $outcss = cssfilename($in[0], $css, dirname($out));
-        $outfile[0] = $out;
-        $cssfile[0] = $outcss;
-      }
-    }
-  
-    if(defined $outdir){
-      $outdir=~s{/$}{};
-      if(($outdir eq '.') or ($outdir=~m{/\.+$})){
-        $outdir = getcwd();
-      }
-      #$outdir=~s{/$}{};
-      foreach my $in1 (@infile){
-        my($base, $indir1, $ext) = fileparse($in1, qw/.wini .par .mg/);
-        ($indir1 eq './') and $indir1='';
-        $indir1=~s{/$}{};
-        (defined $indir) and $indir1=~s{^$indir(/|$)}{};
-        my $outdir1 = "$outdir" . (($indir1 eq '') ? '' : "/$indir1");
-        if(-e $outdir1){
-          (-d $outdir1) or mes(txt('dnw', undef, {d=>$outdir1}), {err=>1});
-        }else{
-          (mkpath $outdir1) || mes(txt('dnw', undef, {d=>$outdir}), {err=>1});
-        }
-        push(@outfile, "${outdir1}/${base}${ext}.html");
-#        push(@cssfile, "$outdir1/" . ((defined $css and $css ne '') ? $css : "${base}${ext}.css"));
-        push(@cssfile, cssfilename("${outdir1}/${base}${ext}.css", $css, $outdir1));
-      } # foreach @infile
-    } # if defined $outdir
-  }else{ # $in not defined (</dev/stdin)
-    push(@cssfile, ((defined $css and $css ne '') ? $css : "wini.css"));
-  } # if defined $in
-
-=end c
-=cut
 
   mes(
 #    "indir:   " . (($indir)?$indir:'undef') . "\n" .
@@ -988,7 +908,7 @@ if($mode_out eq 'ef' or $mode_out eq 'nf'){
 #  (defined $indir  or defined $infile[0])  or mes(txt('din'), {q=>1});
   (defined $outdir or defined $outfile[0]) or mes(txt('rout'), {q=>1});
 #  return($indir, \@infile, $outdir, \@outfile, \@cssfile);
-  return(undef, \@infile, $outdir, \@outfile, \@cssfile);
+  return(\@infile, $outdir, \@outfile, \@cssfile);
 } # sub winifiles
 
 sub cssfilename{
