@@ -8,25 +8,23 @@ use File::Basename;
 use File::Temp qw(tempdir);
 use File::Path qw(remove_tree);
 use lib '.';
+use lib './t';
 use Wini;
 use is;
+use t;
 
-my $DEBUG=0; #1;
+our($Indir, $Outdir);
+our(@Infiles, @Outfiles);
+our $DEBUG=0;
 
-sub std{
-  my($x)=@_;
-  $x=~s/[\n\r]/ /sg;
-  $x=~s/> */>/g;
-  $x=~s/\s{2,}/ /g;
-  $x=~s/ +</</g;
-  $x=~s/> +/>/g;
-  $x=~s{(</\w+>)}{$1\n}g;
-  return($x);
+if(defined $ARGV[0] and $ARGV[0] eq '-d'){
+  $DEBUG=1;
 }
+print STDERR "debug mode: $DEBUG.\n";
 
 {
 my $cnt=1;
-sub test0{
+sub test0{ # check only output file list
   my($testname, $cmd, $outdir, $out) = @_;
   print STDERR "\n[$cnt]--- $testname\n";
   my $r = system("perl Wini.pm $cmd");
@@ -37,13 +35,13 @@ sub test0{
     Return=$r
 EOD
   }
-  my $o = join("\n", <$outdir/*>);
+  my $o = join("\n", <$outdir/*.html>, <$outdir/*.css>);
   is $o, $out, $testname;
-  map { unlink $_} <$outdir/*>;
+  ($DEBUG) or map { unlink $_} <$outdir/*>;
   $cnt++;
 }
 
-sub test1{
+sub test1{ # check output css and html files, in specifying indir/1.wini
   my($testname, $cmd, $indir, $outdir, $outfiles) = @_;
 #  my $infile2  = $infile || "$indir/1.wini";
   my $outdir2  = $outdir || tempdir('wini_testout_XXXX');
@@ -70,12 +68,6 @@ EOD
   $got=~s{${outdir2}/}{}sg;
   $got=~s/[\n\s]+/ /gs;
   is std($got), std($exp), $testname;
-
-#  ($DEBUG) or map { unlink $_} <$outdir2/*>;
-#  if(-d $outdir2){
-#    ($DEBUG) ? (print("remained $outdir2\n"))
-#             : (print("remove $outdir2\n"),remove_tree($outdir2));
-#  }
   $cnt++;
 } # test1
 }
@@ -106,17 +98,14 @@ test0("STDIN -> -o"       , "-o $outdir/0.html < $indir/0.wini 2>/dev/null",  $o
 test0("-i... -> -o..."    , "-i $indir/0.wini -o $outdir/0.html 2>/dev/null", $outdir, "$outdir/0.html");
 my $cmd = "-i $indir/0.wini -i $indir/1.wini -o $outdir/0.html 2>/dev/null";
 test0("-i.f -i f -> -o f" , $cmd,                                             $outdir, "$outdir/0.html");
+unlink "$outdir/0.html";
 
-{ # -i -i > -o 
-  system("perl Wini.pm $cmd");
-  print STDERR "### $cmd\n";
-  open(my $fhi, '<:utf8', "$outdir/0.html");
-  my $o = join('', <$fhi>);
-  $o=~s{\n}{}sg;
-  is std($o), "<p>0</p>\n<p>1</p>\n", "-i -i -o";
-}
+test_cmd('-i -i > -o d', {i=>["$indir/0.wini", "$indir/1.wini"], o=>$outdir}, $outdir, ["$outdir/0.wini.html","$outdir/1.wini.html"]);
+#$cmd = "-i $indir/0.wini -i $indir/1.wini -o $outdir 2>/dev/null";
+#test0("-i f -i f -> -o d" , $cmd,                                             $outdir, "$outdir/1.wini.html");
 
-{ # dir -> file
+test_cmd('-i d -o f', {i=>$indir, o=>"$outdir/0.html"},                       $outdir, ["$outdir/0.html"], ['<p>0</p><p>1</p><p>2</p><p>3</p>']);
+if(0){ # dir -> file
   my $outfile = "$outdir/0.html";
   system("perl Wini.pm -i $indir -o $outfile 2>/dev/null");
   my $o = join("\n", <$outdir/*>);

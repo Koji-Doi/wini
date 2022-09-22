@@ -695,7 +695,7 @@ sub bib_id{
 sub save_bib{
 # final whole list of references
   my($outfile) = @_;
-  print STDERR "outreffile=$outfile.\n";
+  ((scalar keys %REF)==0) and return;
   my $fho;
   if($outfile){
     open($fho, '>:utf8', $outfile) or mes(txt('fnw', undef, {f=>$outfile}), {err=>1});
@@ -833,7 +833,7 @@ sub winifiles{
 ----------------------------------------------------------------------------------------------------------------------
 |!!  |!!!    | undefined           | existing(ex)-file | non-existing(ne)-file | ex-dir                       | ne-dir |
 | -o | undef | <stdin >stdout      | <i >i.html        | ERROR                 | <i/*.(wini|mg|par) >./*.html | ERROR  |
-|    | file  | <stdin >o           | <i >o             |^                      | ERROR                        |^       |
+|    | file  | <stdin >o           | <i >o             |^                      | <i/*.(wini|mg|par) >o        |^       |
 |    | dir   | <stdin >o/wini.html | <i >o/i.html      |^                      | <i/*.(wini|mg|par) >o/*.html |^       |
 
 =end c
@@ -897,7 +897,7 @@ if($mode_out eq 'ef' or $mode_out eq 'nf'){
   } # foreach @infile
 }
 
-
+print STDERR "winifiles: mode=" . (join(' ', keys %mode_in)) . ":${mode_out}\n";
   mes(
 #    "indir:   " . (($indir)?$indir:'undef') . "\n" .
     "infile:  " . (($infile[0])?join(' ', @infile):'undef') . "\n" .
