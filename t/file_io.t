@@ -22,6 +22,12 @@ if(defined $ARGV[0] and $ARGV[0] eq '-d'){
 }
 print STDERR "debug mode: $DEBUG.\n";
 
+sub outdir4indir{
+  my($indir) = @_;
+  my($body) = $indir=~/(\w+$)/;
+  return(tempdir("wini_out_${body}_XXXX"));
+}
+
 {
 my $cnt=1;
 sub test0{ # check only output file list
@@ -96,43 +102,18 @@ test0("STDIN -> STDOUT"   , "<$indir/0.wini >$outdir/0.html 2>/dev/null",     $o
 test0("-i -> STDOUT"      , "-i $indir/0.wini > $outdir/0.html 2>/dev/null",  $outdir, "$outdir/0.html");
 test0("STDIN -> -o"       , "-o $outdir/0.html < $indir/0.wini 2>/dev/null",  $outdir, "$outdir/0.html");
 test0("-i... -> -o..."    , "-i $indir/0.wini -o $outdir/0.html 2>/dev/null", $outdir, "$outdir/0.html");
-my $cmd = "-i $indir/0.wini -i $indir/1.wini -o $outdir/0.html 2>/dev/null";
-test0("-i.f -i f -> -o f" , $cmd,                                             $outdir, "$outdir/0.html");
-unlink "$outdir/0.html";
+test_cmd("i-.f -i f -> -o f 2", {i=>["$indir/0.wini", "$indir/1.wini"], o=>"$outdir/0.html"}, $outdir, ["$outdir/0.html"]);
+map {unlink $_} <$outdir/*>;
 
 test_cmd('-i -i > -o d', {i=>["$indir/0.wini", "$indir/1.wini"], o=>$outdir}, $outdir, ["$outdir/0.wini.html","$outdir/1.wini.html"]);
 #$cmd = "-i $indir/0.wini -i $indir/1.wini -o $outdir 2>/dev/null";
 #test0("-i f -i f -> -o d" , $cmd,                                             $outdir, "$outdir/1.wini.html");
+map {unlink $_} <$outdir/*>;
 
 test_cmd('-i d -o f', {i=>$indir, o=>"$outdir/0.html"},                       $outdir, ["$outdir/0.html"], ['<p>0</p><p>1</p><p>2</p><p>3</p>']);
-if(0){ # dir -> file
-  my $outfile = "$outdir/0.html";
-  system("perl Wini.pm -i $indir -o $outfile 2>/dev/null");
-  my $o = join("\n", <$outdir/*>);
-  open(my $fhi, '<:utf8', $outfile);
-  $o .= join('', <$fhi>);
-  close $fhi;
-  $o=~s/[\n\s]//g;
-  is $o, "$outdir/0.html<p>0</p><p>1</p><p>2</p><p>3</p>";
-  map { unlink $_} <$outdir/*>;
-}
 
-{ # dir -> dir
-  my $outdir2 = tempdir('wini_testout_XXXX');
-  my $cmd = "perl Wini.pm -i $indir -o $outdir2/";
-  ($DEBUG) and print STDERR "$cmd\n";
-  system("$cmd 2>/dev/null");
-  my $i = join("\n", <$indir/*.wini>);
-  $i=~s/(\w+\.wini)/$1\.html $1\.html\.ref/sg;
-  $i=~s{${indir}/}{}sg;
-  $i=~s/[\n\s]+/ /g;
-  my $o = join("\n", <$outdir2/*>);
-  $o=~s{${outdir2}/}{}sg;
-  $o=~s/[\n\s]+/ /gs;
-  is $o, $i, 'dir -> dir';
-  map { unlink $_} <$outdir2/*>;
-  (-d $outdir2) and print("remove $outdir2\n"),remove_tree($outdir2);
-}
+my $outdir2 = outdir4indir($indir);
+test_cmd('dir -> dir', {i=>$indir, o=>"$outdir2/"},          $outdir2, [map{"$outdir2/$_.wini.html"}(0..3)]);
 
 my $exp_outfiles = [map {my $base = basename($_); ("$base.css", "$base.html")} @infiles];
 $outdir = tempdir('wini_testout_XXXX');

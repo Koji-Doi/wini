@@ -6,7 +6,7 @@ use Test::More;
 
 our($Indir, $Outdir);
 our(@Infiles, @Outfiles);
-our $DEBUG=0;
+our $DEBUG;
 
 sub prepare{
   $Indir    = tempdir('wini_in_XXXX');
@@ -38,6 +38,13 @@ sub std{
 
 sub test_cmd{
   my($testname, $cmd_opt, $outdir, $outputfiles, $output) = @_;
+  my($p, $f, $l) = caller();
+  my $i = 1; my @subs;
+  while ( my($pack, $file, $line, $subname, $hasargs, $wantarray, $evaltext, $is_require) = caller( $i++) ){
+    push(@subs, "$line\[$subname]\@$file");
+  }
+  my $mes = join(' <- ', @subs);
+  ($DEBUG) and print STDERR "test_cmd at line $l $mes\n";
 # test_cmd("test1", {i=>"$indir/0.wini", o=>"$indir/0.wini.html"}, "test_out/", ["$indir/0.wini.html"], ["<p>0</p>"]);
   my $cmd = "perl Wini.pm ";
   my @opt;
