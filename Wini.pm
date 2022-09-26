@@ -897,7 +897,7 @@ if($mode_out eq 'ef' or $mode_out eq 'nf'){
   } # foreach @infile
 }
 
-print STDERR "winifiles: mode=" . (join(' ', keys %mode_in)) . ":${mode_out}\n";
+#print STDERR "winifiles: mode=" . (join(' ', keys %mode_in)) . ":${mode_out}\n";
   mes(
 #    "indir:   " . (($indir)?$indir:'undef') . "\n" .
     "infile:  " . (($infile[0])?join(' ', @infile):'undef') . "\n" .

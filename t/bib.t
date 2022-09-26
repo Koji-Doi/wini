@@ -9,7 +9,7 @@ use Data::Dumper;
 
 use lib '.';
 use Wini;
-use is;
+#use is;
 Text::Markup::Wini::init();
 
 sub std{
@@ -64,7 +64,7 @@ SKIP: for(my $i=1; $i<=$#indata; $i++){
   system("perl Wini.pm --quiet --bib $tmpreffile < $infile > $htmlfile 2>$errfile");
   open(my $fh_h, '<:utf8', $htmlfile);
   my $got = join("\n", <$fh_h>);
-  is1 std($got), std($indata[$i]{html});
+  is std($got), std($indata[$i]{html});
   if($indata[$i]{tag}=~/ e /){
     open(my $fh_log, '<:utf8', $errfile);
     my $got_e = join('', <$fh_log>);
@@ -264,6 +264,5 @@ Illegal refference: {{cit|xxxx_2022_001}}
 ---start log 7
 
 undefined reference ID: xxxx_2022_001
-outreffile=STDOUT.ref.
 
 ---end

@@ -20,7 +20,6 @@ our $DEBUG=0;
 if(defined $ARGV[0] and $ARGV[0] eq '-d'){
   $DEBUG=1;
 }
-print STDERR "debug mode: $DEBUG.\n";
 
 sub outdir4indir{
   my($indir) = @_;
@@ -30,22 +29,6 @@ sub outdir4indir{
 
 {
 my $cnt=1;
-sub test0{ # check only output file list
-  my($testname, $cmd, $outdir, $out) = @_;
-  print STDERR "\n[$cnt]--- $testname\n";
-  my $r = system("perl Wini.pm $cmd");
-  ($r>0) and $r = $r >> 8;
-  if($r>0){
-    print STDERR (<<"EOD");
-    Error occured in trying '$cmd'.
-    Return=$r
-EOD
-  }
-  my $o = join("\n", <$outdir/*.html>, <$outdir/*.css>);
-  is $o, $out, $testname;
-  ($DEBUG) or map { unlink $_} <$outdir/*>;
-  $cnt++;
-}
 
 sub test1{ # check output css and html files, in specifying indir/1.wini
   my($testname, $cmd, $indir, $outdir, $outfiles) = @_;
@@ -59,7 +42,6 @@ sub test1{ # check output css and html files, in specifying indir/1.wini
   $cmd=~s!\{\{outfile}}!${outdir2}/1.html!g;
   $cmd=~s!\{\{err}}!$err!g;
 
-  print STDERR "\n[$cnt]--- $testname\n";
   ($DEBUG) and print STDERR "$cmd\n";
   my $r = system($cmd);
   ($r>0) and $r = $r >> 8;
@@ -98,10 +80,10 @@ for my $x (0..3){
   close $fho;
 }
 
-test0("STDIN -> STDOUT"   , "<$indir/0.wini >$outdir/0.html 2>/dev/null",     $outdir, "$outdir/0.html");
-test0("-i -> STDOUT"      , "-i $indir/0.wini > $outdir/0.html 2>/dev/null",  $outdir, "$outdir/0.html");
-test0("STDIN -> -o"       , "-o $outdir/0.html < $indir/0.wini 2>/dev/null",  $outdir, "$outdir/0.html");
-test0("-i... -> -o..."    , "-i $indir/0.wini -o $outdir/0.html 2>/dev/null", $outdir, "$outdir/0.html");
+test_cmd("STDIN -> STDOUT",     {"<"=>"$indir/0.wini", ">"=>"$outdir/0.html"},                $outdir, ["$outdir/0.html"]);
+test_cmd("-i -> STDOUT",        {i=>["$indir/0.wini"], '>'=>"$outdir/0.html"},                $outdir, ["$outdir/0.html"]);
+test_cmd("STDIN -> -o",         {o=>"$outdir/0.html", '<'=>"$indir/0.wini"},                  $outdir, ["$outdir/0.html"]);
+test_cmd("-i... -> -o...",      {i=>["$indir/0.wini"], o=>"$outdir/0.html"},                  $outdir, ["$outdir/0.html"]);
 test_cmd("i-.f -i f -> -o f 2", {i=>["$indir/0.wini", "$indir/1.wini"], o=>"$outdir/0.html"}, $outdir, ["$outdir/0.html"]);
 map {unlink $_} <$outdir/*>;
 
