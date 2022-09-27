@@ -267,6 +267,7 @@ use File::Basename;
 use File::Path 'mkpath';
 use FindBin;
 use Pod::Usage qw/pod2usage/;
+use Pod::Find;
 use Getopt::Long qw(:config no_ignore_case auto_abbrev);
 use Encode;
 use Cwd;
@@ -346,7 +347,14 @@ sub init{
   ($MI, $MO)  = ("%%%", "###");
   $ENVNAME    = "_";
   @LANGS      = qw/en ja/;
-  $LANG       = 'en';
+  if(defined $ENV{LANG}){
+    foreach my $l (@LANGS){
+      if($ENV{LANG}=~/^([a-zA-Z]+)/){
+        ($l eq $1) and $LANG = $l;
+      }
+    }
+  }
+  $LANG or $LANG = 'en';
   $QUIET      = 0; # 1: suppress most of messages
   $SCRIPTNAME = basename($0);
   $VERSION    = "ver. 1.0alpha rel. 20220114";
@@ -713,11 +721,12 @@ sub save_bib{
 
 sub txt{ # multilingual text from text id
   my($id, $lang, $par) = @_;
+  my($p, $f, $l) = caller();
   #|fin|completed|終了|
   #id: 'fin', lang:'ja'
   #$par: hash reference for paragraph
   $lang = $lang || $LANG || 'en';
-  (defined $TXT{$id}) or mes(txt('ut', $lang). ": '$id'", {warn=>1});
+  (defined $TXT{$id}) or mes(txt('ut', $lang). ": '$id'", {warn=>1}), return(undef);
   my $t = $TXT{$id}{$lang} || $TXT{$id}{en} || '';
   $t=~s/\{\{(.*?)}}/
   (defined $par->{$1})        ? $par->{$1} : "??? $1"; 
@@ -785,7 +794,7 @@ EOD
      : ($x eq 'opt' or $x eq 'opts')     ? 'OPTIONS' 
      : qw(SYNOPSIS USAGE OPTIONS)
     ];
-    print pod2usage(-verbose => 99,  -sections => $sect, -input => pod_where({-inc => 1}, __PACKAGE__) );
+    print pod2usage(-verbose => 99,  -sections => $sect, -input => Pod::Find::pod_where({-inc => 1}, __PACKAGE__) );
   }
   exit();
 }
@@ -1315,7 +1324,7 @@ sub whole_html{
   $style   .= qq{<link rel="stylesheet" type="text/css" href="wini_final.css">\n};
   return <<"EOD";
 <!DOCTYPE html>
-<html lang="ja">
+<html lang="$LANG">
 <head>
 <meta charset="UTF-8">
 $style
