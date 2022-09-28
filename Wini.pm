@@ -267,6 +267,7 @@ use File::Basename;
 use File::Path 'mkpath';
 use FindBin;
 use Pod::Usage qw/pod2usage/;
+use Pod::Find;
 use Getopt::Long qw(:config no_ignore_case auto_abbrev);
 use Encode;
 use Cwd;
@@ -346,7 +347,14 @@ sub init{
   ($MI, $MO)  = ("%%%", "###");
   $ENVNAME    = "_";
   @LANGS      = qw/en ja/;
-  $LANG       = 'en';
+  if(defined $ENV{LANG}){
+    foreach my $l (@LANGS){
+      if($ENV{LANG}=~/^([a-zA-Z]+)/){
+        ($l eq $1) and $LANG = $l;
+      }
+    }
+  }
+  $LANG or $LANG = 'en';
   $QUIET      = 0; # 1: suppress most of messages
   $SCRIPTNAME = basename($0);
   $VERSION    = "ver. 1.0alpha rel. 20220114";
@@ -713,11 +721,12 @@ sub save_bib{
 
 sub txt{ # multilingual text from text id
   my($id, $lang, $par) = @_;
+  my($p, $f, $l) = caller();
   #|fin|completed|終了|
   #id: 'fin', lang:'ja'
   #$par: hash reference for paragraph
   $lang = $lang || $LANG || 'en';
-  (defined $TXT{$id}) or mes(txt('ut', $lang). ": '$id'", {warn=>1});
+  (defined $TXT{$id}) or mes(txt('ut', $lang). ": '$id'", {warn=>1}), return(undef);
   my $t = $TXT{$id}{$lang} || $TXT{$id}{en} || '';
   $t=~s/\{\{(.*?)}}/
   (defined $par->{$1})        ? $par->{$1} : "??? $1"; 
@@ -785,7 +794,7 @@ EOD
      : ($x eq 'opt' or $x eq 'opts')     ? 'OPTIONS' 
      : qw(SYNOPSIS USAGE OPTIONS)
     ];
-    print pod2usage(-verbose => 99,  -sections => $sect, -input => pod_where({-inc => 1}, __PACKAGE__) );
+    print pod2usage(-verbose => 99,  -sections => $sect, -input => Pod::Find::pod_where({-inc => 1}, __PACKAGE__) );
   }
   exit();
 }
@@ -944,6 +953,7 @@ my($footnote_cnt, %footnotes);
 my(@auto_table_id);
 sub to_html{
   my($x, $opt) = @_;
+  # $opt: mainly from commandline parameters
   (defined $opt) or $opt={};
   my(%sectdata, $secttitle, @html);
   my $htmlout              = '';
@@ -984,7 +994,7 @@ sub to_html{
       $sect_cnt++;
       $sect_id = $id || "sect${sect_cnt}";
       $sect_id=~s/[^\w]//g;
-      (exists $sectdata{$sect_id}) and mes("duplicated section id ${sect_id}", {warn=>1});
+      (exists $sectdata{$sect_id}) and mes(txt('dsid', {id=>$sect_id}), {warn=>1});
       push(@{$sectdata_depth[$depth]}, {sect_id => $sect_id, tag => $tag});
 
       # add close tag for the former section here if necessary
@@ -1092,10 +1102,11 @@ sub to_html{
     my $tmpltxt = join('', <$fhi>);
     # replace vals in tmpl with pars set above
     $tmpltxt=~s!\[\[(.*?)]]!
-      if(exists $par{$1}){
-       $par{$1};
+      my($val, @opt) = split(/\s+/, $1);
+      if(exists $par{$val}){
+        $par{$val};
       }else{
-        (defined $opt1->{_v}{$1}) ? ($opt1->{_v}{$1}) : '';
+        (defined $opt1->{_v}{$val}) ? ($opt1->{_v}{$val}) : '';
       }
     !ge;
     (defined $opt->{whole}) and $tmpltxt = whole_html($tmpltxt, $opt);
@@ -1315,7 +1326,7 @@ sub whole_html{
   $style   .= qq{<link rel="stylesheet" type="text/css" href="wini_final.css">\n};
   return <<"EOD";
 <!DOCTYPE html>
-<html lang="ja">
+<html lang="$LANG">
 <head>
 <meta charset="UTF-8">
 $style
@@ -2934,6 +2945,7 @@ __DATA__
 |din|Input:   STDIN|入力元: 標準入力|
 |dnf|Directory not found: ({{d}})|ディレクトリが見つかりません： ({{d}})|
 |dnw|Directory not writable: ({{d}})|ディレクトリの書き込みができません： ({{d}})|
+|dsid|Duplicated section ID:{{id}}|セクションID:{{id}}が重複しています|
 |elnf|{{d}} for extra library not found|{{d}}が見たらず、エキストラライブラリに登録できません|
 |Error|error|エラー|
 |etal| et al.|他|
