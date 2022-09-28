@@ -953,6 +953,7 @@ my($footnote_cnt, %footnotes);
 my(@auto_table_id);
 sub to_html{
   my($x, $opt) = @_;
+  # $opt: mainly from commandline parameters
   (defined $opt) or $opt={};
   my(%sectdata, $secttitle, @html);
   my $htmlout              = '';
@@ -993,7 +994,7 @@ sub to_html{
       $sect_cnt++;
       $sect_id = $id || "sect${sect_cnt}";
       $sect_id=~s/[^\w]//g;
-      (exists $sectdata{$sect_id}) and mes("duplicated section id ${sect_id}", {warn=>1});
+      (exists $sectdata{$sect_id}) and mes(txt('dsid', {id=>$sect_id}), {warn=>1});
       push(@{$sectdata_depth[$depth]}, {sect_id => $sect_id, tag => $tag});
 
       # add close tag for the former section here if necessary
@@ -1101,10 +1102,11 @@ sub to_html{
     my $tmpltxt = join('', <$fhi>);
     # replace vals in tmpl with pars set above
     $tmpltxt=~s!\[\[(.*?)]]!
-      if(exists $par{$1}){
-       $par{$1};
+      my($val, @opt) = split(/\s+/, $1);
+      if(exists $par{$val}){
+        $par{$val};
       }else{
-        (defined $opt1->{_v}{$1}) ? ($opt1->{_v}{$1}) : '';
+        (defined $opt1->{_v}{$val}) ? ($opt1->{_v}{$val}) : '';
       }
     !ge;
     (defined $opt->{whole}) and $tmpltxt = whole_html($tmpltxt, $opt);
@@ -2943,6 +2945,7 @@ __DATA__
 |din|Input:   STDIN|入力元: 標準入力|
 |dnf|Directory not found: ({{d}})|ディレクトリが見つかりません： ({{d}})|
 |dnw|Directory not writable: ({{d}})|ディレクトリの書き込みができません： ({{d}})|
+|dsid|Duplicated section ID:{{id}}|セクションID:{{id}}が重複しています|
 |elnf|{{d}} for extra library not found|{{d}}が見たらず、エキストラライブラリに登録できません|
 |Error|error|エラー|
 |etal| et al.|他|
