@@ -62,7 +62,7 @@ SKIP: for(my $i=1; $i<=$#indata; $i++){
     if($r!=0){
       die "Failure: $cmd";
     }
-    open(my $phi, '<:utf8', $outfile) or die "Something wring on '$cmd'";
+    open(my $phi, '<:utf8', $outfile) or die "Something wrong on '$cmd'";
     my $o = join('', <$phi>);
     $o=~s{.*<body>}{}s;
     $o=~s{</body>.*}{}s;
@@ -114,5 +114,19 @@ Var x from par file is abc, which should be 'abc'.
 Main text which should be 'main text':
 <p>main text</p>
 Section text which should be 'sect1text':<p>sect1text</p>
+
+---start tmpl mg text replace
+
+Main text in mg
+
+[[_]]
+
+---start par 3
+
+main text in {{B|mg}} 
+
+---start html 3
+
+<p>main text in <b>mg</b></p>
 
 ---end
