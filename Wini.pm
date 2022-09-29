@@ -1055,7 +1055,17 @@ sub to_html{
       $html[$sect_cnt]{depth}   = $depth;
     } # read sect content
   } # foreach sect
-  ($depth!=0) and $html[-1]{close} = ("\n" . ('</section>' x $depth));
+  if($depth!=0){
+  #  $html[-1]{close} = "\n" . ("</section><!-- ** d=$depth -->" x $depth);
+    for(my $i=$depth; $i>0; $i--){
+      $html[-1]{close} .= sprintf(
+#         qq{</%s> <!-- end of "%s" *d=$i (%d) -->\n},
+#         $sectdata_depth[$i][-1]{tag}, $sectdata_depth[$i][-1]{sect_id}, $sect_cnt
+         qq{</%s>\n},
+         $sectdata_depth[$i][-1]{tag}
+      );
+    }
+  }
   $htmlout .= join("\n", map{join("\n", $_->{open}||'', $_->{txt}||'', $_->{close}||'')} @html);
   $htmlout .= "\n";
   

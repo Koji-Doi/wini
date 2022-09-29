@@ -1,6 +1,7 @@
 use strict;
 use warnings;
 
+use Cwd;
 use File::Temp qw(tempdir);
 use Test::More;
 
@@ -8,13 +9,18 @@ our($Indir, $Outdir);
 our(@Infiles, @Outfiles);
 our $DEBUG;
 
+sub outdir4indir{
+  my($indir) = @_;
+  my($body) = $indir=~/(\w+$)/;
+  return(tempdir("wini_out_${body}_XXXX"));
+}
+
 sub prepare{
   my($indata, $outdata) = @_; 
   # $indata:  array def containing input mg data
   # $outdata: array def containing output html data
   $Indir    = tempdir('wini_in_XXXX');
-  my($body) = $Indir=~/wini_in_(.*)/;
-  $Outdir   = tempdir("wini_out_${body}_XXXX");
+  $Outdir   = outdir4indir($Indir);
 
   if(defined $indata){
     for(my $i=1; $i<=$#$indata; $i++){
@@ -111,7 +117,7 @@ __PACKAGE__->try_this() if !caller() || caller() eq 'PAR';
 sub try_this{
   prepare();
   test_cmd("test1", {i=>$Infiles[0], o=>$Outfiles[0]}, $Outdir, [$Outfiles[0]], ["<p>0</p>"]);
-  test_cmd('-i -i > -o', {i=>[$Infiles[0], $Infiles[1]], o=>$Outfiles[0]}, $Outdir, [$Outfiles[0]]);
+  #test_cmd('-i -i > -o', {i=>[$Infiles[0], $Infiles[1]], o=>$Outfiles[0]}, $Outdir, [$Outfiles[0]]);
 
   done_testing;
 }
