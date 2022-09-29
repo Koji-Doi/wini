@@ -9,16 +9,37 @@ our(@Infiles, @Outfiles);
 our $DEBUG;
 
 sub prepare{
+  my($indata, $outdata) = @_; 
+  # $indata:  array def containing input mg data
+  # $outdata: array def containing output html data
   $Indir    = tempdir('wini_in_XXXX');
   my($body) = $Indir=~/wini_in_(.*)/;
   $Outdir   = tempdir("wini_out_${body}_XXXX");
 
-  for(my $i=0; $i<=3; $i++){
-    my $infile = "${Indir}/${i}.wini";
-    push(@Infiles,  $infile);
-    push(@Outfiles, "$Outdir/$i.wini.html");
-    open(my $fho, '>', $Infiles[$i]) or die "Cannot modify $Infiles[$i]";
-    print {$fho} "$i\n";
+  if(defined $indata){
+    for(my $i=1; $i<=$#$indata; $i++){
+      open(my $fho, '>:utf8', "$Indir/$i.mg") or die "Failed to create $Indir/$i.mg";
+      print {$fho} $indata->[$i];
+      close $fho;
+    }
+  }
+  if(defined $outdata){
+    for(my $i=1; $i<=$#$outdata; $i++){
+      open(my $fho, '>:utf8', "$Outdir/$i.html") or die "Failed to create $Outdir/$i.html";
+      print {$fho} $outdata->[$i];
+      close $fho;
+    }
+  }
+
+  unless(defined $indata and defined $outdata){ # just generate simple input files
+    for(my $i=0; $i<=3; $i++){
+      my $infile = "${Indir}/${i}.wini";
+      push(@Infiles,  $infile);
+      push(@Outfiles, "$Outdir/$i.wini.html");
+      open(my $fho, '>', $Infiles[$i]) or die "Cannot modify $Infiles[$i]";
+      print {$fho} "$i\n";
+      close $fho;
+    }
   }
 }
 
