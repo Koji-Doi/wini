@@ -1006,7 +1006,7 @@ sub to_html{
         if($lastdepth>0){
           $html[$sect_cnt-1]{close} ||=
           sprintf(
-            qq{</%s> <!-- end of "%s" d=ld=$depth lastdepth=$lastdepth -->\n}, $html[$sect_cnt-1]{tag}, $html[$sect_cnt-1]{sect_id}
+            qq{</%s> <!-- end of "%s" d=$depth -->\n}, $html[$sect_cnt-1]{tag}, $html[$sect_cnt-1]{sect_id}
           );
         }
         $html[$sect_cnt]{open} ||= $opentag;

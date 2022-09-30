@@ -61,7 +61,7 @@ done_testing;
 
 __DATA__
 "
----start mg A third level sections
+---start mg A: third level sections
 root body
 
 ?#s1
@@ -78,7 +78,7 @@ third-1-1 body
 
 ?#s6 Forth
 
----start html A
+---start html A:
 <p>
 root body
 </p>
@@ -86,12 +86,12 @@ root body
 <section class="mg" id="s1">
 
 
-</section> <!-- end of "s1" d=ld=1 lastdepth=1 -->
+</section> <!-- end of "s1" d=1 -->
 
 <section class="mg" id="second">
 
 
-</section> <!-- end of "second" d=ld=1 lastdepth=1 -->
+</section> <!-- end of "second" d=1 -->
 
 <section class="mg" id="s3">
 <h1 class="sectiontitle">Third</h1>
@@ -102,7 +102,7 @@ root body
 <h1 class="sectiontitle">Third-1</h1>
 
 
-</section> <!-- end of "s4" d=ld=2 lastdepth=2 -->
+</section> <!-- end of "s4" d=2 -->
 
 <section class="mg" id="s5">
 <h1 class="sectiontitle">Third-1-1</h1>
@@ -119,7 +119,7 @@ third-1-1 body
 
 </section>
 
----start mg B header/aside/footer/article
+---start mg B: header/aside/footer/article
 root body
 
 ?h#s1
@@ -140,7 +140,7 @@ third-1-1 body
 
 last of root section
 
----start html B
+---start html B:
 <p>
 root body
 </p>
@@ -148,12 +148,12 @@ root body
 <header class="mg" id="s1">
 
 
-</header> <!-- end of "s1" d=ld=1 lastdepth=1 -->
+</header> <!-- end of "s1" d=1 -->
 
 <aside class="mg" id="s2">
 
 
-</aside> <!-- end of "s2" d=ld=1 lastdepth=1 -->
+</aside> <!-- end of "s2" d=1 -->
 
 <article class="mg" id="s3">
 <h1 class="sectiontitle">Third</h1>
@@ -164,7 +164,7 @@ root body
 <h1 class="sectiontitle">Third-1</h1>
 
 
-</article> <!-- end of "s4" d=ld=2 lastdepth=2 -->
+</article> <!-- end of "s4" d=2 -->
 
 <article class="mg" id="s5">
 <h1 class="sectiontitle">Third-1-1</h1>
@@ -184,7 +184,7 @@ last of root section
 </p>
 </footer>
 
----start mg C sections in multiple layers
+---start mg C: sections in multiple layers
 
 ? sect1
 
@@ -196,7 +196,7 @@ last of root section
 
 ? sect3
 
----start html C
+---start html C:
 <section class="mg" id="sect1">
 <h1 class="sectiontitle">sect1</h1>
 
@@ -227,7 +227,7 @@ last of root section
 
 </section>
 
----start mg D section/header in multiple layers
+---start mg D: section/header in multiple layers
 
 ?h header1 
 
@@ -239,7 +239,7 @@ last of root section
 
 ? sect3
 
----start html D
+---start html D:
 <header class="mg" id="sect1">
 <h1 class="sectiontitle">header1</h1>
 
@@ -267,7 +267,7 @@ last of root section
 
 </section>
 
----start mg E section/header/footer in multiple layers
+---start mg E: section/header/footer in multiple layers
 
 ?h header1 
 
@@ -279,7 +279,7 @@ last of root section
 
 ?f footer1
 
----start html E
+---start html E:
 <header class="mg" id="sect1">
 <h1 class="sectiontitle">header1</h1>
 
@@ -307,7 +307,7 @@ last of root section
 
 </footer>
 
----start mg F section/article/header in multiple layers
+---start mg F: section/article/header in multiple layers
 
 ?h header1 
 
@@ -319,7 +319,7 @@ last of root section
 
 ?a article1
 
----start html F
+---start html F:
 <header class="mg" id="sect1">
 <h1 class="sectiontitle">header1</h1>
 
@@ -347,9 +347,13 @@ last of root section
 
 </article>
 
----start mg G section/article/aside/header in multiple layers
+---start mg G: section/article/aside/header in multiple layers
+
+xxxxx
 
 ?h header1 
+
+header1 text
 
 ?? sect1-2-1
 
@@ -361,9 +365,18 @@ last of root section
 
 ?a article1
 
----start html G
+---start html G:
+
+<p>
+xxxxx
+</p>
+
 <header class="mg" id="sect1">
 <h1 class="sectiontitle">header1</h1>
+
+<p>
+header1 text
+</p>
 
 <section class="mg" id="sect2">
 <h1 class="sectiontitle">sect1-2-1</h1>
@@ -383,10 +396,13 @@ last of root section
 </section> <!-- end of "sect2" d=2 (5) -->
 </section> <!-- end of "sect3" *d=1 (5) -->
 
-<article class="mg" id="sect5">
-<h1 class="sectiontitle">article1</h1>
+<aside class="mg" id="sect5">
+<h1 class="sectiontitle">aside1</h1>
 <!-- sect5 -->
+</aside> <!-- end of "sect5" d=1 -->
 
+<article class="mg" id="sect6">
+<h1 class="sectiontitle">article1</h1>
 </article>
 
 ---end

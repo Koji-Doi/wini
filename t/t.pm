@@ -11,7 +11,7 @@ our $DEBUG;
 
 sub outdir4indir{
   my($indir) = @_;
-  my($body) = $indir=~/(\w+$)/;
+  my($body) = $indir=~/(?:wini_in_)?(\w+$)/;
   return(tempdir("wini_out_${body}_XXXX"));
 }
 
@@ -47,7 +47,7 @@ sub prepare{
       close $fho;
     }
   }
-}
+} # sub prepare
 
 sub std{
   my($x, $opt)=@_;
@@ -63,11 +63,13 @@ sub std{
   return($x);
 }
 
+{
+my $cnt=1;
 sub test_cmd{
   my($testname, $cmd_opt, $outdir, $outputfiles, $output) = @_;
   my($p, $f, $l) = caller();
-  my $i = 1; my @subs;
-  while ( my($pack, $file, $line, $subname, $hasargs, $wantarray, $evaltext, $is_require) = caller( $i++) ){
+  my $depth = 1; my @subs;
+  while ( my($pack, $file, $line, $subname, $hasargs, $wantarray, $evaltext, $is_require) = caller( $depth++) ){
     push(@subs, "$line\[$subname]\@$file");
   }
   my $mes = join(' <- ', @subs);
@@ -106,10 +108,22 @@ EOD
         if(defined $output->[$i]){
           my $got = join('', <$fhi>);
           is std($got), std($output->[$i]), "$testname: output text";
-        }
-      }
-    }
-  }
+          if($DEBUG){
+            my $filename = basename($0, qw/.html/) . "_${cnt}_";
+            print STDERR "> $filename\n";
+            open(my $fho, '>:utf8', $filename."got.html");
+            print {$fho} "$got\n";
+            close $fho;
+            open($fho, '>:utf8', $filename."exp.html");
+            print {$fho} $output->[$i]."\n";
+            close $fho;
+          } # DEBUG
+        } # defined $output->[$i]
+      } # defined $outputfiles->[$i]
+    } # for $outputfiles
+  } # defined $outputfiles
+  $cnt++;
+} # sub test_cmd
 }
 
 __PACKAGE__->try_this() if !caller() || caller() eq 'PAR';
