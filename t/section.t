@@ -61,15 +61,7 @@ done_testing;
 
 __DATA__
 "
----start mg A simple
-{{B|abc}}
----start html A
-<p>
-<b>abc</b> 
-</p>
----start log
-
----start mg B third level sections
+---start mg A third level sections
 root body
 
 ?#s1
@@ -86,7 +78,7 @@ third-1-1 body
 
 ?#s6 Forth
 
----start html
+---start html A
 <p>
 root body
 </p>
@@ -127,7 +119,7 @@ third-1-1 body
 
 </section>
 
----start mg C header/aside/footer/article
+---start mg B header/aside/footer/article
 root body
 
 ?h#s1
@@ -148,7 +140,7 @@ third-1-1 body
 
 last of root section
 
----start html
+---start html B
 <p>
 root body
 </p>
@@ -192,7 +184,7 @@ last of root section
 </p>
 </footer>
 
----start mg D sections in multiple layers
+---start mg C sections in multiple layers
 
 ? sect1
 
@@ -204,7 +196,7 @@ last of root section
 
 ? sect3
 
----start html
+---start html C
 <section class="mg" id="sect1">
 <h1 class="sectiontitle">sect1</h1>
 
@@ -235,7 +227,7 @@ last of root section
 
 </section>
 
----start mg E section/header in multiple layers
+---start mg D section/header in multiple layers
 
 ?h header1 
 
@@ -247,7 +239,7 @@ last of root section
 
 ? sect3
 
----start html
+---start html D
 <header class="mg" id="sect1">
 <h1 class="sectiontitle">header1</h1>
 
@@ -275,7 +267,7 @@ last of root section
 
 </section>
 
----start mg F section/header/footer in multiple layers
+---start mg E section/header/footer in multiple layers
 
 ?h header1 
 
@@ -287,7 +279,7 @@ last of root section
 
 ?f footer1
 
----start html
+---start html E
 <header class="mg" id="sect1">
 <h1 class="sectiontitle">header1</h1>
 
@@ -315,7 +307,7 @@ last of root section
 
 </footer>
 
----start mg G section/article/header in multiple layers
+---start mg F section/article/header in multiple layers
 
 ?h header1 
 
@@ -327,7 +319,49 @@ last of root section
 
 ?a article1
 
----start html
+---start html F
+<header class="mg" id="sect1">
+<h1 class="sectiontitle">header1</h1>
+
+<section class="mg" id="sect2">
+<h1 class="sectiontitle">sect1-2-1</h1>
+
+
+</section> <!-- end of "sect2" d=2 (3) -->
+</header> <!-- end of "sect1" *d=1 (3) -->
+
+<section class="mg" id="sect3">
+<h1 class="sectiontitle">sect2</h1>
+<!-- sect3 -->
+
+<section class="mg" id="sect4">
+<h1 class="sectiontitle">sect2-x-1</h1>
+
+</section> <!-- end of "sect4" d=3 (5) -->
+</section> <!-- end of "sect2" d=2 (5) -->
+</section> <!-- end of "sect3" *d=1 (5) -->
+
+<article class="mg" id="sect5">
+<h1 class="sectiontitle">article1</h1>
+<!-- sect5 -->
+
+</article>
+
+---start mg G section/article/aside/header in multiple layers
+
+?h header1 
+
+?? sect1-2-1
+
+? sect2
+
+??? sect2-x-1
+
+?s aside1
+
+?a article1
+
+---start html G
 <header class="mg" id="sect1">
 <h1 class="sectiontitle">header1</h1>
 
