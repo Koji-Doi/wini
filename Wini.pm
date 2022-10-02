@@ -272,7 +272,7 @@ use Getopt::Long qw(:config no_ignore_case auto_abbrev);
 use Encode;
 use Cwd;
 use Time::Piece;
-
+use Module::Load qw/mode/;
 our $ENVNAME;
 #our %EXT;
 our @LANGS;
@@ -378,12 +378,13 @@ sub init{
       $TXT{$id}{$LANGS[$i]} = $txt[$i];
     }
   }
+  
 } # sub init
 
 # Following function is executed when this script is called as stand-alone script
 sub stand_alone{
-  init();
   my(@input, $output, $fhi, $title, $cssfile, $test, $whole, @cssflameworks, @bibfiles, $bibonly, $help);
+  init();
   GetOptions(
     "h|help:s"       => \$help,
     "v|version"      => sub {print STDERR "Wini.pm $VERSION\n"; exit()},
@@ -408,14 +409,18 @@ sub stand_alone{
   (defined $help) and help($help);
 
   foreach my $i (@libpaths){
-    mes(txt('ttap', undef, {path=>$i}), {ln=>__LINE__});
+    mes(txt('ttap', undef, {path=>$i}), {q=>1});
     (-d $i) ? push(@INC, $i) : mes(txt('elnf', undef, {d=>$i}), {warn=>1});
   }
   foreach my $lib (@libs){ # 'form', etc.
-    my $r = eval{load($lib)};
-    mes((defined $r) ? txt('ll', undef, {lib=>$lib}) : txt('llf', undef, {lib=>$lib}));
+    my $r = eval{Module::Load::load($lib)};
+    if(defined $r){
+      mes(txt('ll',  undef, {lib=>$lib}), {q=>1});
+    }else{
+      mes(txt('llf', undef, {lib=>$lib}), {err=>1});
+    }
   }
-
+ 
   # bibliography
   if(defined $bibfiles[0]){
     read_bib(@bibfiles);
@@ -451,6 +456,7 @@ sub stand_alone{
   }
 
   #test
+  print "PACKAGE=", __PACKAGE__, "\n";
   if($test){
     init();
     exit;
@@ -1548,7 +1554,6 @@ smaller|larger| # relative kw
 
 sub call_macro{
   my($macroname, $opt, $baseurl, @f) = @_;
-  # macroname: "macroname" or "add-in package name:macroname". e.g. "{{x|abc}}", "{{mypackage:x|abc}}"
   my(@class, @id);
   $macroname=~s/\.([^.#]+)/push(@id,    $1); ''/ge;
   $macroname=~s/\#([^.#]+)/push(@class, $1); ''/ge;
@@ -2987,7 +2992,7 @@ __DATA__
 |time|%H:%M:%S|%H時%M分%S秒|
 |timetrad|%H:%M:%S|%H時%M分%S秒|
 |timedowtrad|%H:%M:%S|%H時%M分%S秒|
-|ttap|trying to add {{path}} into library directory|{{path}}のライブラリディレクトリへの追加を試みます|
+|ttap|trying to add path '{{path}}' into library directory|{{path}}のライブラリディレクトリへの追加を試みます|
 |ut|undefined text|未定義のテキスト|
 |udrefid|undefined reference ID: {{id}}|未定義の参照ID: {{id}}|
 |uref|undefined label|未定義のラベル|
