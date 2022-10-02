@@ -86,13 +86,15 @@ sub test_cmd{
       $o=~/[<>]/ or push(@opt, sprintf('-%s "%s"', $o, $cmd_opt->{$o}));
     }
   }
+  (exists $cmd_opt->{'2>'}) or $cmd_opt->{'2>'}="/dev/null";
   foreach my $o (qw/< >/){
     (defined $cmd_opt->{$o}) and push(@opt, "$o ".$cmd_opt->{$o});
   }
   $cmd .= join(' ', @opt);
   ($DEBUG) and printf STDERR "Try '$cmd' at %s:%s\n",__LINE__, __FILE__;
   #$DB::single=$DB::single=1;
-  my $r = system("$cmd 2>/dev/null");
+#  my $r = system("$cmd 2>/dev/null");
+  my $r = system($cmd);
   ($r>0) and $r = $r >> 8;
   if($r>0){
     print STDERR (<<"EOD");
