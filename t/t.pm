@@ -87,7 +87,7 @@ sub test_cmd{
     }
   }
   (exists $cmd_opt->{'2>'}) or $cmd_opt->{'2>'}="/dev/null";
-  foreach my $o (qw/< >/){
+  foreach my $o (qw/< > 2>/){
     (defined $cmd_opt->{$o}) and push(@opt, "$o ".$cmd_opt->{$o});
   }
   $cmd .= join(' ', @opt);
@@ -103,13 +103,13 @@ sub test_cmd{
 EOD
   }
   if(defined $outputfiles){
-    is join('', sort <$outdir/*.html>, <$outdir/*.css>), join('', sort @$outputfiles), "$testname: files";
+    is join('', sort <$outdir/*.html>, <$outdir/*.css>, <$outdir/*.log>), join('', sort @$outputfiles), "$testname: files";
     for(my $i=0; $i<=$#$outputfiles; $i++){
       if(defined $outputfiles->[$i]){
         open(my $fhi, '<:utf8', $outputfiles->[$i]) or die "Failed to open $i:$outputfiles->[$i]";
         if(defined $output->[$i]){
           my $got = join('', <$fhi>);
-          is std($got), std($output->[$i]), "$testname: output text";
+          is std($got), std($output->[$i]), "$testname: output text ($i) ".$outputfiles->[$i];
           if($DEBUG){
             my $filename = basename($0, qw/.html/) . "_${cnt}_";
             print STDERR "> $filename\n";

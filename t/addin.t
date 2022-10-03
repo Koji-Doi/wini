@@ -71,15 +71,14 @@ __DATA__
 </p>
 
 ---start log A:
-infile:  undef
-cssfile: undef
-outfile: undef
-Output:  STDOUT
+infile:  wini_in_2r56/1.mg
+cssfile: wini.css
+outfile: wini_out_2r56_lHq1/1.html
 File specification: OK
-[31m[47m[31m[47mWarning[0m at line 1603. 1220[Text::Markup::Wini::call_macro]@./Wini.pm <- 1057[Text::Markup::Wini::markgaab]@./Wini.pm <- 507[Text::Markup::Wini::to_html]@./Wini.pm <- 332[Text::Markup::Wini::stand_alone]@./Wini.pm[0m
+[31m[47m[31m[47mWarning[0m at line 1606. 1220[Text::Markup::Wini::call_macro]@Wini.pm <- 1057[Text::Markup::Wini::markgaab]@Wini.pm <- 507[Text::Markup::Wini::to_html]@Wini.pm <- 332[Text::Markup::Wini::stand_alone]@Wini.pm[0m
   Cannot find Macro 'copyright'
 
----start mg b: extra macro with add-in pm
+---start mg B: extra macro with add-in pm
 
 {{copyright|xxx|2020|2022}}
 
