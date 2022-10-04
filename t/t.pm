@@ -3,7 +3,10 @@ use warnings;
 
 use Cwd;
 use File::Temp qw(tempdir);
+use File::Basename;
 use Test::More;
+use lib '.';
+use Wini;
 
 our($Indir, $Outdir);
 our(@Infiles, @Outfiles);
@@ -52,6 +55,8 @@ sub prepare{
 sub std{
   my($x, $opt)=@_;
 #opt: cr==1, check returns; spc==1, check spaces;
+  $x=~s{(wini_(?:test)?(?:in|out)_)(\w+)}{$1}g; # remove tempdir names
+  $x=~s{((\e\[)?\S* at line.*)}{}g; # remove warning/error messages
   ($opt->{cr})  or $x=~s/[\n\r]/ /sg;
   unless($opt->{spc}){
     $x=~s/> */>/g;
@@ -59,14 +64,62 @@ sub std{
     $x=~s/ +</</g;
     $x=~s/> +/>/g;
   }
-  $x=~s{(wini_(?:test)?(?:in|out)_)(\w+)}{$1}g; # remove tempdir names
-  $x=~s{\e\[.* at line \d+.*$}{}g; # remove warnings/error messages
   #$x=~s{(</\w+>)}{$1\n}g;
   return($x);
 }
 
+sub whole_html1{
+  my($x) = @_;
+  return(<<"EOD");
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>t/bib.t test</title>
+</head>
+<body>
+  $x
+</body>
+</html>
+EOD
+
+}
+
+
 {
 my $cnt=1;
+sub is1{
+  my(@x) = @_;
+  my $title = (defined $x[2]) ? $x[2] : "test${cnt}";
+  no warnings;
+  is $x[0], $x[1], $title;
+  use warnings;
+  my $filename = basename($0, qw/.t .pl .pm/) . "_${cnt}_";
+  foreach my $i (0..1){
+    $x[$i]=~/<html>/ or  $x[$i] = whole_html1($x[$i]);
+    my $outfile = sprintf('%s_%d_%s.html', $filename, $cnt, [qw/got expected/]->[$i]);
+    open(my $fho, '>:utf8', $outfile);
+    print {$fho} $x[$i];
+    close $fho;
+  }
+  $cnt++;
+}
+
+sub test1{
+  my($testname, $src, $expect, $to_html_opt) = @_;
+  Text::Markup::Wini::init();
+  my($o) = Text::Markup::Wini::to_html($src, $to_html_opt);
+  no warnings;
+  $o     = std($o);
+  my($p) = std($expect);
+  if($DEBUG){
+    is1 $o, $p, $testname;
+  }else{
+    is  $o, $p, $testname;
+  }
+  use warnings;
+}
+
 sub test_cmd{
   my($testname, $cmd_opt, $outdir, $outputfiles, $output) = @_;
   my($p, $f, $l) = caller();
@@ -137,6 +190,7 @@ sub try_this{
   test_cmd("test1", {i=>$Infiles[0], o=>$Outfiles[0]}, $Outdir, [$Outfiles[0]], ["<p>0</p>"]);
   #test_cmd('-i -i > -o', {i=>[$Infiles[0], $Infiles[1]], o=>$Outfiles[0]}, $Outdir, [$Outfiles[0]]);
 
+  test1('test2', 'abc', '<p>abc</p>');
   done_testing;
 }
 1;

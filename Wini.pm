@@ -368,7 +368,6 @@ sub init{
     /^"[^"]*$/ and next; # skip dummy line
     my $sp = substr($_, 0, 1);
     ($sp eq '') or $sp = '\\' . $sp;
-#    my($id, $en, $ja) = split($sp, substr($_,1));
     my($id, @txt) = split($sp, substr($_,1));
     for(my $i=0; $i<=$#txt; $i++){
       no warnings; # work around to cancel "Wide character in substitution (s///)"

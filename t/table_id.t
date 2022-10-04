@@ -7,6 +7,8 @@ use warnings;
 use Test::More;
 use Encode qw/encode decode/;
 use lib '.';
+use lib './t';
+use t;
 use Wini;
 
 our $ENVNAME;
@@ -23,6 +25,11 @@ our %TXT;       # messages and forms
 our($MI, $MO);  # escape chars to 
 our(@INDIR, @INFILE, $OUTFILE);
 our($TEMPLATE, $TEMPLATEDIR);
+our $DEBUG=0;
+
+if(defined $ARGV[0] and $ARGV[0] eq '-d'){
+  $DEBUG=1;
+}
 
 my @indata;
 
@@ -42,7 +49,6 @@ while(<DATA>){
 # do test
 for(my $i=0; $i<=$#indata; $i++){
   Text::Markup::Wini::init();
-  print STDERR $indata[$i]{mg},"\n";
   my($o, undef) = Text::Markup::Wini::to_html($indata[$i]{mg});
   $o=std($o);
 
@@ -55,6 +61,7 @@ for(my $i=0; $i<=$#indata; $i++){
 
 done_testing;
 
+=begin c
 sub std{
   my($x)=@_;
   $x=~s/[\n\r]//g;
@@ -65,6 +72,10 @@ sub std{
   $x=~s{(</(?:tr|tbody|table|caption|p|section)>)}{$1\n}g;
   return($x);
 }
+
+=end c
+
+=cut
 
 __DATA__
 ---start mg
@@ -284,7 +295,7 @@ This is sub.
 <p>
 <a href="#id3"> 表4</a>= id3 ja from section val
 </p>
-</section> <!-- end of "sect1" d=ld=1 lastdepth=1 -->
+</section> <!-- end of "sect1" d=1 -->
 
 <section class="mg" id="sect2">
 <h1 class="sectiontitle">in en</h1>
