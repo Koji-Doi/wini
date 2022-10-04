@@ -42,6 +42,7 @@ while(<DATA>){
 # do test
 for(my $i=0; $i<=$#indata; $i++){
   Text::Markup::Wini::init();
+  print STDERR $indata[$i]{mg},"\n";
   my($o, undef) = Text::Markup::Wini::to_html($indata[$i]{mg});
   $o=std($o);
 

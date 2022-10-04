@@ -59,6 +59,8 @@ sub std{
     $x=~s/ +</</g;
     $x=~s/> +/>/g;
   }
+  $x=~s{(wini_(?:test)?(?:in|out)_)(\w+)}{$1}g; # remove tempdir names
+  $x=~s{\e\[.* at line \d+.*$}{}g; # remove warnings/error messages
   #$x=~s{(</\w+>)}{$1\n}g;
   return($x);
 }

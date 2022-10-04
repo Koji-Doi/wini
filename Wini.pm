@@ -456,7 +456,6 @@ sub stand_alone{
   }
 
   #test
-  print "PACKAGE=", __PACKAGE__, "\n";
   if($test){
     init();
     exit;
