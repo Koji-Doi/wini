@@ -45,74 +45,25 @@ Warning at line 1604. 1218[Text::Markup::Wini::call_macro]@./Wini.pm <- 1055[Tex
   Cannot find Macro 'hyhyhy'
 EOT
 
-#test_cmd('unsupported macro', '
-#  my($o, undef) = markgaab('{{hyhyhy|www}}');
-#  $o=~s/[\n\r]*//g;
-#  is $o, q#<p>\{\{hyhyhy|www}}<!-- Cannot find Macro 'hyhyhy' --></p>#;
-
-done_testing;
-exit();
-
-SKIP:{
-  my($o, undef) = markgaab('{{b|abc}}');
-  $o=~s/[\n\r]*//g;
-  is $o, '<p><span style="font-weight:bold;">abc</span></p>';
-}
-
-SKIP:{
-  my($o, undef) = markgaab('{{B|abc}}');
-  $o=~s/[\n\r]*//g;
-  is $o, '<p><b>abc</b></p>';
-}
-
-SKIP:{
-  my($o, undef) = markgaab('{{*/|abc}}');
-  $o=~s/[\n\r]*//g;
-  is $o, '<p><span style="font-weight:bold; font-style:italic;">abc</span></p>';
-}
-
-SKIP:{
-  my($o, undef) = markgaab('{{ruby|abc|ABC|xyz|XYZ}}');
-  $o=~s/[\n\r]*//g;
-  is $o, '<p><ruby>abc<rp>(</rp><rt>ABC</rt><rp>)</rp>xyz<rp>(</rp><rt>XYZ</rt><rp>)</rp></ruby></p>';
-}
-
-SKIP:{
-  my($o, undef) = markgaab('{{l}}{{r}}{{bar}}');
-  $o=~s/[\n\r]*//g;
-  is $o, '<p>&#x7b;&#x7d;&#x7c;</p>';
-}
-
-SKIP:{
-  my($o, undef) = markgaab('{{hyhyhy|www}}');
-  $o=~s/[\n\r]*//g;
-  is $o, q#<p>\{\{hyhyhy|www}}<!-- Cannot find Macro 'hyhyhy' --></p>#;
-}
-
-SKIP:{
-  my($o, undef) = markgaab('__a^^b');
-  $o=~s/[\n\r]*//g;
-  is $o, '<p><sub>a</sub><sup>b</sup></p>';
-}
-
-SKIP:{
-  my($o, undef) = markgaab('[hoge](http://example.com/hoge)');
-  $o=~s/[\n\r]*//g;
-  is $o, '<p><a href="http://example.com/hoge">hoge</a></p>';
-}
-
-SKIP:{
-  my($o, undef) = markgaab('[hoge](http://example.com/hoge)');
-  $o=~s/[\n\r]*//g;
-  is $o, '<p><a href="http://example.com/hoge">hoge</a></p>';
-}
-
 done_testing;
 
 __DATA__
+subscript/superscript	H__2O C__6H__{12}O__6 1m^^2 ^^{235}U	<p>H<sub>2</sub>O C<sub>6</sub>H<sub>12</sub>O<sub>6</sub> 1m<sup>2</sup> <sup>235</sup>U</p>
+strike	{{s|abc}}	<p><span style="text-decoration: line-through;">abc</span></p>
+strike-	{{-|abc}}	<p><span style="text-decoration: line-through;">abc</span></p>
+Strike	{{S|abc}}	<p><s>abc</s></p>
+underline	{{u|abc}}	<p><span style="border-bottom: solid 1px;">abc</span></p>
+underline_	{{_|abc}}	<p><span style="border-bottom: solid 1px;">abc</span></p>
+Underline	{{U|abc}}	<p><u>abc</u></p>
+ita	{{i|abc}}	<p><span style="font-style:italic;">abc</span></p>
+ita/	{{/|abc}}	<p><span style="font-style:italic;">abc</span></p>
+Ita	{{I|abc}}	<p><i>abc</i></p>
 bold	{{b|abc}}	<p><span style="font-weight:bold;">abc</span></p>
+bold*	{{*|abc}}	<p><span style="font-weight:bold;">abc</span></p>
 Bold	{{B|abc}}	<p><b>abc</b></p>
 bold/ita	{{*/|abc}}	<p><span style="font-weight:bold; font-style:italic;">abc</span></p>
+nested	{{b|ab{{i|c}}}}	<p><span style="font-weight:bold;">ab<span style="font-style:italic;">c</span></span></p>
+strong	{{*|abc}} {{**|abc}} {{***|abc}}	<p><span style="font-weight:bold;">abc</span> <strong>abc</strong> <strong><strong>abc</strong></strong></p>
 ruby	{{ruby|abc|ABC|xyz|XYZ}}	<p><ruby>abc<rp>(</rp><rt>ABC</rt><rp>)</rp>xyz<rp>(</rp><rt>XYZ</rt><rp>)</rp></ruby></p>
 #l_r_bar	{{l}}{{r}}{{bar}}	<p>&#x7b;&#x7d;&#x7c;</p>
 ascii	{{*}}{{/}}{{&}}{{#}}{{"}}	<p>&#x2a;&#x2f;&#x26;&#x23;&#x22;</p>

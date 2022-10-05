@@ -10,7 +10,7 @@ use File::Path qw(remove_tree);
 use lib '.';
 use lib './t';
 use Wini;
-use is;
+#use is;
 use t;
 use Data::Dumper;
 our($Indir, $Outdir);

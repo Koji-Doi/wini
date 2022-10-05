@@ -2037,8 +2037,6 @@ sub table{
           my $v = {qw/t top m middle b bottom/}->{$x};
           (defined $v) and push(@{$htmlitem[0][0]{copt}{style}{'vertical-align'}}, $v);
         }
-        $DB::single=$DB::single=1;
-        print STDERR "Check htmlitem[0][0] at ",__LINE__,"\n";
       }
     } # foreach $o
     ($caption)=markgaab($caption, {para=>'nb', nocr=>1});
