@@ -344,7 +344,7 @@ sub init{
   binmode STDERR,':utf8';
   binmode STDOUT,':utf8';
 #  ($MI, $MO)  = ("\x00", "\x01");
-  ($MI, $MO)  = ("%%%", "###");
+  ($MI, $MO)  = ("<<", ">>");
   $ENVNAME    = "_";
   @LANGS      = qw/en ja/;
   if(defined $ENV{LANG}){
@@ -1164,7 +1164,7 @@ sub markgaab{
   # verbatim
   $t0 =~ s/\%%%\n(.*?)\n%%%$/         &save_quote('',     $1)/esmg;
   # pre, code, citation, ...
-  $t0 =~ s/\{\{(pre|code|q(?: [^|]+?)?)}}(.+?)\{\{end}}/&save_quote($1,$2)/esmg;  
+  $t0 =~ s/\{\{(pre|code|q(?:[ |]+[^|]+?)?)}}(.+?)\{\{end}}/&save_quote($1,$2)/esmg;  
   $t0 =~ s/^'''\n(.*?)\n'''$/         &save_quote('pre',  $1)/esmg;
   $t0 =~ s/^```\n(.*?)\n```$/         &save_quote('code', $1)/esmg;
   $t0 =~ s/^"""([\w =]*)\n(.*?)\n"""$/&save_quote("q $1", $2)/esmg;
@@ -1637,11 +1637,17 @@ my $i=-1;
 sub save_quote{ # pre, code, cite ...
   my($cmd, $txt) = @_;
   $i++;
+#  $txt=~s/^%%%/&#x25;&#x25;&#x25;/g;
+#  $txt=~s/^'''/&#x27;&#x27;&#x27;/g;
+#  $txt=~s/^"""/&#x22;&#x22;&#x22;/g;
+#  $txt=~s/^```/&#x60;&#x60;&#x60;/g;
   $save[$i] = $txt;
   $cmd = lc $cmd;
   if($cmd eq 'def'){
     return('');
-  }elsif($cmd=~/^q/){ # q
+  }
+
+  if($cmd=~/^q/){ # q
     my(@opts) = $cmd=~/(\w+=\S+)/g;
     my %opts;
     foreach my $o (@opts){
