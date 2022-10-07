@@ -1162,12 +1162,12 @@ sub markgaab{
   my $lang  = $opt->{_v}{lang} || $LANG || 'en';
 
   # verbatim
-  $t0 =~ s/\%%%\n(.*?)\n%%%$/         &save_quote('',     $1)/esmg;
+  $t0 =~ s/(^\%%%)\n(.*?)\n%%%$/        &save_quote('',     $1, $2)/esmg;
   # pre, code, citation, ...
-  $t0 =~ s/\{\{(pre|code|q(?:[ |]+[^|]+?)?)}}(.+?)\{\{end}}/&save_quote($1,$2)/esmg;  
-  $t0 =~ s/^'''\n(.*?)\n'''$/         &save_quote('pre',  $1)/esmg;
-  $t0 =~ s/^```\n(.*?)\n```$/         &save_quote('code', $1)/esmg;
-  $t0 =~ s/^"""([\w =]*)\n(.*?)\n"""$/&save_quote("q $1", $2)/esmg;
+  $t0 =~ s/(\{\{(pre|code|q(?:[ |]+[^|]+?)?)}})(.+?)\{\{end}}/&save_quote($2, $1, $3)/esmg;  
+  $t0 =~ s/(^''')\n(.*?)\n'''$/         &save_quote('pre',  $1, $2)/esmg;
+  $t0 =~ s/(^```)\n(.*?)\n```$/         &save_quote('code', $1, $2)/esmg;
+  $t0 =~ s/(^""")([\w =]*)\n(.*?)\n"""$/&save_quote("q $2", $1, $3)/esmg;
     
   # conv table to html
   $t0 =~ s/^\s*(\|.*?)[\n\r]+(?!\|)/table($1, {lang=>$lang})/esmg;
@@ -1231,7 +1231,11 @@ sub markgaab{
     push(@r, $t);
   } # foreach $t # for each paragraph
   my $r = join("\n", @r);
-  $r=~s/${MI}i=(\d+)${MO}/$save[$1]/ge;
+  $r=~s{${MI}i=(\d+)${MO}}{
+       my $ltag = $save[$1]{cmd};
+       my $rtag = ($ltag=~/\{/) ? '{{end}}' : $ltag;
+       "${ltag}\n$save[$1]{txt}\n${rtag}\n";
+  }ge;
   if($cssfile){
     open(my $fho, '>', $cssfile) or mes(txt('fnw', undef, {f=>$cssfile}), {err=>1});# "Cannot modify $cssfile";
     print {$fho} css($CSS);
@@ -1635,18 +1639,22 @@ sub readpars{
 {
 my $i=-1;
 sub save_quote{ # pre, code, cite ...
-  my($cmd, $txt) = @_;
+  my($cmd, $pre, $txt) = @_;
   $i++;
 #  $txt=~s/^%%%/&#x25;&#x25;&#x25;/g;
 #  $txt=~s/^'''/&#x27;&#x27;&#x27;/g;
 #  $txt=~s/^"""/&#x22;&#x22;&#x22;/g;
 #  $txt=~s/^```/&#x60;&#x60;&#x60;/g;
-  $save[$i] = $txt;
   $cmd = lc $cmd;
+  $save[$i] = {txt=>$txt, cmd=>$cmd};
   if($cmd eq 'def'){
     return('');
   }
-
+  $txt=~s{${MI}i=(\d+)${MO}}{
+       my $ltag = $save[$1]{cmd};
+       my $rtag = ($ltag=~/\{/) ? '{{end}}' : $ltag;
+       "${ltag}\n$save[$1]{txt}\n${rtag}\n";
+     }ge;
   if($cmd=~/^q/){ # q
     my(@opts) = $cmd=~/(\w+=\S+)/g;
     my %opts;
