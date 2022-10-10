@@ -1646,18 +1646,17 @@ sub save_quote{ # pre, code, cite ...
 #  $txt=~s/^"""/&#x22;&#x22;&#x22;/g;
 #  $txt=~s/^```/&#x60;&#x60;&#x60;/g;
   $cmd = lc $cmd;
-  $save[$i] = {txt=>$txt, cmd=>$cmd};
-      $DB::single=$DB::single=1;
-
   if($cmd eq 'def'){
     return('');
   }
   $txt=~s{${MI}i=(\d+)${MO}}{
     $DB::single=$DB::single=1;
-       my $ltag = $save[$1]{cmd};
+       my $ltag = $save[$1]{pre};
        my $rtag = ($ltag=~/\{/) ? '{{end}}' : $ltag;
        "${ltag}\n$save[$1]{txt}\n${rtag}\n";
      }ge;
+  $save[$i] = {txt=>$txt, cmd=>$cmd, pre=>$pre};
+
   if($cmd=~/^q/){ # q
     my(@opts) = $cmd=~/(\w+=\S+)/g;
     my %opts;
@@ -1666,11 +1665,12 @@ sub save_quote{ # pre, code, cite ...
       ($k) and $opts{$k} = $v;
     }
     ($opts{cite}) or $opts{cite} = 'http://example.com';
-    return(<<"EOD");
+    my $r = <<"EOD";
 <blockquote cite="$opts{cite}">
 ${MI}i=$i${MO}
 </blockquote>
 EOD
+    return($r);
   }else{ # pre, code
     my($ltag, $rtag) = ($cmd eq 'code')?('<pre><code>','</code></pre>')
                       :($cmd eq 'pre') ?('<pre>',      '</pre>') : ('', '');
