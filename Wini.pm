@@ -1231,11 +1231,11 @@ sub markgaab{
     push(@r, $t);
   } # foreach $t # for each paragraph
   my $r = join("\n", @r);
-  $r=~s{${MI}i=(\d+)${MO}}{
-       my $ltag = $save[$1]{cmd};
-       my $rtag = ($ltag=~/\{/) ? '{{end}}' : $ltag;
-       "${ltag}\n$save[$1]{txt}\n${rtag}\n";
-  }ge;
+  $r=~s/${MI}i=(\d+)${MO}/$save[$1]{txt}/g;
+#       my $ltag = $save[$1]{cmd};
+#       my $rtag = ($ltag=~/\{/) ? '{{end}}' : $ltag;
+#       "${ltag}\n$save[$1]{txt}\n${rtag}\n";
+#  }ge;
   if($cssfile){
     open(my $fho, '>', $cssfile) or mes(txt('fnw', undef, {f=>$cssfile}), {err=>1});# "Cannot modify $cssfile";
     print {$fho} css($CSS);
@@ -1647,10 +1647,13 @@ sub save_quote{ # pre, code, cite ...
 #  $txt=~s/^```/&#x60;&#x60;&#x60;/g;
   $cmd = lc $cmd;
   $save[$i] = {txt=>$txt, cmd=>$cmd};
+      $DB::single=$DB::single=1;
+
   if($cmd eq 'def'){
     return('');
   }
   $txt=~s{${MI}i=(\d+)${MO}}{
+    $DB::single=$DB::single=1;
        my $ltag = $save[$1]{cmd};
        my $rtag = ($ltag=~/\{/) ? '{{end}}' : $ltag;
        "${ltag}\n$save[$1]{txt}\n${rtag}\n";

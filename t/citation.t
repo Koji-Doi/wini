@@ -45,6 +45,7 @@ prepare($indata{mg}, $indata{html});
 
 for(my $i=1; $i<=$#{$indata{mg}}; $i++){
   Text::Markup::Wini::init();
+  my($mi, $mo) = ($Text::Markup::Wini::MI, $Text::Markup::Wini::MO);
   my $newdir  = outdir4indir($Indir);
   my $newfile = "$newdir/$i.html";
   test_cmd($indata{tag}[$i], {i=>"$Indir/$i.mg", o=>$newfile}, $newdir, [$newfile], [$indata{html}[$i]]);

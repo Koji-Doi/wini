@@ -10,20 +10,12 @@ use Data::Dumper;
 use lib '.';
 use Wini;
 #use is;
+use lib './t';
+use t;
+our %REF;
+#our($MI, $MO);
 Text::Markup::Wini::init();
 
-sub std{
-  my($x)=@_;
-  $x=~s/[\n\r]//g;
-  $x=~s/> */>/g;
-  $x=~s/\s{2,}/ /g;
-  $x=~s/ +</</g;
-  $x=~s/> +/>/g;
-  $x=~s{(</\w+>)}{$1\n}g;
-  return($x);
-}
-
-our %REF;
 my @indata;
 my $i=0;
 my $mode="";
@@ -70,8 +62,10 @@ SKIP: for(my $i=1; $i<=$#indata; $i++){
     my $got_e = join('', <$fh_log>);
     is std($got_e), std($indata[$i]{log});
   }
+  unlink $infile, $htmlfile, $errfile;
 }
 
+unlink $tmpreffile;
 1;
 done_testing;
 
