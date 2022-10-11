@@ -15,13 +15,15 @@ use t;
 our %REF;
 #our($MI, $MO);
 Text::Markup::Wini::init();
-
+my($mi, $mo) = ($Text::Markup::Wini::MI, $Text::Markup::Wini::MO);
 my @indata;
 my $i=0;
 my $mode="";
 my @reflist;
 $_=<DATA>;
 while(<DATA>){
+  s/\$\{MI}/$mi/g;
+  s/\$\{MO}/$mo/g;
   if(/^---start reflist/ .. /---end reflist/){
     /^---/ or push(@reflist, $_);
   }else{
@@ -252,11 +254,10 @@ Illegal refference: {{cit|xxxx_2022_001}}
 
 ---start html 7
 
-<p>Illegal refference: %%%xxxx_2022_001%%%l=en###</p>
+<p>Illegal refference: ${MI}xxxx_2022_001${MI}l=en${MO}</p>
 <ul class="citlist"></ul>
 
 ---start log 7
-
 undefined reference ID: xxxx_2022_001
 
 ---end

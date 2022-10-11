@@ -750,7 +750,6 @@ sub mes{ # display guide, warning etc. to STDERR
   my $ind = '';
   my($mestype, $col) = (exists $o->{err})  ? ('Error',   "\e[37m\e[41m")
                      : (exists $o->{warn}) ? ('Warning', "\e[31m\e[47m") : ('Message', "\e[0m");
-#  my $ln = ($o->{ln}) ? ":$o->{ln}" : '';
   my($p, $f, $l) = caller();
   my $ln  = (defined $o->{ln}) ? $o->{ln} : $l;
   my $ln1 = '';
@@ -764,7 +763,6 @@ sub mes{ # display guide, warning etc. to STDERR
     print STDERR "${col}$mes\e[0m\n";
     $ind='  ';
   }
-#  ($QUIET==0) and $txt = sprintf("${x}${ln1} [Wini.pm] ", $o->{ln});
   if(exists $o->{err}){
     (($FORCE) and print STDERR "$ind$txt\n") or die "$ind$txt\n";
   }elsif($o->{warn}){
@@ -896,8 +894,6 @@ if($mode_out eq 'ef' or $mode_out eq 'nf'){
     my($base, $indir1, $ext) = fileparse($in1, qw/.wini .par .mg/);
     ($indir1 eq './') and $indir1='';
     $indir1=~s{/$}{};
-    #(defined $indir) and $indir1=~s{^$indir(/|$)}{};
-    #my $outdir1 = "$outdir" . (($indir1 eq '') ? '' : "/$indir1");
     my $outdir1 = $out;
     $outdir1=~s{/$}{};
     if(-e $outdir1){
@@ -910,7 +906,6 @@ if($mode_out eq 'ef' or $mode_out eq 'nf'){
   } # foreach @infile
 }
 
-#print STDERR "winifiles: mode=" . (join(' ', keys %mode_in)) . ":${mode_out}\n";
   mes(
 #    "indir:   " . (($indir)?$indir:'undef') . "\n" .
     "infile:  " . (($infile[0])?join(' ', @infile):'undef') . "\n" .
@@ -1232,10 +1227,6 @@ sub markgaab{
   } # foreach $t # for each paragraph
   my $r = join("\n", @r);
   $r=~s/${MI}i=(\d+)${MO}/$save[$1]{txt}/g;
-#       my $ltag = $save[$1]{cmd};
-#       my $rtag = ($ltag=~/\{/) ? '{{end}}' : $ltag;
-#       "${ltag}\n$save[$1]{txt}\n${rtag}\n";
-#  }ge;
   if($cssfile){
     open(my $fho, '>', $cssfile) or mes(txt('fnw', undef, {f=>$cssfile}), {err=>1});# "Cannot modify $cssfile";
     print {$fho} css($CSS);
@@ -1949,9 +1940,6 @@ sub anchor{
       $caption = ref_txt($id, 'fig', $id_n, $caption, $lang);
       $img_id     = qq! id="$id"!; # ID for <img ...>
     }
-    #my $alttext = $caption;
-    #$alttext=~s{<[^<>]+>}{}gs;
-    #($alttext eq '') and $alttext=$url;
     my $alttext = $url;
     if($prefix eq '!!'){
       return(qq!<figure$style><img src="$url" alt="$alttext"${img_id}$class$imgopt><figcaption>$caption</figcaption></figure>!);
