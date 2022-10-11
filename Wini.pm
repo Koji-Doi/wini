@@ -343,8 +343,8 @@ sub init{
   binmode STDIN, ':utf8';
   binmode STDERR,':utf8';
   binmode STDOUT,':utf8';
-#  ($MI, $MO)  = ("\x00", "\x01");
-  ($MI, $MO)  = ("<<", ">>");
+  ($MI, $MO)  = ("\x00", "\x01");
+#  ($MI, $MO)  = ("<<", ">>");
   $ENVNAME    = "_";
   @LANGS      = qw/en ja/;
   if(defined $ENV{LANG}){
@@ -357,7 +357,7 @@ sub init{
   $LANG or $LANG = 'en';
   $QUIET      = 0; # 1: suppress most of messages
   $SCRIPTNAME = basename($0);
-  $VERSION    = "ver. 1.0alpha rel. 20220114";
+  $VERSION    = "ver. 1.0alpha rel. 20221011";
   while(<Text::Markup::Wini::DATA>){
     chomp;
     while(s/\\\s*$//){
@@ -437,7 +437,6 @@ sub stand_alone{
     (not defined $input[0] and not defined $outf->[0]) or
     (defined $inf->[0])
   ){
-    #print STDERR "File spec OK\n";
     mes(txt('fso'), {q=>1});
   }else{
     print STDERR "check inf  ", Dumper $inf;
@@ -509,16 +508,6 @@ sub stand_alone{
 } # sub stand_alone
 
 sub read_bib{
-  my(@bibfiles) = @_;
-  for(my $i=0; $i<=$#bibfiles; $i++){
-    my($ref, $fileformat) = ([], 'endnote'); # fileformat: endnote(default) or pubmed
-    open(my $fhi, '<:utf8', $bibfiles[$i]) or mes(txt('fnf', undef, {f => $bibfiles[$i]}), {err=>1});
-    unless($fileformat){
-      ($bibfiles[$i]=~/.nbib$/) and $fileformat = 'pubmed';
-    }
-    bib_id(); # reset ID
-    my $outbibfile = "$bibfiles[$i].ref";
-    if($fileformat eq 'endnote'){
 
 =begin c
 Wini.pm original specification: the text specified in %1 is regarded as an Reference ID.
@@ -576,10 +565,21 @@ Wini.pm original specification: the text specified in %1 is regarded as an Refer
 %[ 	Access date 	(Y2)
 %= 	Custom 8 	
 %~ 	Name of database
+
 =end c
 
 =cut
 
+  my(@bibfiles) = @_;
+  for(my $i=0; $i<=$#bibfiles; $i++){
+    my($ref, $fileformat) = ([], 'endnote'); # fileformat: endnote(default) or pubmed
+    open(my $fhi, '<:utf8', $bibfiles[$i]) or mes(txt('fnf', undef, {f => $bibfiles[$i]}), {err=>1});
+    unless($fileformat){
+      ($bibfiles[$i]=~/.nbib$/) and $fileformat = 'pubmed';
+    }
+    bib_id(); # reset ID
+    my $outbibfile = "$bibfiles[$i].ref";
+    if($fileformat eq 'endnote'){
       my %item = qw/A au B co C pp D ye E ed G lang 8 da T ti H tau I pu J jo R doi V vo N is U url/;
       my %current_rec;
       while(<$fhi>){
@@ -852,7 +852,6 @@ sub winifiles{
 =cut
 
   my(%mode_in, $mode_out);
-
   foreach my $in (@in){
     if(not defined $in){
       $mode_in{'--'} = 1;
@@ -878,33 +877,33 @@ sub winifiles{
             : (-f $out) ? 'ef'
             : ($out=~m{/$}) ? 'nd' : 'nf';
 
-if(exists $mode_in{ef}){
-  push(@infile, @in);
-}elsif(exists $mode_in{ed}){
-  push(@infile, map { <$_/*.wini>, <$_/*.par>, <$_/*.mg>} @in);
-}else{ # '--' = STDIN
-}
+  if(exists $mode_in{ef}){
+    push(@infile, @in);
+  }elsif(exists $mode_in{ed}){
+    push(@infile, map { <$_/*.wini>, <$_/*.par>, <$_/*.mg>} @in);
+  }else{ # '--' = STDIN
+  }
 
-($mode_out eq 'nd') and mkdir $out;
-if($mode_out eq 'ef' or $mode_out eq 'nf'){
-  my $outcss = cssfilename($in[0], $css, dirname($out));
-  ($outfile[0], $cssfile[0]) = ($out, $outcss);
-}elsif($mode_out eq 'ed' or $mode_out eq 'nd'){
-  foreach my $in1 (@infile){
-    my($base, $indir1, $ext) = fileparse($in1, qw/.wini .par .mg/);
-    ($indir1 eq './') and $indir1='';
-    $indir1=~s{/$}{};
-    my $outdir1 = $out;
-    $outdir1=~s{/$}{};
-    if(-e $outdir1){
-      (-d $outdir1) or mes(txt('dnw', undef, {d=>$outdir1}), {err=>1});
-    }else{
-      (mkpath $outdir1) || mes(txt('dnw', undef, {d=>$outdir1}), {err=>1});
-    }
-    push(@outfile, "${outdir1}/${base}${ext}.html");
-    push(@cssfile, cssfilename("${outdir1}/${base}${ext}.css", $css, $outdir1));
-  } # foreach @infile
-}
+  ($mode_out eq 'nd') and mkdir $out;
+  if($mode_out eq 'ef' or $mode_out eq 'nf'){
+    my $outcss = cssfilename($in[0], $css, dirname($out));
+    ($outfile[0], $cssfile[0]) = ($out, $outcss);
+  }elsif($mode_out eq 'ed' or $mode_out eq 'nd'){
+    foreach my $in1 (@infile){
+      my($base, $indir1, $ext) = fileparse($in1, qw/.wini .par .mg/);
+      ($indir1 eq './') and $indir1='';
+      $indir1=~s{/$}{};
+      my $outdir1 = $out;
+      $outdir1=~s{/$}{};
+      if(-e $outdir1){
+        (-d $outdir1) or mes(txt('dnw', undef, {d=>$outdir1}), {err=>1});
+      }else{
+        (mkpath $outdir1) || mes(txt('dnw', undef, {d=>$outdir1}), {err=>1});
+      }
+      push(@outfile, "${outdir1}/${base}${ext}.html");
+      push(@cssfile, cssfilename("${outdir1}/${base}${ext}.css", $css, $outdir1));
+    } # foreach @infile
+  }
 
   mes(
 #    "indir:   " . (($indir)?$indir:'undef') . "\n" .
@@ -915,7 +914,6 @@ if($mode_out eq 'ef' or $mode_out eq 'nf'){
      );
 #  (defined $indir  or defined $infile[0])  or mes(txt('din'), {q=>1});
   (defined $outdir or defined $outfile[0]) or mes(txt('rout'), {q=>1});
-#  return($indir, \@infile, $outdir, \@outfile, \@cssfile);
   return(\@infile, $outdir, \@outfile, \@cssfile);
 } # sub winifiles
 
@@ -1055,11 +1053,8 @@ sub to_html{
     } # read sect content
   } # foreach sect
   if($depth!=0){
-  #  $html[-1]{close} = "\n" . ("</section><!-- ** d=$depth -->" x $depth);
     for(my $i=$depth; $i>0; $i--){
       $html[-1]{close} .= sprintf(
-#         qq{</%s> <!-- end of "%s" *d=$i (%d) -->\n},
-#         $sectdata_depth[$i][-1]{tag}, $sectdata_depth[$i][-1]{sect_id}, $sect_cnt
          qq{</%s>\n},
          $sectdata_depth[$i][-1]{tag}
       );
@@ -1294,7 +1289,6 @@ sub deref{
     }
   !ge;
 
-  #  $r=~s!${MI}([^${MI}${MO}]+)?(?:${MI}t=citlist)(?:${MI}l=([^${MI}${MO}]+))?${MO}!
     $r=~s!${MI}citlist(?:${MI}l=(\w*))${MO}!
       my($lang) = ($1);
       ($lang) or $lang = $LANG || 'en';

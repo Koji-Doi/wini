@@ -97,7 +97,7 @@ sub is1{
   my $filename = basename($0, qw/.t .pl .pm/) . "_${cnt}_";
   foreach my $i (0..1){
     $x[$i]=~/<html>/ or  $x[$i] = whole_html1($x[$i]);
-    my $outfile = sprintf('%s_%d_%s.html', $filename, $cnt, [qw/got expected/]->[$i]);
+    my $outfile = sprintf('%s%s.html', $filename, [qw/got expected/]->[$i]);
     open(my $fho, '>:utf8', $outfile);
     print {$fho} $x[$i];
     close $fho;
@@ -113,6 +113,11 @@ sub test1{
   $o     = std($o);
   my($p) = std($expect);
   if($DEBUG){
+    my $file = basename($0, qw/.t .pl .pm/) . "_${cnt}.wini";
+    open(my $fho, '>:utf8', $file);
+    print {$fho} "$src\n";
+    close $fho;
+    print STDERR "saved $file.\n";
     is1 $o, $p, $testname;
   }else{
     is  $o, $p, $testname;

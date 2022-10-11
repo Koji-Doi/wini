@@ -11,24 +11,37 @@ use lib '.';
 use Wini;
 use lib './t';
 use t;
+our $DEBUG=0;
+if(defined $ARGV[0] and $ARGV[0] eq '-d'){
+  $DEBUG=1;
+}
+
 Text::Markup::Wini::init();
 
 our %REF;
-my @indata;
+my %indata;
 my $i=0;
 my $mode="";
 $_=<DATA>;
 while(<DATA>){
-    /^---start mg/   and ($i++, $mode='mg', next);
-    /^---start html/ and ($mode='html', next);
-    /^---end/ and last;
-    $indata[$i]{$mode} .= $_;
+  if(/^---start mg(?:\s*(.*))?$/){
+    $i++;
+    my $x=$1;
+    $mode='mg';
+    $x=~s/[\n\r]*$//;
+    $indata{tag}[$i]=$x;
+    next;
+  }
+  /^---start html/ and ($mode='html', next);
+  /^---end/ and last;
+  $indata{$mode}[$i] .= $_;
 }
 
-for(my $i=1; $i<=$#indata; $i++){
-  Text::Markup::Wini::init();
-  my($o1) = Text::Markup::Wini::to_html($indata[$i]{mg});
-  is std($o1), std($indata[$i]{html});
+for(my $i=1; $i<=$#{$indata{mg}}; $i++){
+  #Text::Markup::Wini::init();
+  #my($o1) = Text::Markup::Wini::to_html($indata[$i]{mg});
+  #is std($o1), std($indata[$i]{html});
+  test1($indata{tag}[$i], $indata{mg}[$i], $indata{html}[$i]);
 }
 1;
 done_testing;
@@ -36,14 +49,14 @@ done_testing;
 __DATA__
 "
 
----start mg 1
+---start mg T1 no border line
 
 |- no border line | |
 | a | b | c |
 | d | e | f |
 | g | h | i |
 
----start html 1
+---start html T1
 <table class="mgtable" style="border-collapse: collapse; "><caption>no border line</caption>
  <tbody>
  <tr>
@@ -64,14 +77,14 @@ __DATA__
  </tbody>
 </table>
 
----start mg 2
+---start mg T2 outer frame
 
 |- outer frame | @1 |
 | a | b | c |
 | d | e | f |
 | g | h | i |
 
----start html 2
+---start html T2
 <table class="mgtable" style="border-collapse: collapse; border-left: solid 1px; border-right: solid 1px; border-bottom: solid 1px; border-top: solid 1px; "><caption>outer frame</caption>
  <tbody>
   <tr><td>a</td>
@@ -91,14 +104,14 @@ __DATA__
  </tbody>
 </table>
 
----start mg 3
+---start mg T3 inner frame of tbody
 
 |- inner frame of tbody | @@1 |
 | a | b | c |
 | d | e | f |
 | g | h | i |
 
----start html 3
+---start html T3
 
 <table class="mgtable" style="border-collapse: collapse; "><caption>inner frame of tbody</caption>
  <tbody>
@@ -120,4 +133,47 @@ __DATA__
  </tbody>
 </table>
 
+---start mg T3a inner frame of tbody
+
+|- inner frame of tbody | @@1red |
+| a | b | c |
+| d | e | f |
+| g | h | i |
+
+---start html T3a
+<table class="mgtable" style="border-collapse: collapse; "><caption>inner frame of tbody</caption>
+<tbody>
+ <tr>
+  <td style="border:solid 1px red;">a</td>
+  <td style="border:solid 1px red;">b</td>
+  <td style="border:solid 1px red;">c</td>
+ </tr>
+ <tr>
+  <td style="border:solid 1px red;">d</td>
+  <td style="border:solid 1px red;">e</td>
+  <td style="border:solid 1px red;">f</td>
+ </tr>
+ <tr>
+  <td style="border:solid 1px red;">g</td>
+  <td style="border:solid 1px red;">h</td>
+  <td style="border:solid 1px red;">i</td>
+ </tr>
+</tbody>
+</table>
+
+---start mg T4 frame of tbody
+
+|- frame of tbody | b@1green |
+| a | b | c |
+| d | e | f |
+| g | h | i |
+
+---start html T3b
+<table class="mgtable" style="border-collapse: collapse; "><caption>frame of tbody</caption>
+<tbody style="box-shadow: 0 0 0 1px green;">
+ <tr><td>a</td><td>b</td><td>c</td></tr>
+ <tr><td>d</td><td>e</td><td>f</td></tr>
+ <tr><td>g</td><td>h</td><td>i</td></tr>
+</tbody>
+</table>
 ---end
