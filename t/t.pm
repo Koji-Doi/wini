@@ -75,7 +75,7 @@ sub whole_html1{
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<title>t/bib.t test</title>
+<title>test</title>
 </head>
 <body>
   $x

@@ -2435,6 +2435,18 @@ sub ev{ # <, >, %in%, and so on
           ''
         }
       } @stack;
+
+    }elsif($t=~/^\&cut_(lt|le|gt|ge) +(\S+)/){
+      my($f, $x) = ($1, $2);
+      if($f eq 'lt'){
+        @stack = ($x=~/^[.\d]+/) ? (grep {$_ <  $x} @stack) : (grep { $_ lt $x} @stack);
+      }elsif($f eq 'le'){
+        @stack = ($x=~/^[.\d]+/) ? (grep {$_ <= $x} @stack) : (grep { $_ le $x} @stack);
+      }elsif($f eq 'gt'){
+        @stack = ($x=~/^[.\d]+/) ? (grep {$_ >  $x} @stack) : (grep { $_ gt $x} @stack);
+      }elsif($f eq 'ge'){
+        @stack = ($x=~/^[.\d]+/) ? (grep {$_ >= $x} @stack) : (grep { $_ ge $x} @stack);
+      }
     }elsif($t=~/^\&sort([nr])*/){ #sort #sortn #sortr #sortnr
       my $x=$1;
       my($n,$r) = ($x=~/n/?1:0, $x=~/r/?1:0);
@@ -2465,10 +2477,10 @@ sub ev{ # <, >, %in%, and so on
                        : join($sep, @$yy);
       ($etal) and (scalar @stack > $n) and $j .= txt('etal', $lang);
       @stack  = ($j);
-    }elsif($t=~/^\&l_(.*)$/){ # "abc"|l* -> "*abc"
+    }elsif($t=~/^\&l_(.*)$/){ # "abc"|l_* -> "*abc"
       my $p = $1 || '*';
       @stack = map {s/^\s*//; ($_ ne '') ? "$p$_" : ''} @stack;
-    }elsif($t=~/^\&r_(.*)$/){ # "abc"|r* -> "abc*"
+    }elsif($t=~/^\&r_(.*)$/){ # "abc"|r_* -> "abc*"
       my $p = $1 || '.';
       @stack = map {s/\s*$//; ($_ ne '') ? "$_$p" : ''} @stack;
     }elsif($t=~/^\&q_(.)?(.)?$/){ # "abc"|&q_ -> "'abc'"; "abc"|&q_() -> "(abc)"
@@ -2478,11 +2490,13 @@ sub ev{ # <, >, %in%, and so on
       map {qq{&nbsp;<span style="font-weight:bold">$_</span>}} @stack;
     }elsif($t eq '&ita' or $t eq '&italic'){
       map {qq{&nbsp;<span style="font-style:italic">$_</span>}} @stack;
-    }elsif($t=~/^\&(if|unless)_empty(?: +(\w+))?$/){ # if array($1) is empty,...
+    }elsif($t=~/^\&(if|unless)_empty(?: +(\w+))?$/){ # if array($2) is empty,... exit
       my($if, $name) = ($1, $2);
       (exists $v->{$name}) or mes(txt('vnd', $lang, {v=>$name}), {err=>1});
-      (scalar @{$v->{$name}} > 0)  and ($if eq 'unless') and return(());
-      (scalar @{$v->{$name}} == 0) and ($if eq 'if')     and return(());
+      (scalar @{$v->{$name}} > 0)  and ($if eq 'unless') and return(@stack);
+      (scalar @{$v->{$name}} == 0) and ($if eq 'if')     and return();
+    }elsif($t eq '&end'){
+      return(@stack);
 #====
     }elsif($t eq '&ucase'){
       push(@stack, ucfirst $stack[-1]); # $token[$i-2]);

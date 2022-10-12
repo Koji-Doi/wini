@@ -167,6 +167,41 @@ __DATA__
 | a | b | c |
 | d | e | f |
 | g | h | i |
+|--- footnote1 |
+
+---start html T4
+<table class="mgtable" style="border-collapse: collapse; "><caption>frame of tbody</caption>
+<tbody style="box-shadow: 0 0 0 1px green;">
+ <tr><td>a</td><td>b</td><td>c</td></tr>
+ <tr><td>d</td><td>e</td><td>f</td></tr>
+ <tr><td>g</td><td>h</td><td>i</td></tr>
+</tbody>
+</table>
+
+---start mg T5 frame of tfoot
+
+|- frame of footnote | f@1green |
+| a | b | c |
+| d | e | f |
+| g | h | i |
+|--- footnote2 |
+
+---start html T5
+<table class="mgtable" style="border-collapse: collapse; "><caption>frame of tbody</caption>
+<tbody style="box-shadow: 0 0 0 1px green;">
+ <tr><td>a</td><td>b</td><td>c</td></tr>
+ <tr><td>d</td><td>e</td><td>f</td></tr>
+ <tr><td>g</td><td>h</td><td>i</td></tr>
+</tbody>
+</table>
+
+---start mg T6 frame of whole table
+
+|- frame of table | t@1green |
+| a | b | c |
+| d | e | f |
+| g | h | i |
+|--- footnote3 |
 
 ---start html T3b
 <table class="mgtable" style="border-collapse: collapse; "><caption>frame of tbody</caption>
