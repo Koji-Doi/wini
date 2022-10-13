@@ -187,12 +187,18 @@ __DATA__
 |--- footnote2 |
 
 ---start html T5
-<table class="mgtable" style="border-collapse: collapse; "><caption>frame of tbody</caption>
-<tbody style="box-shadow: 0 0 0 1px green;">
- <tr><td>a</td><td>b</td><td>c</td></tr>
- <tr><td>d</td><td>e</td><td>f</td></tr>
- <tr><td>g</td><td>h</td><td>i</td></tr>
+<table class="mgtable" style="border-collapse: collapse; ">
+<caption>
+frame of footnote
+</caption>
+<tbody>
+<tr><td>a</td><td>b</td><td>c</td></tr>
+<tr><td>d</td><td>e</td><td>f</td></tr>
+<tr><td>g</td><td>h</td><td>i</td></tr>
 </tbody>
+<tfoot style="box-shadow: 0 0 0 1px green;">
+<tr><td colspan="3">footnote2</td></tr>
+</tfoot>
 </table>
 
 ---start mg T6 frame of whole table
@@ -204,6 +210,8 @@ __DATA__
 |--- footnote3 |
 
 ---start html T3b
+
+
 <table class="mgtable" style="border-collapse: collapse; "><caption>frame of tbody</caption>
 <tbody style="box-shadow: 0 0 0 1px green;">
  <tr><td>a</td><td>b</td><td>c</td></tr>

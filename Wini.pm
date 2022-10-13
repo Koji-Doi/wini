@@ -871,6 +871,9 @@ sub winifiles{
     }
   }
   (defined $in[0]) or $mode_in{'--'} = 1;
+  if((defined $out) and ($out eq '')){
+    $out = (defined $in[0]) ? "$in[0].html" : undef;
+  }
 
   $mode_out = (not defined $out) ? '--'
             : (-d $out) ? 'ed'
@@ -2209,6 +2212,7 @@ sub table{
   my $outtxt = sprintf(qq!\n<table${id} class="%s"!, join(' ', sort @{$htmlitem[0][0]{copt}{class}}));
   (defined $htmlitem[0][0]{copt}{border})      and $outtxt .= ' border="1"';
   $outtxt .= q{ style="border-collapse: collapse; };
+  (defined $htmlitem[0][0]{copt}{tborder}) and $outtxt .= qq!border: $htmlitem[0][0]{copt}{tborder};!;
   foreach my $k (qw/text-align vertical-align color background-color float/){
     (defined $htmlitem[0][0]{copt}{style}{$k}) and $outtxt .= qq! $k: $htmlitem[0][0]{copt}{style}{$k}[0];!;
   }
