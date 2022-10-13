@@ -2285,7 +2285,7 @@ sub table{
     } (1 .. $#{$htmlitem[1]}) # map
     ); # join
     $outtxt0 .= "</tr>\n";
-    (defined $htmlitem[$rn][0]{footnote}) ? ($footnotetext .= $htmlitem[$rn][0]{footnote}."; ") : ($outtxt .= $outtxt0);
+    (defined $htmlitem[$rn][0]{footnote}) ? ($footnotetext .= $htmlitem[$rn][0]{footnote}) : ($outtxt .= $outtxt0);
   } # foreach $rn
   $outtxt .= "</tbody>\n";
   if(defined $footnotes[0] or defined $footnotetext){
@@ -2295,7 +2295,7 @@ sub table{
        ? join('<br>', $footnotetext, $f)
        : $f;
     }
-    $outtxt .= (defined $htmlitem[0][0]{copt}{fborder})?qq{<tfoot style="box-shadow: $htmlitem[0][0]{copt}{fborder};">\n}:"<tfoot>\n"
+    $outtxt .= ((defined $htmlitem[0][0]{copt}{fborder}) ? qq{<tfoot style="box-shadow: $htmlitem[0][0]{copt}{fborder};">\n} : "<tfoot>\n")
             . sprintf(qq!<tr><td colspan="%d">${footnotetext}</td></tr>\n</tfoot>\n!, $#{$htmlitem[1]});
   } #if defined $footnotes[0] ...
   $outtxt .= "</table>\n\n";
