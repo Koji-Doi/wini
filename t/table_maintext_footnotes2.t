@@ -70,7 +70,7 @@ capt.
 <tr><th>l9</th><td style="vertical-align:bottom;">i <sup>&lowast;&lowast;</sup></td></tr>
 </tbody>
 <tfoot>
-<tr><td colspan="2">inner table footnote; <br><sup>&lowast;1</sup>captE;&nbsp;
+<tr><td colspan="2">inner table footnote<br><sup>&lowast;1</sup>captE;&nbsp;
 <sup>&plus;1</sup>captF;&nbsp;
 <sup>&plus;2</sup>captF2;&nbsp;
 <sup>&lowast;2</sup>captE2;&nbsp;
@@ -97,7 +97,7 @@ capt2.
 <tr><th>l9</th><td style="vertical-align:bottom;">i <sup>&lowast;&lowast;</sup></td></tr>
 </tbody>
 <tfoot>
-<tr><td colspan="2">inner table footnote2; <br><sup>&lowast;1</sup>captE;&nbsp;
+<tr><td colspan="2">inner table footnote2<br><sup>&lowast;1</sup>captE;&nbsp;
 <sup>&plus;1</sup>captF;&nbsp;<sup>&plus;2</sup>captF2;&nbsp;
 <sup>&lowast;2</sup>captE2;&nbsp;
 <sup>&lowast;</sup>captG;&nbsp;
