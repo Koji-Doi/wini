@@ -12,6 +12,14 @@ our($Indir, $Outdir);
 our(@Infiles, @Outfiles);
 our $DEBUG;
 
+sub save_obj_to_file{
+  my($x, $outfile) = @_;
+  open(my $fho, '>:utf8', $outfile) or die "Failed to save $outfile.";
+  print {$fho} "$x\n";
+  close $fho;
+  print STDERR "##### saved $outfile.\n";
+}
+
 sub outdir4indir{
   my($indir) = @_;
   my($body) = $indir=~/(?:wini_in_)?(\w+$)/;
@@ -99,6 +107,7 @@ sub is1{
     $x[$i]=~/<html>/ or  $x[$i] = whole_html1($x[$i]);
     my $outfile = sprintf('%s%s.html', $filename, [qw/got expected/]->[$i]);
     open(my $fho, '>:utf8', $outfile);
+    print STDERR "##### saved $outfile.\n";
     print {$fho} $x[$i];
     close $fho;
   }
@@ -108,20 +117,18 @@ sub is1{
 sub test1{
   my($testname, $src, $expect, $to_html_opt) = @_;
   Text::Markup::Wini::init();
-  my($o) = Text::Markup::Wini::to_html($src, $to_html_opt);
+  my($o0) = Text::Markup::Wini::to_html($src, $to_html_opt);
+
   no warnings;
-  $o     = std($o);
+  my($o) = std($o0);
   my($p) = std($expect);
   if($DEBUG){
     my $file = basename($0, qw/.t .pl .pm/) . "_${cnt}.wini";
-    open(my $fho, '>:utf8', $file);
-    print {$fho} "$src\n";
-    close $fho;
-    print STDERR "saved $file.\n";
-    is1 $o, $p, $testname;
-  }else{
-    is  $o, $p, $testname;
-  }
+    save_obj_to_file($src,    $file);
+    save_obj_to_file($expect, "${file}.exp.html");
+    save_obj_to_file($o0,     "${file}.got.html");
+  }  
+  is $o, $p, $testname;
   use warnings;
 }
 

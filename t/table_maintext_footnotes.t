@@ -7,19 +7,14 @@ use Test::More;
 
 use lib '.';
 use Wini;
+use lib './t';
+use t;
 
-sub std{
-  my($x)=@_;
-  $x=~s/[\n\r]*//g;
-  $x=~s/> */>/g;
-  $x=~s/\s{2,}//g;
-  $x=~s/ +</</g;
-  $x=~s/> +/>/g;
-  return($x);
-}
+our $DEBUG = (defined $ARGV[0] and $ARGV[0] eq '-d') ? 1 : 0;
 
 {
-  my($o, undef) = markgaab(<<'EOC');
+  #  my($o, undef) = markgaab(<<'EOC');
+  my $src = <<'EOC';
 Table
 
 |- capt.      | border="1"            |
@@ -36,9 +31,8 @@ Main text with footnote{{^|main text footnote}}.
 Main text with footnote{{^|main text footnote2|d}}.
 
 EOC
-  $o=std($o);
 
-  my $p = <<EOC;
+  my $exp = <<EOC;
 <p>
 Table
 </p>
@@ -80,10 +74,8 @@ Main text with footnote<sup>&dagger;1</sup>.
 
 EOC
 
-  $p=std($p);
-
-  is $o, $p;
+  test1('test1', $src, $exp);
 }
-  
+
 done_testing;
 
