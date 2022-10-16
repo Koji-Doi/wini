@@ -103,6 +103,7 @@ sub is1{
   is $x[0], $x[1], $title;
   use warnings;
   my $filename = basename($0, qw/.t .pl .pm/) . "_${cnt}_";
+  print STDERR "\n";
   foreach my $i (0..1){
     $x[$i]=~/<html>/ or  $x[$i] = whole_html1($x[$i]);
     my $outfile = sprintf('%s%s.html', $filename, [qw/got expected/]->[$i]);
@@ -124,11 +125,13 @@ sub test1{
   my($p) = std($expect);
   if($DEBUG){
     my $file = basename($0, qw/.t .pl .pm/) . "_${cnt}.wini";
+    print STDERR "\n";
     save_obj_to_file($src,    $file);
     save_obj_to_file($expect, "${file}.exp.html");
     save_obj_to_file($o0,     "${file}.got.html");
   }  
   is $o, $p, $testname;
+  $cnt++;
   use warnings;
 }
 

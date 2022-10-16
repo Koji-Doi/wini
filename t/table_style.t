@@ -176,6 +176,9 @@ __DATA__
  <tr><td>d</td><td>e</td><td>f</td></tr>
  <tr><td>g</td><td>h</td><td>i</td></tr>
 </tbody>
+<tfoot>
+<tr><td colspan="3">footnote1</td></tr>
+</tfoot>
 </table>
 
 ---start mg T5 frame of tfoot
@@ -209,8 +212,7 @@ frame of footnote
 | g | h | i |
 |--- footnote3 |
 
----start html T3b
-
+---start html T6
 
 <table class="mgtable" style="border-collapse: collapse; "><caption>frame of tbody</caption>
 <tbody style="box-shadow: 0 0 0 1px green;">
@@ -218,5 +220,8 @@ frame of footnote
  <tr><td>d</td><td>e</td><td>f</td></tr>
  <tr><td>g</td><td>h</td><td>i</td></tr>
 </tbody>
+<tfoot>
+<tr><td colspan="3">footnote3</td></tr>
+</tfoot>
 </table>
 ---end
