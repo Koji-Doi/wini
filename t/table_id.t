@@ -40,7 +40,7 @@ binmode STDOUT,':utf8';
 my $i=-1;
 my $mode = '';
 while(<DATA>){
-  /^---start mg/   and ($i++, $mode='mg', next);
+  /^---start mg/   and ($i++, $mode='mg', $indata[$i]{tag}=$_, next);
   /^---start html/ and ($mode='html', next);
   /^---end/ and last;
   $indata[$i]{$mode} .= $_;
@@ -55,7 +55,7 @@ for(my $i=0; $i<=$#indata; $i++){
   my $p = $indata[$i]{html};
 
   # $o must be decoded.
-  is $o, std($p);
+  is1( $o, std($p), $indata[$i]{tag});
 #  is std(decode('utf-8',$o)), std($p);
 }
 
@@ -78,7 +78,7 @@ sub std{
 =cut
 
 __DATA__
----start mg
+---start mg "#id1"
 ===
 lang: 'en'
 ===
@@ -95,7 +95,7 @@ lang: 'en'
 </tbody>
 </table>
 
----start mg
+---start mg "#2"
 |- (must be tbl2) | #2 @2 |
 | c | d |
 
@@ -108,7 +108,7 @@ lang: 'en'
 </tbody>
 </table>
 
----start mg
+---start mg multiple tables. IDs are defined in various styles
 
 ===
 lang: 'en'
@@ -155,7 +155,7 @@ lang: 'en'
 </tbody>
 </table>
 
----start mg
+---start mg table IDs are defined and reffered in various ways.
 
 ===
 lang: 'en'

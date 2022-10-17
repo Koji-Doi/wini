@@ -23,7 +23,7 @@ while(<DATA>){
   if(/^---start reflist/ .. /---end reflist/){
     /^---/ or push(@reflist, $_);
   }else{
-    /^---start mg/   and ($i++, $mode='mg', next);
+    /^---start mg/   and ($i++, $mode='mg', $indata[$i]{tag}=$_, next);
     /^---start html/ and ($mode='html', next);
     /^---end/ and last;
     $indata[$i]{$mode} .= $_;
@@ -50,7 +50,7 @@ for(my $i=1; $i<=$#indata; $i++){
   print {$fho_h} $o1;
   close $fho_h;
 
-  is std($o1), std($indata[$i]{html});
+  is1( std($o1), std($indata[$i]{html}), $indata[$i]{tag});
   unlink $mgfile, $htmlfile;
 }
 1;

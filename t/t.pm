@@ -100,17 +100,20 @@ sub is1{
   my(@x) = @_;
   my $title = (defined $x[2]) ? $x[2] : "test${cnt}";
   no warnings;
+  $title=~s/\s*$//;
   is $x[0], $x[1], $title;
-  use warnings;
-  my $filename = basename($0, qw/.t .pl .pm/) . "_${cnt}_";
-  print STDERR "\n";
-  foreach my $i (0..1){
-    $x[$i]=~/<html>/ or  $x[$i] = whole_html1($x[$i]);
-    my $outfile = sprintf('%s%s.html', $filename, [qw/got expected/]->[$i]);
-    open(my $fho, '>:utf8', $outfile);
-    print STDERR "##### saved $outfile.\n";
-    print {$fho} $x[$i];
-    close $fho;
+  if($DEBUG){
+    use warnings;
+    my $filename = basename($0, qw/.t .pl .pm/) . "_${cnt}_";
+    print STDERR "\n";
+    foreach my $i (0..1){
+      $x[$i]=~/<html>/ or  $x[$i] = whole_html1($x[$i]);
+      my $outfile = sprintf('%s%s.html', $filename, [qw/got expected/]->[$i]);
+      open(my $fho, '>:utf8', $outfile);
+      print STDERR "##### saved $outfile.\n";
+      print {$fho} $x[$i];
+      close $fho;
+    }
   }
   $cnt++;
 }

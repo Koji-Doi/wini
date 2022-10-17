@@ -9,16 +9,14 @@ use Data::Dumper;
 
 use lib '.';
 use Wini;
-#use is;
+use lib './t';
+use t;
+our $DEBUG = 0;
 Text::Markup::Wini::init();
 
-sub std{
+sub std1{
   my($x)=@_;
-  $x=~s/[\n\r]//g;
-  $x=~s/> */>/g;
-  $x=~s/\s{2,}/ /g;
-  $x=~s/ +</</g;
-  $x=~s/> +/>/g;
+  $x = std($x);
   $x=~s{(</\w+>)}{$1\n}g;
   return($x);
 }
@@ -55,11 +53,11 @@ SKIP: for(my $i=1; $i<=$#indata; $i++){
   system("perl Wini.pm --quiet < $infile > $htmlfile 2>$errfile");
   open(my $fh_h, '<:utf8', $htmlfile);
   my $got = join("\n", <$fh_h>);
-  is std($got), std($indata[$i]{html});
+  is1(std1($got), std1($indata[$i]{html}), $indata[$i]{tag});
   if($indata[$i]{tag}=~/ e /){
     open(my $fh_log, '<:utf8', $errfile);
     my $got_e = join('', <$fh_log>);
-    is std($got_e), std($indata[$i]{log});
+    is1($got_e, $indata[$i]{log}, "$indata[$i]{tag} error log");
   }
 }
 
@@ -72,27 +70,27 @@ done_testing;
 
 __DATA__
 "
----start mg 1
+---start mg A: links without link text
 
 links without link text.  [http://example.com]
 
----start html 1
+---start html A
 
 <p>
 links without link text.  <a href="http://example.com" target="_self">http://example.com</a>
 </p>
 
----start mg 2
+---start mg B: Links with [http://example.com link text]
 
 Links with [http://example.com link text].
 
----start html 2
+---start html B
 
 <p>
 Links with <a href="http://example.com" target="_self">link text</a>.
 </p>
 
----start mg 3
+---start mg C: links with [link text in markdown-compartible format](http://example.com)
 
 links with [link text in markdown-compartible format](http://example.com)
 
@@ -102,7 +100,7 @@ links with [link text in markdown-compartible format](http://example.com)
 links with <a href="http://example.com">link text in markdown-compartible format</a>
 </p>
 
----start mg 4
+---start mg D: [#hoge inner link]
 
 [#hoge inner link]
 
@@ -112,7 +110,7 @@ links with <a href="http://example.com">link text in markdown-compartible format
 <a href="#hoge" target="_self">inner link</a>
 </p>
 
----start mg 5 ext ref
+---start mg E: ext ref
 
 {{.hoge|Paragraph with ID}}
 

@@ -213,15 +213,18 @@ frame of footnote
 |--- footnote3 |
 
 ---start html T6
-
-<table class="mgtable" style="border-collapse: collapse; "><caption>frame of tbody</caption>
-<tbody style="box-shadow: 0 0 0 1px green;">
- <tr><td>a</td><td>b</td><td>c</td></tr>
- <tr><td>d</td><td>e</td><td>f</td></tr>
- <tr><td>g</td><td>h</td><td>i</td></tr>
+<table class="mgtable" style="border-collapse: collapse; box-shadow: 0 0 0 1px green;">
+<caption>
+frame of table
+</caption>
+<tbody>
+<tr><td>a</td><td>b</td><td>c</td></tr>
+<tr><td>d</td><td>e</td><td>f</td></tr>
+<tr><td>g</td><td>h</td><td>i</td></tr>
 </tbody>
 <tfoot>
 <tr><td colspan="3">footnote3</td></tr>
 </tfoot>
 </table>
+
 ---end

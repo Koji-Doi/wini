@@ -12,6 +12,9 @@ use Wini;
 #use is;
 use lib './t';
 use t;
+
+our $DEBUG = (defined $ARGV[0] and $ARGV[0] eq '-d') ? 1 : 0;
+our($Indir, $Outdir);
 our %REF;
 #our($MI, $MO);
 Text::Markup::Wini::init();
@@ -58,17 +61,18 @@ SKIP: for(my $i=1; $i<=$#indata; $i++){
   system("perl Wini.pm --quiet --bib $tmpreffile < $infile > $htmlfile 2>$errfile");
   open(my $fh_h, '<:utf8', $htmlfile);
   my $got = join("\n", <$fh_h>);
-  is std($got), std($indata[$i]{html});
+  is1(std($got), std($indata[$i]{html}), $indata[$i]{tag});
+  #is std($got), std($indata[$i]{html});
   if($indata[$i]{tag}=~/ e /){
     open(my $fh_log, '<:utf8', $errfile);
     my $got_e = join('', <$fh_log>);
-    is std($got_e), std($indata[$i]{log});
+    is1(std($got_e), std($indata[$i]{log}), "$indata[$i]{tag} error log");
+    #is std($got_e), std($indata[$i]{log});
   }
   unlink $infile, $htmlfile, $errfile;
 }
 
 unlink $tmpreffile;
-1;
 done_testing;
 
 __DATA__
@@ -130,7 +134,7 @@ __DATA__
 %I IEEE
 ---end reflist
 
----start mg 1
+---start mg 1 simple {{cit}}
 
 Reference 1: {{cit|kirk2282|au='James, T. Kirk'|ye=2282|ti='Federation Starfleet{{'}}s New Operation Concept.'|jo='Federation Military Review' |vo='100' |pp='201-202' }}
 
@@ -140,7 +144,7 @@ Reference 1: {{cit|kirk2282|au='James, T. Kirk'|ye=2282|ti='Federation Starfleet
 Reference 1:<a href="#reflist_kirk2282"><span id="kirk2282_1" title="title">(1)</span></a>
 </p>
 
----start mg 2
+---start mg 2 {{cit}} and {{ref}}
 
 Reference 1: {{cit|kirk2282|au='James, T. Kirk'|ye=2282|ti='Federation Starfleet{{'}}s New Operation Concept.'|jo='Federation Military Review' |vo='100' |pp='201-202' }}
 
@@ -163,7 +167,7 @@ Reference 2:<a href="#reflist_gal2021"><span id="gal2021_1" title="title">(2)</s
 <p>Citing ref 1 as<a href="#reflist_kirk2282"><span id="kirk2282_2" title="title">(1)</span></a>.</p>
 <p>Citing ref 2 as<a href="#reflist_gal2021"><span id="gal2021_2" title="title">(2)</span></a>.</p>
 
----start mg 3
+---start mg 3 {{cit}} and a bit complex {{ref}}
 
 Reference 1: {{cit|kirk2282|au='James, T. Kirk'|ye=2282|ti='Federation Starfleet{{'}}s New Operation Concept.'|jo='Federation Military Review' |vo='100' |pp='201-202' }}
 
@@ -194,7 +198,7 @@ Citing ref 2 as<a href="#reflist_gal2021"><span id="gal2021_2" title="title">(2)
 <p>Citing ref 1 again as<a href="#reflist_kirk2282"><span id="kirk2282_3" title="title">(1)</span></a>
 .</p>
 
----start mg 4
+---start mg 4 {{cit}} and {{citlist}}
 
 {{cit|gal2021|au='Kadotani, Anzu'|au='Koyama, Yuzuko'|au='Kawashima, Momo'|ye=2021|ti='Practice of Senshado in High School Club Activities'|jo='Research by Highschool Students'}}
 
@@ -222,7 +226,7 @@ Kadotani et al., 2022. {{cit|kadotani_2022_001}}
 </a>
 </p>
 
----start mg 6 ext ref
+---start mg 6 ext ref and {{citlist}}
 
 Kadotani, 2022. {{cit|kadotani2022_001}}
 
@@ -246,7 +250,7 @@ Kadotani et al., 2022.<a href="#reflist_kadotani_2022_001"><span id="kadotani_20
 
 </ul>
 
----start mg 7 e illegal ref
+---start mg 7 illegal ref
 
 Illegal refference: {{cit|xxxx_2022_001}}
 
