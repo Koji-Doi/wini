@@ -348,9 +348,13 @@ sub init{
   $ENVNAME    = "_";
   @LANGS      = qw/en ja/;
   if(defined $ENV{LANG}){
-    foreach my $l (@LANGS){
-      if($ENV{LANG}=~/^([a-zA-Z]+)/){
-        ($l eq $1) and $LANG = $l;
+    if($ENV{LANG} eq 'C'){
+      $LANG = 'en';
+    }else{
+      foreach my $l (@LANGS){
+        if($ENV{LANG}=~/^([a-zA-Z]+)/){
+          ($l eq $1) and $LANG = $l;
+        }
       }
     }
   }
@@ -2357,7 +2361,7 @@ sub date{
   # $v->{lang}[0]: ja or en
   my $p = readpars($x, qw/date weekday trad lang type/);
   my $type = $p->{type}[0] || 'date';
-  my $lang = $p->{lang}[0] || $v->{lang} || '';
+  my $lang = $p->{lang}[0] || $v->{lang} || $LANG || '';
   my $lc0  = setlocale(LC_ALL, txt('LOCALE', $lang));
   my @days = split(/\s+/, txt('date_days', $lang));
   my $form0= $p->{type}[0].(('', qw/dow trad dowtrad/)[($p->{weekday}[0]>0)+($p->{trad}[0]>0)*2]);
