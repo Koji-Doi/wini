@@ -1,4 +1,4 @@
-#!/usr/bin/perl
+#!/usr/bin/env perl
 
 use strict;
 use warnings;
@@ -9,6 +9,7 @@ use Wini;
 use lib './t';
 use t;
 our $DEBUG=0;
+$ENV{LANG}='C';
 
 if(defined $ARGV[0] and $ARGV[0] eq '-d'){
   $DEBUG=1;

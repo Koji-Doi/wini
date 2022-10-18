@@ -1,4 +1,4 @@
-#!/usr/bin/perl
+#!/usr/bin/env perl
 
 #package Text::Markup::Wini;
 use strict;
@@ -11,6 +11,7 @@ use lib '.';
 use Wini;
 use lib './t';
 use t;
+$ENV{LANG}='C';
 Text::Markup::Wini::init();
 
 our %REF;

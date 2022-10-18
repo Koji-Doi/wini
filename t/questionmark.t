@@ -1,269 +1,94 @@
 #!/usr/bin/env perl
 
-package Text::Markup::Wini;
-use utf8;
+#package Text::Markup::Wini;
 use strict;
 use warnings;
 use Test::More;
+use utf8;
+use Data::Dumper;
+$ENV{LANG}='C';
 
 use lib '.';
 use Wini;
+use lib './t';
+use t;
 
-binmode STDIN, ':utf8';
-binmode STDERR,':utf8';
-binmode STDOUT,':utf8';
-init();
+our $DEBUG = (defined $ARGV[0] and $ARGV[0] eq '-d') ? 1 : 0;
 
-sub std{
-  my($x)=@_;
-  $x=~s/[\n\r]*//g;
-  $x=~s/> */>/g;
-  $x=~s/\s{2,}//g;
-  $x=~s/ +</</g;
-  $x=~s/> +/>/g;
-  return($x);
+my $mg;
+my $html='';
+my @data;
+while(<DATA>){
+  chomp;
+  if(/^-$/){
+    (defined $mg) and push(@data, {mg=>$mg, html=>$html});
+    $mg   = <DATA>;
+    chomp $mg;
+    $html = '';
+  }else{
+    $html .= $_;
+  }
 }
+push(@data, {mg=>$mg, html=>$html});
 
+for(my $i=0; $i<=$#data; $i++){
+  test1($data[$i]{mg}, $data[$i]{mg}, $data[$i]{html});
+}
+done_testing;
 
-{
-  my($o, undef) = to_html(<<'EOC');
+__DATA__
+-
 {{?}} : ?
-
-EOC
-  $o=std($o);
-
-my $p = <<EOC;
-
 <p>
 &#63; : ?
 </p>
-
-
-EOC
-  $p=std($p);
-
-  is $o, $p;
-}
-
-
-{
-  my($o, undef) = to_html(<<'EOC');
-
+-
 {{!}} : !
-
-EOC
-  $o=std($o);
-
-my $p = <<EOC;
-
 <p>
 &#33; : !
 </p>
-
-
-EOC
-  $p=std($p);
-
-  is $o, $p;
-}
-
-
-{
-  my($o, undef) = to_html(<<'EOC');
-
+-
 {{?!==|abc}} : ?!==|abc
-
-EOC
-  $o=std($o);
-
-my $p = <<EOC;
-
 <p>
 &#11800;abc&#8253; : ?!==|abc
 </p>
-
-
-EOC
-  $p=std($p);
-
-  is $o, $p;
-}
-
-
-{
-  my($o, undef) = to_html(<<'EOC');
-
+-
 {{?!}} : ?!
-
-EOC
-  $o=std($o);
-
-my $p = <<EOC;
-
 <p>
 &#63;&#33; : ?!
 </p>
-
-
-EOC
-  $p=std($p);
-
-  is $o, $p;
-}
-
-
-{
-  my($o, undef) = to_html(<<'EOC');
-
+-
 {{!?}} : !?
-
-EOC
-  $o=std($o);
-
-my $p = <<EOC;
-
 <p>
 &#33;&#63; : !?
 </p>
-
-
-EOC
-  $p=std($p);
-
-  is $o, $p;
-}
-
-
-{
-  my($o, undef) = to_html(<<'EOC');
-
+-
 {{!^}} : !^
-
-EOC
-  $o=std($o);
-
-my $p = <<EOC;
-
 <p>
 &#161; : !^
 </p>
-
-
-EOC
-  $p=std($p);
-
-  is $o, $p;
-}
-
-
-{
-  my($o, undef) = to_html(<<'EOC');
-
+-
 {{?!^}} : ?!^
-
-EOC
-  $o=std($o);
-
-my $p = <<EOC;
-
 <p>
 &#63;&#33; : ?!^
 </p>
-
-
-EOC
-  $p=std($p);
-
-  is $o, $p;
-}
-
-
-{
-  my($o, undef) = to_html(<<'EOC');
-
+-
 {{?!=}} : ?!=
-
-EOC
-  $o=std($o);
-
-my $p = <<EOC;
-
 <p>
 &#8264; : ?!=
 </p>
-
-
-EOC
-  $p=std($p);
-
-  is $o, $p;
-}
-
-
-{
-  my($o, undef) = to_html(<<'EOC');
-
+-
 {{?!==}} : ?!==
-
-EOC
-  $o=std($o);
-
-my $p = <<EOC;
-
 <p>
 &#8253; : ?!==
 </p>
-
-
-EOC
-  $p=std($p);
-
-  is $o, $p;
-}
-
-
-{
-  my($o, undef) = to_html(<<'EOC');
-
+-
 {{!|abc}} : !|abc
-
-EOC
-  $o=std($o);
-
-my $p = <<EOC;
-
 <p>
 &#161;abc&#33; : !|abc
 </p>
-
-
-EOC
-  $p=std($p);
-
-  is $o, $p;
-}
-
-
-{
-  my($o, undef) = to_html(<<'EOC');
-
+-
 {{!!?|abc}} : !!?|abc
-
-EOC
-  $o=std($o);
-
-my $p = <<EOC;
-
 <p>
 &#191;&#161;&#161;abc&#33;&#33;&#63; : !!?|abc
 </p>
-
-
-EOC
-  $p=std($p);
-
-  is $o, $p;
-}
-
-
-done_testing;

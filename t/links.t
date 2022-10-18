@@ -1,4 +1,4 @@
-#!/usr/bin/perl
+#!/usr/bin/env perl
 
 #package Text::Markup::Wini;
 use strict;
@@ -31,7 +31,7 @@ while(<DATA>){
   if(/^---start reflist/ .. /---end reflist/){
     /^---/ or push(@reflist, $_);
   }else{
-    /^---start mg/   and ($i++, $mode='mg', $indata[$i]{tag}=$_, next);
+    /^---start mg(?:\s*(.*))?$/   and ($i++, $mode='mg', $indata[$i]{tag}=$1, next);
     /^---start html/ and ($mode='html', next);
     /^---start log/  and ($mode='log', next);
     /^---end/ and last;

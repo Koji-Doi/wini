@@ -1,4 +1,4 @@
-#!/usr/bin/perl
+#!/usr/bin/env perl
 
 #package Text::Markup::Wini;
 use strict;
@@ -6,6 +6,7 @@ use warnings;
 use Test::More;
 use utf8;
 use Data::Dumper;
+$ENV{LANG}='C';
 
 use lib '.';
 use Wini;
@@ -30,7 +31,7 @@ while(<DATA>){
   if(/^---start reflist/ .. /---end reflist/){
     /^---/ or push(@reflist, $_);
   }else{
-    /^---start mg/   and ($i++, $mode='mg', $indata[$i]{tag}=$_, next);
+    /^---start mg(?:\s*(.*))?$/   and ($i++, $mode='mg', $indata[$i]{tag}=$1, next);
     /^---start html/ and ($mode='html', next);
     /^---start log/  and ($mode='log', next);
     /^---end/ and last;

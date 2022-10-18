@@ -26,6 +26,7 @@ our($MI, $MO);  # escape chars to
 our(@INDIR, @INFILE, $OUTFILE);
 our($TEMPLATE, $TEMPLATEDIR);
 our $DEBUG=0;
+$ENV{LANG}='C';
 
 if(defined $ARGV[0] and $ARGV[0] eq '-d'){
   $DEBUG=1;

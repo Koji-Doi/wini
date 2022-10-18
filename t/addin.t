@@ -16,6 +16,7 @@ use Data::Dumper;
 our($Indir, $Outdir);
 our(@Infiles, @Outfiles);
 our $DEBUG=0;
+$ENV{LANG}="C";
 
 if(defined $ARGV[0] and $ARGV[0] eq '-d'){
   $DEBUG=1;

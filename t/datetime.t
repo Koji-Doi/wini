@@ -13,6 +13,7 @@ use Wini;
 binmode STDIN, ':utf8';
 binmode STDERR,':utf8';
 binmode STDOUT,':utf8';
+$ENV{LANG}='C';
 init();
 
 my @test = (
@@ -46,7 +47,7 @@ for(my $i=0; $i<=$#test; $i+=2){
     1;
   }
   $o=~s/[\n\s]//gs;
-  is $test[$i+1], $o;
+  is $test[$i+1], $o, $test[$i];
 }
 
 done_testing;
