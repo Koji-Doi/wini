@@ -12,6 +12,7 @@ use Wini;
 use File::Basename;
 use lib './t';
 use t;
+our $DEBUG = (defined $ARGV[0] and $ARGV[0] eq '-d') ? 1 : 0;
 Text::Markup::Wini::init();
 
 =begin c
@@ -81,10 +82,9 @@ SKIP: for(my $i=1; $i<=$#indata; $i++){
     close $phi;
   }
 }
-print STDERR Dumper @infile;
 foreach my $x (@infile){
   foreach my $k (keys %$x){
-    print STDERR "del $x->{$k}\n";
+    ($DEBUG) and print STDERR "del $x->{$k}\n";
     unlink $x->{$k};
   }
 }

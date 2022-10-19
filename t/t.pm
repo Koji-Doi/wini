@@ -190,7 +190,7 @@ sub test_cmd{
   my $r = system($cmd);
   ($r>0) and $r = $r >> 8;
   if($r>0){
-    print STDERR (<<"EOD");
+    ($DEBUG) and print STDERR (<<"EOD");
     Error occured in trying '$cmd'.
     Return=$r
 EOD
