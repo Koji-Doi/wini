@@ -10,8 +10,11 @@ use Data::Dumper;
 use lib '.';
 use Wini;
 use File::Basename;
-#use is;
+use lib './t';
+use t;
 Text::Markup::Wini::init();
+
+=begin c
 
 sub std{
   my($x)=@_;
@@ -23,6 +26,10 @@ sub std{
   $x=~s{(</\w+>)}{$1\n}g;
   return($x);
 }
+
+=end c
+
+=cut
 
 my @indata;
 my $basename = basename($0, qw/.t .pl .pm/);
@@ -40,12 +47,13 @@ while(<DATA>){
 }
 
 # prepare input files
+my @infile;
 for(my $i=1; $i<=$#indata; $i++){
-  my %infile = (par=>"no${i}$parfile0", tmpl=>"no${i}$tmplfile0");
-  foreach my $k (keys %infile){
-    open(my $fho, '>:utf8', $infile{$k}) or die "Failed to modify $infile{$k}";
+  $infile[$i] = {par=>"no${i}$parfile0", tmpl=>"no${i}$tmplfile0"};
+  foreach my $k (keys %{$infile[$i]}){
+    open(my $fho, '>:utf8', $infile[$i]{$k}) or die "Failed to modify $infile[$i]{$k}";
     my $out = $indata[$i]{$k};
-    $out=~s/template:.*$/template: '$infile{tmpl}'/gm;
+    $out=~s/template:.*$/template: '$infile[$i]{tmpl}'/gm;
     print {$fho} $out;
     close $fho;
   }
@@ -53,9 +61,11 @@ for(my $i=1; $i<=$#indata; $i++){
 
 SKIP: for(my $i=1; $i<=$#indata; $i++){
   Text::Markup::Wini::init();
-  my($parfile, $tmplfile) = ("no${i}$parfile0", "no${i}$tmplfile0");
+  my($parfile, $tmplfile) = ($infile[$i]{par}, $infile[$i]{tmpl}); # ("no${i}$parfile0", "no${i}$tmplfile0");
   foreach my $whole ('', '--whole'){
     my $outfile = "$parfile${whole}.html";
+    $infile[$i]{"outhtml$whole"} = $outfile;
+    $infile[$i]{outcss}          = "${parfile}.css";
     my $cmd = "perl Wini.pm ${whole} -q -i $parfile -o $outfile --outcssfile";
     #print STDERR "$indata[$i]{tag}: $cmd\n";
     my $r = system($cmd);
@@ -67,8 +77,15 @@ SKIP: for(my $i=1; $i<=$#indata; $i++){
     $o=~s{.*<body>}{}s;
     $o=~s{</body>.*}{}s;
     $o=~s/[\n\r]*//g;
-    is std($o), std($indata[$i]{html}), "$indata[$i]{tag} $whole";
+    is std($o, {spc=>0}), std($indata[$i]{html}, {spc=>0}), "$indata[$i]{tag} $whole";
     close $phi;
+  }
+}
+print STDERR Dumper @infile;
+foreach my $x (@infile){
+  foreach my $k (keys %$x){
+    print STDERR "del $x->{$k}\n";
+    unlink $x->{$k};
   }
 }
 

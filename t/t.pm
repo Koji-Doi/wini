@@ -62,11 +62,23 @@ sub prepare{
 
 sub std{
   my($x, $opt)=@_;
-#opt: cr==1, check returns; spc==1, check spaces;
+#opt: cr==1, check returns;
+#     cr==0, ignore returns;
+#    spc==1, check spaces;
+#    spc==0, ignore spaces;
+
   $x=~s{(wini_(?:test)?(?:in|out)_)(\w+)}{$1}g; # remove tempdir names
   $x=~s{((\e\[)?\S* at line.*)}{}g; # remove warning/error messages
-  ($opt->{cr})  or $x=~s/[\n\r]/ /sg;
-  unless($opt->{spc}){
+  if(defined $opt->{cr}){
+    ($opt->{cr}==0) and $x=~s/[\n\r]//sg;
+    #($opt->{cr}==1) and 
+  }else{
+    $x=~s/[\n\r]/ /sg;
+  }
+  if(defined $opt->{spc}){
+    ($opt->{spc}==0) and $x=~s/\s//g;
+    #($opt->{spc}==1) and
+  }else{
     $x=~s/> */>/g;
     $x=~s/\s{2,}/ /g;
     $x=~s/ +</</g;
@@ -153,15 +165,23 @@ sub test_cmd{
   foreach my $o (sort keys %$cmd_opt){
     if(ref $cmd_opt->{$o} eq 'ARRAY'){
       foreach my $o2 (@{$cmd_opt->{$o}}){
+        $o2=~s/\{\{err}}/"err${cnt}.log"/ge;
         push(@opt, sprintf('-%s "%s"', $o, $o2));
       }
+    }elsif(not defined $cmd_opt->{$o}){
+      push(@opt, "-$o ");
     }else{
-      $o=~/[<>]/ or push(@opt, sprintf('-%s "%s"', $o, $cmd_opt->{$o}));
+      my $o2 = $cmd_opt->{$o};
+      $o2=~s/\{\{err}}/"err${cnt}.log"/ge;
+      $o=~/[<>]/ or push(@opt, sprintf('-%s "%s"', $o, $o2));
     }
   }
+
   (exists $cmd_opt->{'2>'}) or $cmd_opt->{'2>'}="/dev/null";
   foreach my $o (qw/< > 2>/){
-    (defined $cmd_opt->{$o}) and push(@opt, "$o ".$cmd_opt->{$o});
+    (defined $cmd_opt->{$o}) or next;
+    $cmd_opt->{$o}=~s/\{\{err}}/"err${cnt}.log"/ge;
+    push(@opt, "$o ".$cmd_opt->{$o});
   }
   $cmd .= join(' ', @opt);
   ($DEBUG) and printf STDERR "Try '$cmd' at %s:%s\n",__LINE__, __FILE__;
