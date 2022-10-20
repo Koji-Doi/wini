@@ -2416,8 +2416,6 @@ sub ev{ # <, >, %in%, and so on
          $ini and ($last, $first) = ((uc(substr($last,0,1))).$period, ((uc(substr($first,0,1))).$period));
          join($sep, ($t=~/\&last/) ? ($last, $first) : ($first, $last));
       } @stack;
-    }elsif($t=~/^\&morethan *(\d+)/){
-      ((scalar @stack)<=$1) and return(()); # if list size is not more than $1, the list is canceled.
     }elsif($t eq '&lastname'){
       map { s/([^,]*),.*/$1/; } @stack;
     }elsif($t=~/^\&ini_[afl]$/){ # take first letter and capitalize. This should be used before 'fl' or 'fli' filter
@@ -2445,6 +2443,8 @@ sub ev{ # <, >, %in%, and so on
         }
       } @stack;
 
+    }elsif($t=~/^\&morethan *(\d+)/){
+      ((scalar @stack)<=$1) and return(()); # if list size is not more than $1, the list is canceled.
     }elsif($t=~/^\&cut_(lt|le|gt|ge) +(\S+)/){
       my($f, $x) = ($1, $2);
       if($f eq 'lt'){
@@ -2456,14 +2456,16 @@ sub ev{ # <, >, %in%, and so on
       }elsif($f eq 'ge'){
         @stack = ($x=~/^[.\d]+/) ? (grep {$_ >= $x} @stack) : (grep { $_ ge $x} @stack);
       }
-    }elsif($t=~/^\&sort([nr])*/){ #sort #sortn #sortr #sortnr
-      my $x=$1;
-      my($n,$r) = ($x=~/n/?1:0, $x=~/r/?1:0);
+    }elsif($t=~/^\&sort([nr]*)/){ #sort #sortn #sortr #sortnr
+      my($x, $y) = ($1, $&);
+      my($n, $r) = ($x=~/n/?1:0, $x=~/r/?1:0);
       if($r){
         @stack = sort {($n) ? ($b <=> $a) : ($b cmp $a)} @stack;
       }else{
         @stack = sort {($n) ? ($a <=> $b) : ($a cmp $b)} @stack;
       }
+    }elsif($t=~/^\&split(.*)?/){ #split
+      @stack = map {split(" ", $_)} @stack;
     }elsif($t=~/^\&join([,;])?([a&,;])?(\d*)(e)?$/){ #join
       # , : a, b, c,
       # ; : a; b; c;
@@ -2496,14 +2498,19 @@ sub ev{ # <, >, %in%, and so on
       my($l, $r) = ($1||"'", $2||"'");
       @stack = map {($_ ne '') ? "${l}$_${r}" : ''} @stack;
     }elsif($t eq '&bold'){
-      map {qq{&nbsp;<span style="font-weight:bold">$_</span>}} @stack;
+      @stack = map {qq{&nbsp;<span style="font-weight:bold">$_</span>}} @stack;
     }elsif($t eq '&ita' or $t eq '&italic'){
-      map {qq{&nbsp;<span style="font-style:italic">$_</span>}} @stack;
+      @stack = map {qq{&nbsp;<span style="font-style:italic">$_</span>}} @stack;
     }elsif($t=~/^\&(if|unless)_empty(?: +(\w+))?$/){ # if array($2) is empty,... exit
       my($if, $name) = ($1, $2);
-      (exists $v->{$name}) or mes(txt('vnd', $lang, {v=>$name}), {err=>1});
-      (scalar @{$v->{$name}} > 0)  and ($if eq 'unless') and return(@stack);
-      (scalar @{$v->{$name}} == 0) and ($if eq 'if')     and return();
+      if($name eq ''){
+        (scalar @stack > 0)  and ($if eq 'unless') and return(@stack);
+        (scalar @stack == 0) and ($if eq 'if')     and return();
+      }else{
+        (exists $v->{$name}) or mes(txt('vnd', $lang, {v=>$name}), {err=>1});
+        (scalar @{$v->{$name}} > 0)  and ($if eq 'unless') and return(@stack);
+        (scalar @{$v->{$name}} == 0) and ($if eq 'if')     and return();
+      }
     }elsif($t eq '&end'){
       return(@stack);
 #====
