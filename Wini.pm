@@ -2501,6 +2501,8 @@ sub ev{ # <, >, %in%, and so on
       @stack = map {qq{&nbsp;<span style="font-weight:bold">$_</span>}} @stack;
     }elsif($t eq '&ita' or $t eq '&italic'){
       @stack = map {qq{&nbsp;<span style="font-style:italic">$_</span>}} @stack;
+    }elsif($t eq '&cutdown'){
+      @stack = grep {defined and /./} @stack;
     }elsif($t=~/^\&(if|unless)_empty(?: +(\w+))?$/){ # if array($2) is empty,... exit
       my($if, $name) = ($1, $2);
       if($name eq ''){
@@ -2586,7 +2588,7 @@ sub ev{ # <, >, %in%, and so on
         ($t ne '|') and push(@stack, array($t));
       }
     }
-  }
+  } # for(my $i=0; $i<=$#token; $i++)
   return(@stack);
 } # sub ev
 

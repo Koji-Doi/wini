@@ -315,6 +315,72 @@ xxx: 'abc'
 
 ---start html 14
 
-<p></p>
+<p>abc</p>
+
+---start mg 15 section variables
+===
+cmd: --title test
+a:1
+b:2
+ c:3
+===
+
+Value of variable 'a' should be 1, is {{va|a}}.
+Value of variable 'b' should be 2, is {{va|b}}.
+Env name is {{envname}}.
+
+? xxx
+
+===
+b:333
+===
+
+xxxx
+
+Value of variable 'a' should be 1, is {{va|a}}.
+Value of variable 'b' should be 333, is {{va|b}}.
+Env name is {{envname}}.
+
+?? yyy
+
+===
+c:444
+===
+
+Value of variable 'a' should be 1, is {{va|a}}.
+Value of variable 'b' should be 333, is {{va|b}}.
+Value of variable 'c' should be 444, is {{va|c}}.
+
+---start html 15
+
+<p>
+Value of variable 'a' should be 1, is 1.
+Value of variable 'b' should be 2, is 2.
+Env name is _.
+</p>
+
+<section class="mg" id="sect1">
+<h1 class="sectiontitle">xxx</h1>
+
+<p>
+xxxx
+</p>
+
+<p>
+Value of variable 'a' should be 1, is 1.
+Value of variable 'b' should be 333, is 333.
+Env name is _.
+</p>
+
+<section class="mg" id="sect2">
+<h1 class="sectiontitle">yyy</h1>
+
+<p>
+Value of variable 'a' should be 1, is 1.
+Value of variable 'b' should be 333, is 333.
+Value of variable 'c' should be 444, is 444.
+</p>
+
+</section></section>
 
 ---end

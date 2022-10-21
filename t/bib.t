@@ -209,7 +209,7 @@ Citing ref 2 as<a href="#reflist_gal2021"><span id="gal2021_2" title="title">(2)
 
 <p><a href="#reflist_gal2021"><span id="gal2021_1" title="title">(1)</span></a></p>
 <ul class="citlist"><li id="gal2021">[1]<a href="#gal2021_1">^1&nbsp;</a>
-Kadotani, A. and Koyama, Y. et al. (2021) Practice of Senshado in High School Club Activities. Research by Highschool Students</li>
+Kadotani, A. and Koyama, Y. et al. (2021) Practice of Senshado in High School Club Activities. &nbsp;<span style="font-style:italic">Research by Highschool Students</span></li>
 </ul>
 
 ---start mg 5 ext ref
@@ -246,8 +246,8 @@ Kadotani et al., 2022.<a href="#reflist_kadotani_2022_001"><span id="kadotani_20
 </p>
 
 <ul class="citlist">
-<li id="kadotani2022_001"> [1]  <a href="#kadotani2022_001_1">^1&nbsp; </a>  Kadotani, A. (2022) sample 1 title. sample 1 journal </li>
-<li id="kadotani_2022_001"> [2]  <a href="#kadotani_2022_001_1">^1&nbsp; </a>  Kadotani, A. and Koyama, Y. (2022) sample 3 title. sample 3 journal </li>
+<li id="kadotani2022_001"> [1]  <a href="#kadotani2022_001_1">^1&nbsp; </a>  Kadotani, A. (2022) sample 1 title. &nbsp;<span style="font-style:italic">sample 1 journal</span></li>
+<li id="kadotani_2022_001"> [2]  <a href="#kadotani_2022_001_1">^1&nbsp; </a>  Kadotani, A. and Koyama, Y. (2022) sample 3 title. &nbsp;<span style="font-style:italic">sample 3 journal </span></li>
 
 </ul>
 
