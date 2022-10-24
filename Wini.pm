@@ -2319,6 +2319,21 @@ sub borderstyle{
   return(sprintf("%s %dpx%s", $linestyle, ($width)?$width:0, ($color)?" $color":''));
 }
 
+sub id{
+  my($id, $type, $lang) = @_; # id('tbl123', 'tbl');
+  my $caption;
+  if($id=~/^${type}(\d+)$/){ # table No.: forced numbering to be stored in %REF
+    my $order  = $1;
+    (exists $REF{$id}) and mes(txt('did', $lang, {id=>$id}), {err=>1});
+    $REF{$id} = {order=>$order, type=>'tbl'};
+    $caption = ref_txt($id, $type, $order, $caption, $lang) . ' ';
+  }else{ # free-style table ID
+    $REF{$id} = {type=>$type};
+    #$caption = ref_txt($id, $type, $order, $caption, $lang) . ' ';
+  } # if id
+  return($caption);
+}
+
 {
 my %vars;
 my $avail_yamltiny;
