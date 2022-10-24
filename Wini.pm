@@ -2025,7 +2025,7 @@ sub table{
         $htmlitem[0][0]{copt}{id}[0] = $tbl_id;
         if($tbl_id=~/^tbl(\d+)$/){ # table No.: forced numbering to be stored in %REF
           my $order  = $1;
-          ($tbl_id=~/^\d+$/) and ($tbl_id, $order) = ("tbl${tbl_id}", $tbl_id);
+          #($tbl_id=~/^\d+$/) and ($tbl_id, $order) = ("tbl${tbl_id}", $tbl_id);
           (exists $REF{$tbl_id}) and mes(txt('did', undef, {id=>$tbl_id}), {err=>1});
           $REF{$tbl_id} = {order=>$order, type=>'tbl'};
           $caption = ref_txt($tbl_id, 'tbl', $order, $caption, $lang) . ' ';

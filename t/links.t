@@ -26,8 +26,8 @@ my @indata;
 my $i=0;
 my $mode="";
 my @reflist;
-$_=<DATA>;
 while(<DATA>){
+  /^"$/ and next;
   if(/^---start reflist/ .. /---end reflist/){
     /^---/ or push(@reflist, $_);
   }else{
@@ -44,13 +44,15 @@ SKIP: for(my $i=1; $i<=$#indata; $i++){
   Text::Markup::Wini::init();
 
   my $infile   = "links_t$i.wini";
-  my $htmlfile = "links_t$i.html";
-  my $errfile  = "links_t$i.err.txt";
+  my $lang     = ($indata[$i]{tag}=~/\[(\w+)\]/) ? $1 : '';
+  my $htmlfile = "links_t_${i}_${lang}.html";
+  my $errfile  = "links_t_${i}_${lang}.err.txt";
   push(@files, $infile, $htmlfile, $errfile);
   open(my $fho_w, '>:utf8', $infile);
   print {$fho_w} $indata[$i]{mg};
   close $fho_w;
-  system("perl Wini.pm --quiet < $infile > $htmlfile 2>$errfile");
+  my $lang1 = ($lang) ? "--lang $lang" : '';
+  system("perl Wini.pm --quiet $lang1 < $infile > $htmlfile 2>$errfile");
   open(my $fh_h, '<:utf8', $htmlfile);
   my $got = join("\n", <$fh_h>);
   is1(std1($got), std1($indata[$i]{html}), $indata[$i]{tag});
@@ -119,5 +121,18 @@ links with <a href="http://example.com">link text in markdown-compartible format
 <p>
 <span id="hoge">Paragraph with ID</span>
 </p>
+"
+---start mg img1 simple
+[!test.png]
+
+---start html img1
+<p>
+<img src="test.png" alt="test.png">
+</p>
+
+---start mg img2 with fig No.
+[!test.png|#fig1]
+
+---start html img2
 
 ---end
