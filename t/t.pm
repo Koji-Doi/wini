@@ -120,7 +120,7 @@ sub is1{
     print STDERR "\n";
     foreach my $i (0..1){
       $x[$i]=~/<html>/ or  $x[$i] = whole_html1($x[$i]);
-      my $outfile = sprintf('%s%s.html', $filename, [qw/got expected/]->[$i]);
+      my $outfile = sprintf('%s%s.html', $filename, [qw/got exp/]->[$i]);
       open(my $fho, '>:utf8', $outfile);
       print STDERR "##### saved $outfile.\n";
       print {$fho} $x[$i];

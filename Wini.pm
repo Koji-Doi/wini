@@ -1477,8 +1477,9 @@ sub term{
   # {{@|abbr=DNA|text=deoxyribonucleic acid|dfn=1}} -> <dfn><abbr title="deoxyribonucleic acid">DNA</abbr></dfn>
   # {{@|DNA}} -> <abbr>DNA</abbr>
   # {{@||DNA}} -> <dfn>DNA</dfn>
-  my($p) = @_;
-  my $par = readpars($p, qw/abbr text dfn list/);
+  my(@p) = @_;
+  $DB::single=$DB::single=1;
+  my $par = readpars(\@p, qw/abbr text dfn list/);
   my $out;
   if($par->{list}[-1]){
     $out = qq!\n<ul class="abbrlist">\n!;
@@ -1489,7 +1490,7 @@ sub term{
     return($out);
   }
   if($par->{abbr}[0]){
-    my $ab = ($par->{text}[-1]) ? qq!<abbr title="$par->{text}[-1]">$par->{abbr}</abbr>! : qq!<abbr>$par->{abbr}[-1]</abbr>!;
+    my $ab = (($par->{text}[-1]) ? qq!<abbr title="$par->{text}[-1]">! : '<abbr>') . qq!$par->{abbr}[-1]</abbr>!;
     $out = ($par->{dfn}[-1]) ? qq!<dfn>$ab</dfn>! : $ab;
     $abbr{$par->{abbr}[-1]} = $par->{text}[-1];
   }else{
@@ -1571,7 +1572,7 @@ sub call_macro{
                                      and return(arrow($macroname, @f));
   ($macroname=~m{^[!-/:-@\[-~]$})    and (not defined $f[0]) and 
     return('&#x'.unpack('H*',$macroname).';'); # char -> ascii code
-  ($macroname=~/^\@$/)               and return(term(\@f)); # abbr
+  ($macroname=~/^\@$/)               and return(term(@f)); # abbr
   ($macroname=~/^(rr|ref|cit)$/i)    and return(cit(\@f, $opt->{_v})); # reference
 #  ($macroname=~/^(cit|ref)list$/i)  and return("${MI}###${MI}t=citlist${MO}");
   ($macroname=~/^(cit|ref)list$/i)   and return(citlist(\@f, $opt->{_v}));
@@ -1610,7 +1611,7 @@ sub readpars{
   my @par0;
   map { # trim, escape latin chars, for each parameter
     my $a=$_; $a=~s/^\s+//; $a=~s/\s+$//; $a=~s/\{\{(.)}}/call_macro($1)/ge;
-    push(@par0, split(/\|/,$a));
+    push(@par0, ($a eq '') ? '' : split(/\|/,$a));
   } @$p;
 
   foreach my $x (@par0){
@@ -1642,7 +1643,6 @@ sub save_quote{ # pre, code, cite ...
     return('');
   }
   $txt=~s{${MI}i=(\d+)${MO}}{
-    $DB::single=$DB::single=1;
        my $ltag = $save[$1]{pre};
        my $rtag = ($ltag=~/\{/) ? '{{end}}' : $ltag;
        "${ltag}\n$save[$1]{txt}\n${rtag}\n";
@@ -1670,36 +1670,6 @@ EOD
   }
 } # sub save_quote
 } # env save_quote
-
-sub bibtest{
-  my $x = <<"EOD";
-Reference 1: {{cit|kirk2022|au='James, T. Kirk'|ye=2022|ti='XXX'}}
-
-Reference 2: {{cit|gal2021a|au='Kadotani, Anzu'|au='Koyama, Yuzuko'|au='Kawashima, Momo'|ye=2021|ti='Practice of Senshado in High School Club Activities'|jo="Reseach by Highschool Students"}}
-
-from ext bib list (generic.enw):
-* kadotani2022={{rr|chen_2013_001}}
-* kadotani2022={{rr|riedel2008_001}}
-* kadotani2022={{rr|riedel2008_001}} should be riedel(2008)
-* kadotani2022={{rr|nurminen_2013_001}}
-
-[!example1.png|#figx]
-[!example2.png|#figy]
-
-Reference 3: {{cit|gal2021b|au='Kadotani, Anzu'|au='Koyama, Yuzuko'|au='Kawashima, Momo'|ye=2021|ti='Practice of Senshado in High School Club Activities 2'}}
-
-aaa 1:{{ref|kirk2022}}, 2:{{ref|gal2021a}} 2:{{ref|gal2021a}}.
-
-{{citlist}}
-
-EOD
-  my($html) = to_html($x);
-#print STDERR "\n\n----------------\n";
-#print STDERR "*** REF\n", Dumper %REF;
-#print STDERR "*** REFASSIGN\n", Dumper %REFASSIGN;
-#print STDERR "----------------\n\n";
-  return($html);
-}
 
 sub cittxt{ # format text with '[]' -> matured reference text
   my($x, $f0, $lang) = @_; # $x: hash ref representing a cit; $f: format
@@ -1797,26 +1767,12 @@ sub cit{
 
 sub ref_txt{
   my($id, $type, $order, $caption, $lang) = @_;
-  if(defined $order){
-    
-  }else{
-  L1:{
-    for(my $i=0; $i<=10000; $i++){
-      unless(exists $REFASSIGN{$type}{$i}){
-        $order = $i;
-        last L1;
-      }
-    }
-    die "i exceed\n";
-  }
-  }
   for(my $i=0; $i<=$#LANGS; $i++){
     $REF{$id}{text}{$LANGS[$i]} = txt("ref_${type}", $LANGS[$i], {n=>$order});
   }
   $REFASSIGN{$type}{$order} = $id;
   
   $caption = ref_tmp_txt("id=${id}", "type=${type}", "lang=$lang") . " $caption";
-print "##### id=$id,order=$order. ", Dumper %REFASSIGN;
   return($caption);
 }
 
@@ -2325,7 +2281,6 @@ sub id_caption{
     $caption = ref_txt($id, $type, $order, $caption, $lang) . ' ';
   }else{ # free-style table ID
     $REF{$id} = {type=>$type};
-    print "RRRR\n";
     $caption = ref_txt($id, $type, undef, $caption, $lang) . ' ';
   } # if id
   return($caption);
