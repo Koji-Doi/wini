@@ -1798,18 +1798,25 @@ sub cit{
 sub ref_txt{
   my($id, $type, $order, $caption, $lang) = @_;
   if(defined $order){
-    if($order==0){
-      
-    }
-    for(my $i=0; $i<=$#LANGS; $i++){
-      $REF{$id}{text}{$LANGS[$i]} = txt("ref_${type}", $LANGS[$i], {n=>$order});
-    }
-    $REFASSIGN{$type}{$order} = $id;
+    
   }else{
- #   $REF{$id} = {type=>$type};
+  L1:{
+    for(my $i=0; $i<=10000; $i++){
+      unless(exists $REFASSIGN{$type}{$i}){
+        $order = $i;
+        last L1;
+      }
+    }
+    die "i exceed\n";
   }
+  }
+  for(my $i=0; $i<=$#LANGS; $i++){
+    $REF{$id}{text}{$LANGS[$i]} = txt("ref_${type}", $LANGS[$i], {n=>$order});
+  }
+  $REFASSIGN{$type}{$order} = $id;
   
   $caption = ref_tmp_txt("id=${id}", "type=${type}", "lang=$lang") . " $caption";
+print "##### id=$id,order=$order. ", Dumper %REFASSIGN;
   return($caption);
 }
 
@@ -2023,18 +2030,8 @@ sub table{
         $tbl_id=$1;
         ($tbl_id=~/^\d+$/) and $tbl_id = "tbl${tbl_id}";
         $htmlitem[0][0]{copt}{id}[0] = $tbl_id;
-        if($tbl_id=~/^tbl(\d+)$/){ # table No.: forced numbering to be stored in %REF
-          my $order  = $1;
-          #($tbl_id=~/^\d+$/) and ($tbl_id, $order) = ("tbl${tbl_id}", $tbl_id);
-          (exists $REF{$tbl_id}) and mes(txt('did', undef, {id=>$tbl_id}), {err=>1});
-          $REF{$tbl_id} = {order=>$order, type=>'tbl'};
-          $caption = ref_txt($tbl_id, 'tbl', $order, $caption, $lang) . ' ';
-          #$tbl_id = sprintf(qq{ id="%s"}, $tbl_id); # ref_tmp_txt($tbl_id0, $lang, 'tbl')); # for table->caption tag
-        }else{ # free-style table ID
-          #my $i=1; $i++ while(exists $REFASSIGN{tbl}{$i});
-          $REF{$tbl_id} = {type=>'tbl'};
-          $caption = ref_txt($tbl_id, 'tbl', undef, $caption, $lang) . ' ';
-        } # if tbl_id
+        $caption = id_caption($caption, $tbl_id, 'tbl', $lang);
+
       } # if defined $tbl_id
       while($o=~/\&([lrcjsebtm]+)/g){
         foreach my $x (split('',$1)){
@@ -2319,9 +2316,8 @@ sub borderstyle{
   return(sprintf("%s %dpx%s", $linestyle, ($width)?$width:0, ($color)?" $color":''));
 }
 
-sub id{
-  my($id, $type, $lang) = @_; # id('tbl123', 'tbl');
-  my $caption;
+sub id_caption{
+  my($caption, $id, $type, $lang) = @_; # id('tbl123', 'tbl');
   if($id=~/^${type}(\d+)$/){ # table No.: forced numbering to be stored in %REF
     my $order  = $1;
     (exists $REF{$id}) and mes(txt('did', $lang, {id=>$id}), {err=>1});
@@ -2329,7 +2325,8 @@ sub id{
     $caption = ref_txt($id, $type, $order, $caption, $lang) . ' ';
   }else{ # free-style table ID
     $REF{$id} = {type=>$type};
-    #$caption = ref_txt($id, $type, $order, $caption, $lang) . ' ';
+    print "RRRR\n";
+    $caption = ref_txt($id, $type, undef, $caption, $lang) . ' ';
   } # if id
   return($caption);
 }
