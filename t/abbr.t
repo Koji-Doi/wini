@@ -43,5 +43,6 @@ abbr1	{{@|abbr=DNA}}	<p><abbr>DNA</abbr></p>
 abbr2	{{@|text=DNA}}	<p><dfn>DNA</dfn></p>
 abbr3	{{@|DNA}}	<p><abbr>DNA</abbr></p>
 abbr4	{{@||DNA}}	<p><dfn>DNA</dfn></p>
-abbr5	{{@|abbr=DNA|text=deoxyribonucleic acid}}	<p><abbr title="deoxyribonucleic acid">DNA</abbr></p>
+abbr5a	{{@|abbr=DNA|text=deoxyribonucleic acid}}	<p><abbr title="deoxyribonucleic acid">DNA</abbr></p>
+abbr5b	{{@|text=deoxyribonucleic acid|abbr=DNA}}	<p><abbr title="deoxyribonucleic acid">DNA</abbr></p>
 abbr6	{{@|abbr=DNA|text=deoxyribonucleic acid|dfn=1}}	<p><dfn><abbr title="deoxyribonucleic acid">DNA</abbr></dfn></p>
