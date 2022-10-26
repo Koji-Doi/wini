@@ -25,12 +25,8 @@ our %TXT;       # messages and forms
 our($MI, $MO);  # escape chars to 
 our(@INDIR, @INFILE, $OUTFILE);
 our($TEMPLATE, $TEMPLATEDIR);
-our $DEBUG=0;
-$ENV{LANG}='C';
-
-if(defined $ARGV[0] and $ARGV[0] eq '-d'){
-  $DEBUG=1;
-}
+our $DEBUG = (defined $ARGV[0] and $ARGV[0] eq '-d') ? 1 : 0;
+$ENV{LANG} = 'C';
 
 my @indata;
 
@@ -51,19 +47,18 @@ while(<DATA>){
 for(my $i=0; $i<=$#indata; $i++){
   Text::Markup::Wini::init();
   my($o, undef) = Text::Markup::Wini::to_html($indata[$i]{mg});
-  $o=std($o);
+  $o=std1($o);
 
   my $p = $indata[$i]{html};
 
   # $o must be decoded.
-  is1( $o, std($p), $indata[$i]{tag});
+  is1( $o, std1($p), $indata[$i]{tag});
 #  is std(decode('utf-8',$o)), std($p);
 }
 
 done_testing;
 
-=begin c
-sub std{
+sub std1{
   my($x)=@_;
   $x=~s/[\n\r]//g;
   $x=~s/> */>/g;
@@ -74,12 +69,8 @@ sub std{
   return($x);
 }
 
-=end c
-
-=cut
-
 __DATA__
----start mg "#id1"
+---start mg 1 "#id1"
 ===
 lang: 'en'
 ===
@@ -87,7 +78,7 @@ lang: 'en'
 |- Here is a caption | #id1 @2 |
 | a | b |
 
----start html
+---start html 1
 
 <table id="id1" class="mgtable" style="border-collapse: collapse; border-left: solid 2px; border-right: solid 2px; border-bottom: solid 2px; border-top: solid 2px; ">
 <caption><a href="#id1">Table 1</a> Here is a caption</caption>
@@ -96,11 +87,11 @@ lang: 'en'
 </tbody>
 </table>
 
----start mg "#2"
+---start mg 2 "#2"
 |- (must be tbl2) | #2 @2 |
 | c | d |
 
----start html
+---start html 2
 
 <table id="tbl2" class="mgtable" style="border-collapse: collapse; border-left: solid 2px; border-right: solid 2px; border-bottom: solid 2px; border-top: solid 2px; ">
 <caption><a href="#tbl2">Table 2</a>(must be tbl2)</caption>
@@ -109,7 +100,7 @@ lang: 'en'
 </tbody>
 </table>
 
----start mg multiple tables. IDs are defined in various styles
+---start mg 3 multiple tables. IDs are defined in various styles
 
 ===
 lang: 'en'
@@ -130,7 +121,7 @@ lang: 'en'
 |- (must be tbl100) | #100 @2 |
 | i | j |
 
----start html
+---start html 3
 
 <table id="id1" class="mgtable" style="border-collapse: collapse; border-left: solid 2px; border-right: solid 2px; border-bottom: solid 2px; border-top: solid 2px; "><caption><a href="#id1">Table 1</a></caption>
 <tbody><tr><td>a</td><td>b</td></tr>
@@ -156,7 +147,7 @@ lang: 'en'
 </tbody>
 </table>
 
----start mg table IDs are defined and reffered in various ways.
+---start mg 4 table IDs are defined and reffered in various ways.
 
 ===
 lang: 'en'
@@ -212,7 +203,7 @@ lang: 'en'
 
 {{rr|id1|id2=h}} = id1 en from section val
 
----start html
+---start html 4
 <table id="id1" class="mgtable" style="border-collapse: collapse; border-left: solid 2px; border-right: solid 2px; border-bottom: solid 2px; border-top: solid 2px; ">
 <caption><a href="#id1">Table 1</a></caption>
 <tbody>
