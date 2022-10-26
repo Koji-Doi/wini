@@ -11,8 +11,9 @@ use lib '.';
 use Wini;
 use lib './t';
 use t;
-our $DEBUG = 0;
+our $DEBUG = (defined $ARGV[0] and $ARGV[0] eq '-d') ? 1 : 0;
 Text::Markup::Wini::init();
+$ENV{LANG}='C';
 
 sub std1{
   my($x)=@_;
@@ -28,15 +29,11 @@ my $mode="";
 my @reflist;
 while(<DATA>){
   /^"$/ and next;
-  if(/^---start reflist/ .. /---end reflist/){
-    /^---/ or push(@reflist, $_);
-  }else{
-    /^---start mg(?:\s*(.*))?$/   and ($i++, $mode='mg', $indata[$i]{tag}=$1, next);
-    /^---start html/ and ($mode='html', next);
-    /^---start log/  and ($mode='log', next);
-    /^---end/ and last;
-    $indata[$i]{$mode} .= $_;
-  }
+  /^---start mg(?:\s*(.*))?$/   and ($i++, $mode='mg', $indata[$i]{tag}=$1, next);
+  /^---start html/ and ($mode='html', next);
+  /^---start log/  and ($mode='log', next);
+  /^---end/ and last;
+  $indata[$i]{$mode} .= $_;
 }
 
 my @files;
@@ -48,14 +45,16 @@ SKIP: for(my $i=1; $i<=$#indata; $i++){
   my $htmlfile = "links_t_${i}_${lang}.html";
   my $errfile  = "links_t_${i}_${lang}.err.txt";
   push(@files, $infile, $htmlfile, $errfile);
-  open(my $fho_w, '>:utf8', $infile);
-  print {$fho_w} $indata[$i]{mg};
-  close $fho_w;
+  save_obj_to_file($indata[$i]{mg}, $infile);
+
   my $lang1 = ($lang) ? "--lang $lang" : '';
-  system("perl Wini.pm --quiet $lang1 < $infile > $htmlfile 2>$errfile");
+  my $cmd = "perl Wini.pm --quiet $lang1 < $infile > $htmlfile 2>$errfile";
+  ($DEBUG) and print STDERR "$cmd\n";
+  system($cmd);
   open(my $fh_h, '<:utf8', $htmlfile);
   my $got = join("\n", <$fh_h>);
   is1(std1($got), std1($indata[$i]{html}), $indata[$i]{tag});
+
   if($indata[$i]{tag}=~/ e /){
     open(my $fh_log, '<:utf8', $errfile);
     my $got_e = join('', <$fh_log>);
@@ -63,8 +62,10 @@ SKIP: for(my $i=1; $i<=$#indata; $i++){
   }
 }
 
-foreach my $f (@files){
-  unlink $f;
+unless($DEBUG){
+  foreach my $f (@files){
+    unlink $f;
+  }
 }
 
 1;
@@ -130,12 +131,47 @@ links with <a href="http://example.com">link text in markdown-compartible format
 <img src="test.png" alt="test.png">
 </p>
 
----start mg img2 with fig No.
+---start mg img2 with fig ID.
 [!test.png|#fig1]
 
 ---start html img2
 <p>
 <img src="test.png" alt="test.png" id="fig1">
 </p>
+
+---start mg img2 with fig ID. [ja]
+[!test.png|#fig1]
+
+---start html img2
+<p>
+<img src="test.png" alt="test.png" id="fig1">
+</p>
+
+---start mg img3 with figure tag
+
+[!!test.png]
+
+---start html img3
+<figure><img src="test.png" alt="test.png"><figcaption>test.png</figcaption></figure>
+
+---start mg img4 with anchor
+[?test.png]
+
+---start html img4
+<p>
+<a href="test.png" target="_self"><img src="test.png" alt="test.png"></a>
+</p>
+
+---start mg img4 with ID and caption
+[!!test.png|#fig1]
+
+---start html img4
+<figure><img src="test.png" alt="test.png" id="fig1"><figcaption><a href="#fig1">Fig. 1 </a>test.png</figcaption></figure>
+
+---start mg img5 with ID, caption, and figure
+[??test.png|#fig1]
+
+---start html img5
+<figure><a href="test.png" target="_self"><img src="test.png" alt="fig1" id="fig1"></a><figcaption><a href="#fig1">Fig. 1 </a>test.png</figcaption></figure>
 
 ---end
