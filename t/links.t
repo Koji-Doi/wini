@@ -134,5 +134,8 @@ links with <a href="http://example.com">link text in markdown-compartible format
 [!test.png|#fig1]
 
 ---start html img2
+<p>
+<img src="test.png" alt="test.png" id="fig1">
+</p>
 
 ---end

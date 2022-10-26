@@ -1816,7 +1816,6 @@ sub ref_txt{
   $REFASSIGN{$type}{$order} = $id;
   
   $caption = ref_tmp_txt("id=${id}", "type=${type}", "lang=$lang") . " $caption";
-print "##### id=$id,order=$order. ", Dumper %REFASSIGN;
   return($caption);
 }
 
@@ -2325,7 +2324,6 @@ sub id_caption{
     $caption = ref_txt($id, $type, $order, $caption, $lang) . ' ';
   }else{ # free-style table ID
     $REF{$id} = {type=>$type};
-    print "RRRR\n";
     $caption = ref_txt($id, $type, undef, $caption, $lang) . ' ';
   } # if id
   return($caption);
