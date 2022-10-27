@@ -17,7 +17,7 @@ sub save_obj_to_file{
   open(my $fho, '>:utf8', $outfile) or die "Failed to save $outfile.";
   print {$fho} "$x\n";
   close $fho;
-  print STDERR "##### saved $outfile.\n";
+  ($DEBUG) and print STDERR "##### saved $outfile.\n";
 }
 
 sub outdir4indir{

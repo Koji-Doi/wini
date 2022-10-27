@@ -27,23 +27,17 @@ my @indata;
 my $i=0;
 my $mode="";
 my @reflist;
-my $lang='';
 while(<DATA>){
   /^"$/ and next;
-  /^---start mg(?:\s*(.*))?$/ and (
-                                   $i++, $mode='mg', $indata[$i]{tag}=$1,
-                                   ($indata[$i]{tag}=~/\[(\w+)\]/ and $lang=$1),
-                                   next
-  );
+  /^---start mg(?:\s*(.*))?$/ and ($i++, $mode='mg', $indata[$i]{tag}=$1, next);
   /^---start html/ and ($mode='html', next);
   /^---start log/  and ($mode='log', next);
   /^---end/ and last;
-  $indata[$i]{$mode}{$lang} .= $_;
+  $indata[$i]{$mode} .= $_;
 }
 
 my @files;
 SKIP: for(my $i=1; $i<=$#indata; $i++){
-  foreach my $lang (sort keys $indata[$i]{
   Text::Markup::Wini::init();
 
   my $infile   = "links_t$i.wini";
@@ -145,7 +139,7 @@ links with <a href="http://example.com">link text in markdown-compartible format
 <img src="test.png" alt="test.png" id="fig1">
 </p>
 
----start mg img2 with fig ID. [ja]
+---start mg img2 with fig ID.
 [!test.png|#fig1]
 
 ---start html img2
@@ -179,5 +173,11 @@ links with <a href="http://example.com">link text in markdown-compartible format
 
 ---start html img5
 <figure><a href="test.png" target="_self"><img src="test.png" alt="fig1" id="fig1"></a><figcaption><a href="#fig1">Fig. 1 </a>test.png</figcaption></figure>
+
+---start mg img5 with ID, caption, and figure [ja]
+[??test.png|#fig1]
+
+---start html img5
+<figure><a href="test.png" target="_self"><img src="test.png" alt="fig1" id="fig1"></a><figcaption><a href="#fig1">図1 </a>test.png</figcaption></figure>
 
 ---end

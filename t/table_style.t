@@ -11,10 +11,7 @@ use lib '.';
 use Wini;
 use lib './t';
 use t;
-our $DEBUG=0;
-if(defined $ARGV[0] and $ARGV[0] eq '-d'){
-  $DEBUG=1;
-}
+our $DEBUG = (defined $ARGV[0] and $ARGV[0] eq '-d') ? 1 : 0;
 
 Text::Markup::Wini::init();
 
@@ -38,12 +35,9 @@ while(<DATA>){
 }
 
 for(my $i=1; $i<=$#{$indata{mg}}; $i++){
-  #Text::Markup::Wini::init();
-  #my($o1) = Text::Markup::Wini::to_html($indata[$i]{mg});
-  #is std($o1), std($indata[$i]{html});
   test1($indata{tag}[$i], $indata{mg}[$i], $indata{html}[$i]);
 }
-1;
+
 done_testing;
 
 __DATA__
@@ -226,5 +220,249 @@ frame of table
 <tr><td colspan="3">footnote3</td></tr>
 </tfoot>
 </table>
+
+---start mg T7 rborder and lborder
+|- table with &r and &&&l | border="1" |
+|!!&&&l aaaaaaaaa | bbbbbbbbbb | cccccccc |
+|&r   d |&&r&&&c&l e | f |
+|     g |&r h | i |
+| jjjjjjjjjjjjjjjjjjjjjjjjjjjj | kkkkkkkkkkkkkkkkkkkkkkkkkk | lllllllllllllllllllllllllll |
+
+---start html T7
+<table class="mgtable" border="1" style="border-collapse: collapse; border: solid 1px;">
+<caption> table with &r and &&&l</caption>
+<tbody>
+<tr><th style="text-align:left;">aaaaaaaaa </th><th style="text-align:center;">bbbbbbbbbb </th><th>cccccccc </th></tr>
+<tr style="text-align:right;"><td style="text-align:right;">d </td><td style="text-align:left;">e </td><td>f </td></tr>
+<tr><td style="text-align:left;">g </td><td style="text-align:right;">h </td><td>i </td></tr>
+<tr><td style="text-align:left;">jjjjjjjjjjjjjjjjjjjjjjjjjjjj </td><td style="text-align:center;">kkkkkkkkkkkkkkkkkkkkkkkkkk </td><td>lllllllllllllllllllllllllll </td></tr>
+</tbody>
+</table>
+
+---start mg T8 maintext and footnote 1
+Table
+
+|- capt.      | border="1"            |
+|!$        l3 |      e {{^|captE}}    |
+|!$        l4 |&b    f {{^|captF|+}}  |
+|!$        l5 |&b    f2{{^|captF2|+}} |
+|!$        l6 |&b    e2{{^|captE2}}   |
+|!$        l7 |&b    g {{^|captG|**}} |
+|!$        l8 |&b    h {{^|captH|d}}  |
+|!$        l9 |&b    i {{^|captI|**}} |
+|--- inner table footnote             |
+
+Main text with footnote{{^|main text footnote}}.
+Main text with footnote{{^|main text footnote2|d}}.
+
+---start html T8
+<p>
+Table
+</p>
+
+<table class="mgtable" border="1" style="border-collapse: collapse; border: solid 1px;">
+<caption>
+capt.
+</caption>
+<tbody>
+<tr><th>l3</th><td>e <sup>&lowast;1</sup></td></tr>
+<tr><th>l4</th><td style="vertical-align:bottom;">f <sup>&plus;1</sup></td></tr>
+<tr><th>l5</th><td style="vertical-align:bottom;">f2<sup>&plus;2</sup></td></tr>
+<tr><th>l6</th><td style="vertical-align:bottom;">e2<sup>&lowast;2</sup></td></tr>
+<tr><th>l7</th><td style="vertical-align:bottom;">g <sup>&lowast;</sup></td></tr>
+<tr><th>l8</th><td style="vertical-align:bottom;">h <sup>&dagger;1</sup></td></tr>
+<tr><th>l9</th><td style="vertical-align:bottom;">i <sup>&lowast;&lowast;</sup></td></tr>
+</tbody>
+<tfoot>
+<tr><td colspan="2">inner table footnote<br><sup>&lowast;1</sup>captE;&nbsp;
+<sup>&plus;1</sup>captF;&nbsp;
+<sup>&plus;2</sup>captF2;&nbsp;
+<sup>&lowast;2</sup>captE2;&nbsp;
+<sup>&lowast;</sup>captG;&nbsp;
+<sup>&dagger;1</sup>captH;&nbsp;
+<sup>&lowast;&lowast;</sup>captI</td></tr>
+</tfoot>
+</table><p>
+Main text with footnote<sup>&lowast;1</sup>.
+Main text with footnote<sup>&dagger;1</sup>.
+</p>
+
+<hr>
+<footer>
+<ul style="list-style:none;">
+<li><sup>&lowast;1</sup>main text footnote</li>
+<li><sup>&dagger;1</sup>main text footnote2</li>
+</ul>
+</footer>
+
+---start mg T9 maintext and footnote 2
+Table
+
+|- capt.      | &c b@2                |
+|!$        l3 |      e {{^|captE}}    |
+|!$        l4 |&b    f {{^|captF|+}}  |
+|!$        l5 |&b    f2{{^|captF2|+}} |
+|!$        l6 |&b    e2{{^|captE2}}   |
+|!$        l7 |&b    g {{^|captG|**}} |
+|!$        l8 |&b    h {{^|captH|d}}  |
+|!$        l9 |&b    i {{^|captI|**}} |
+|--- inner table footnote             |
+
+Main text with footnote{{^|main text footnote}}.
+Main text with footnote{{^|main text footnote2|d}}.
+
+|- capt2.     | &c b@2                |
+|!$        l3 |      e {{^|captE}}    |
+|!$        l4 |&b    f {{^|captF|+}}  |
+|!$        l5 |&b    f2{{^|captF2|+}} |
+|!$        l6 |&b    e2{{^|captE2}}   |
+|!$        l7 |&b    g {{^|captG|**}} |
+|!$        l8 |&b    h {{^|captH|d}}  |
+|!$        l9 |&b    i {{^|captI|**}} |
+|--- inner table footnote2            |
+
+Main text with footnote{{^|main text footnote3}}.
+Main text with footnote{{^|main text footnote4|d}}.
+
+---start html T9
+<p>
+Table
+</p>
+
+<table class="mgtable" style="border-collapse: collapse;  text-align: center;">
+<caption>
+capt.
+</caption>
+<tbody style="box-shadow: 0 0 0 2px black;">
+<tr><th>l3</th><td>e <sup>&lowast;1</sup></td></tr>
+<tr><th>l4</th><td style="vertical-align:bottom;">f <sup>&plus;1</sup></td></tr>
+<tr><th>l5</th><td style="vertical-align:bottom;">f2<sup>&plus;2</sup></td></tr>
+<tr><th>l6</th><td style="vertical-align:bottom;">e2<sup>&lowast;2</sup></td></tr>
+<tr><th>l7</th><td style="vertical-align:bottom;">g <sup>&lowast;</sup></td></tr>
+<tr><th>l8</th><td style="vertical-align:bottom;">h <sup>&dagger;1</sup></td></tr>
+<tr><th>l9</th><td style="vertical-align:bottom;">i <sup>&lowast;&lowast;</sup></td></tr>
+</tbody>
+<tfoot>
+<tr><td colspan="2">inner table footnote<br><sup>&lowast;1</sup>captE;&nbsp;
+<sup>&plus;1</sup>captF;&nbsp;
+<sup>&plus;2</sup>captF2;&nbsp;
+<sup>&lowast;2</sup>captE2;&nbsp;
+<sup>&lowast;</sup>captG;&nbsp;
+<sup>&dagger;1</sup>captH;&nbsp;
+<sup>&lowast;&lowast;</sup>captI</td></tr>
+</tfoot>
+</table>
+<p>
+Main text with footnote<sup>&lowast;1</sup>.
+Main text with footnote<sup>&dagger;1</sup>.
+</p>
+
+<table class="mgtable" style="border-collapse: collapse;  text-align: center;">
+<caption>
+capt2.
+</caption>
+<tbody style="box-shadow: 0 0 0 2px black;">
+<tr><th>l3</th><td>e <sup>&lowast;1</sup></td></tr>
+<tr><th>l4</th><td style="vertical-align:bottom;">f <sup>&plus;1</sup></td></tr>
+<tr><th>l5</th><td style="vertical-align:bottom;">f2<sup>&plus;2</sup></td></tr>
+<tr><th>l6</th><td style="vertical-align:bottom;">e2<sup>&lowast;2</sup></td></tr>
+<tr><th>l7</th><td style="vertical-align:bottom;">g <sup>&lowast;</sup></td></tr>
+<tr><th>l8</th><td style="vertical-align:bottom;">h <sup>&dagger;1</sup></td></tr>
+<tr><th>l9</th><td style="vertical-align:bottom;">i <sup>&lowast;&lowast;</sup></td></tr>
+</tbody>
+<tfoot>
+<tr><td colspan="2">inner table footnote2<br><sup>&lowast;1</sup>captE;&nbsp;
+<sup>&plus;1</sup>captF;&nbsp;
+<sup>&plus;2</sup>captF2;&nbsp;
+<sup>&lowast;2</sup>captE2;&nbsp;
+<sup>&lowast;</sup>captG;&nbsp;
+<sup>&dagger;1</sup>captH;&nbsp;
+<sup>&lowast;&lowast;</sup>captI</td></tr>
+</tfoot>
+</table>
+<p>
+Main text with footnote<sup>&lowast;2</sup>.
+Main text with footnote<sup>&dagger;2</sup>.
+</p>
+
+<hr>
+<footer>
+<ul style="list-style:none;">
+<li><sup>&lowast;1</sup>main text footnote</li>
+<li><sup>&dagger;1</sup>main text footnote2</li>
+<li><sup>&lowast;2</sup>main text footnote3</li>
+<li><sup>&dagger;2</sup>main text footnote4</li>
+</ul>
+</footer>
+
+---end
+
+---start html T9
+<p>
+Table
+</p>
+
+<table class="mgtable" style="border-collapse: collapse;  text-align: center;">
+<caption>
+capt.
+</caption>
+<tbody style="box-shadow: 0 0 0 2px black;">
+<tr><th>l3</th><td>e <sup>&lowast;1</sup></td></tr>
+<tr><th>l4</th><td style="vertical-align:bottom;">f <sup>&plus;1</sup></td></tr>
+<tr><th>l5</th><td style="vertical-align:bottom;">f2<sup>&plus;2</sup></td></tr>
+<tr><th>l6</th><td style="vertical-align:bottom;">e2<sup>&lowast;2</sup></td></tr>
+<tr><th>l7</th><td style="vertical-align:bottom;">g <sup>&lowast;</sup></td></tr>
+<tr><th>l8</th><td style="vertical-align:bottom;">h <sup>&dagger;1</sup></td></tr>
+<tr><th>l9</th><td style="vertical-align:bottom;">i <sup>&lowast;&lowast;</sup></td></tr>
+</tbody>
+<tfoot>
+<tr><td colspan="2">inner table footnote<br><sup>&lowast;1</sup>captE;&nbsp;
+<sup>&plus;1</sup>captF;&nbsp;
+<sup>&plus;2</sup>captF2;&nbsp;
+<sup>&lowast;2</sup>captE2;&nbsp;
+<sup>&lowast;</sup>captG;&nbsp;
+<sup>&dagger;1</sup>captH;&nbsp;
+<sup>&lowast;&lowast;</sup>captI</td></tr>
+</tfoot>
+</table><p>
+Main text with footnote<sup>&lowast;1</sup>.
+Main text with footnote<sup>&dagger;1</sup>.
+</p>
+
+<table class="mgtable" style="border-collapse: collapse;  text-align: center;">
+<caption>
+capt2.
+</caption>
+<tbody style="box-shadow: 0 0 0 2px black;">
+<tr><th>l3</th><td>e <sup>&lowast;1</sup></td></tr>
+<tr><th>l4</th><td style="vertical-align:bottom;">f <sup>&plus;1</sup></td></tr>
+<tr><th>l5</th><td style="vertical-align:bottom;">f2<sup>&plus;2</sup></td></tr>
+<tr><th>l6</th><td style="vertical-align:bottom;">e2<sup>&lowast;2</sup></td></tr>
+<tr><th>l7</th><td style="vertical-align:bottom;">g <sup>&lowast;</sup></td></tr>
+<tr><th>l8</th><td style="vertical-align:bottom;">h <sup>&dagger;1</sup></td></tr>
+<tr><th>l9</th><td style="vertical-align:bottom;">i <sup>&lowast;&lowast;</sup></td></tr>
+</tbody>
+<tfoot>
+<tr><td colspan="2">inner table footnote2<br><sup>&lowast;1</sup>captE;&nbsp;
+<sup>&plus;1</sup>captF;&nbsp;<sup>&plus;2</sup>captF2;&nbsp;
+<sup>&lowast;2</sup>captE2;&nbsp;
+<sup>&lowast;</sup>captG;&nbsp;
+<sup>&dagger;1</sup>captH;&nbsp;
+<sup>&lowast;&lowast;</sup>captI</td></tr>
+</tfoot>
+</table><p>
+Main text with footnote<sup>&lowast;2</sup>.
+Main text with footnote<sup>&dagger;2</sup>.
+</p>
+
+<hr>
+<footer>
+<ul style="list-style:none;">
+<li><sup>&lowast;1</sup>main text footnote</li>
+<li><sup>&dagger;1</sup>main text footnote2</li>
+<li><sup>&lowast;2</sup>main text footnote3</li>
+<li><sup>&dagger;2</sup>main text footnote4</li>
+</ul>
+</footer>
 
 ---end

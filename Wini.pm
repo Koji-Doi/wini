@@ -381,7 +381,7 @@ sub init{
       $TXT{$id}{$LANGS[$i]} = $txt[$i];
     }
   }
-  
+  to_html_reset(); # reset footnote etc.
 } # sub init
 
 # Following function is executed when this script is called as stand-alone script
@@ -955,6 +955,9 @@ sub findfile{  # recursive file search.
 {
 my($footnote_cnt, %footnotes);
 my(@auto_table_id);
+sub to_html_reset{
+  undef $footnote_cnt; undef %footnotes; undef @auto_table_id;
+}
 sub to_html{
   my($x, $opt) = @_;
   # $opt: mainly from commandline parameters
