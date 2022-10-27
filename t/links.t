@@ -27,17 +27,23 @@ my @indata;
 my $i=0;
 my $mode="";
 my @reflist;
+my $lang='';
 while(<DATA>){
   /^"$/ and next;
-  /^---start mg(?:\s*(.*))?$/   and ($i++, $mode='mg', $indata[$i]{tag}=$1, next);
+  /^---start mg(?:\s*(.*))?$/ and (
+                                   $i++, $mode='mg', $indata[$i]{tag}=$1,
+                                   ($indata[$i]{tag}=~/\[(\w+)\]/ and $lang=$1),
+                                   next
+  );
   /^---start html/ and ($mode='html', next);
   /^---start log/  and ($mode='log', next);
   /^---end/ and last;
-  $indata[$i]{$mode} .= $_;
+  $indata[$i]{$mode}{$lang} .= $_;
 }
 
 my @files;
 SKIP: for(my $i=1; $i<=$#indata; $i++){
+  foreach my $lang (sort keys $indata[$i]{
   Text::Markup::Wini::init();
 
   my $infile   = "links_t$i.wini";
