@@ -114,8 +114,8 @@ sub is1{
   no warnings;
   $title=~s/\s*$//;
   is $x[0], $x[1], $title;
+  use warnings;
   if($DEBUG){
-    use warnings;
     my $filename = basename($0, qw/.t .pl .pm/) . "_${cnt}_";
     print STDERR "\n";
     foreach my $i (0..1){
@@ -185,7 +185,7 @@ sub test_cmd{
   }
   $cmd .= join(' ', @opt);
   ($DEBUG) and printf STDERR "Try '$cmd' at %s:%s\n",__LINE__, __FILE__;
-  #$DB::single=$DB::single=1;
+#  $DB::single=$DB::single=1;
 #  my $r = system("$cmd 2>/dev/null");
   my $r = system($cmd);
   ($r>0) and $r = $r >> 8;

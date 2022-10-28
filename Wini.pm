@@ -230,15 +230,16 @@ strikes: {{s|striked text}}
  [http://example.com damy description]  : hyperlink with description
  [http://example.com|@@ description]    : hyperlink to be opened in new window ('_blank')
  [http://example.com|@hoge description] : hyperlink to be opened in the window named 'hoge'
- [#hoge text]                           : lyperlink within page
+ [#hoge text]                           : hyperlink within page
 
 ---
 
  [!sample.png]       : very simple in-line image
- [!!sample.png]      : in-line image with figure tab
+ [!!sample.png]      : in-line image with <figure> and <figcaption> tags
  [!image.png|< text] : img with float:left
  [!sample.png desc]  : in-line image with alternative text
  [?sample.png]       : in-line image with hyperlink to the image file
+ [??sample.png]      : in-line image with hyperlink to the image file as well as <figure> and <figcaption> tags
 
 ---
 
@@ -253,6 +254,22 @@ strikes: {{s|striked text}}
  |^                            | data 5-2   | data 5-3   |
  |<data6_1                     | data 6-2   | data 6-3   |
  |data6_1 This is the content of the cell "data6_1". Any markgaab codes can be included here. |
+
+---
+
+=head2 sections and headdings
+
+ ! header 1
+ !! header 2
+ !!! header 3
+
+ ? section
+ ?a article
+ ?h header
+ ?f footer
+ ?s aside
+ ?n nav
+
 
 =cut
 
@@ -516,59 +533,25 @@ sub read_bib{
 =begin c
 Wini.pm original specification: the text specified in %1 is regarded as an Reference ID.
 
-%x: enw firmat, [x]: pubmed reference (nbib) format, (x): ris format
-%A 	Author 	(AU) (A1)
-%B 	Secondary title of a book or conference name	(T2)(CONF)
-%C 	Place published	(CY)
-%D 	Year 	() (Y1)(PY)
-%E 	Editor/Secondary author 	(ED)
-%F 	Label 	(LB)
-%G 	Language 	(LA)
-%H 	Translated author	(TA)
-%I 	Publisher 	(PB)
-%J 	Journal name 	() (JO)
-%K 	Keywords 	
-%L 	Call number 	
-%M 	Accession number 	(AN)
-%N 	Number 	or issue	(IS)
-%O 	Alternate title 	(J2) this field is used for the abbreviated title of a book or journal name, the latter mapped to T2
-%P 	Pages 	(SP,EP)
-%Q 	Translated title 	(TT)
-%R 	DOI 	digital object identifier	(DO)
-%S 	Tertiary title 	(T3)
-%T 	Title 	(TI)(T1)
-%U 	URL 	(UR)
-%V 	Volume 	() (VL)
-%W 	Database provider 	(DP)
-%X 	Abstract 	(AB)
-%Y 	Tertiary author/Translator 	
-%Z 	Notes 	
-%0 	Reference type 	(TY) must be the first tag of each record
-%1 	Custom 1 	
-%2 	Custom 2 	
-%3 	Custom 3 	
-%4 	Custom 4 	
-%6 	Number of volumes 	(NV)
-%7 	Edition	(ET)
-%8 	Date 	
-%9 	Type of work 	(M3)
-%? 	Subsidiary author 	
-%@ 	ISBN/ISSN 	ISBN or ISSN number	(SN)
-%! 	Short title 	
-%# 	Custom 5 	
-%$ 	Custom 6 	
-%] 	Custom 7 	
-%& 	Section 	
-%( 	Original publication 	
-%) 	Reprint edition 	
-%* 	Reviewed item 	
-%+ 	Author address 	(AD)
-%^ 	Caption 	
-%> 	File attachments 	
-%< 	Research notes 	
-%[ 	Access date 	(Y2)
-%= 	Custom 8 	
-%~ 	Name of database
+%A 	Author	(au)
+%B 	Secondary title of a book or conference name	(co)
+%C 	Place published	(pp)
+%D 	Year	(ye)
+%E 	Editor/Secondary author	(ed)
+%G 	Language	(lang)
+%H 	Translated author	(tau)
+%I 	Publisher	(pu)
+%J 	Journal name	(jo)
+%N 	Number or issue	(is)
+%P 	Pages 	(pa_begin, pa_end)
+%R 	DOI 	digital object identifier	(doi)
+%T 	Title	(ti)
+%U 	URL	(url)
+%V 	Volume	(vo)
+%0 	Reference type  -- This must be the first tag of each record
+%1 	Reference ID -- Wini.pm original
+%2 		PMCID
+%@ 	ISBN/ISSN, ISBN or ISSN number	(SN)
 
 =end c
 
@@ -1694,8 +1677,8 @@ sub cittxt_vals{ # subst. "[...]" in reference format to final value
   (defined $x0 and defined $form) or return();
   my($valname, @filter) = split(/\|/, $form);
   my @xx =map {
-    s/"/&quot;/g;
-    s/'/&apos;/g;
+    #s/"/&quot;/g;
+    #s/'/&apos;/g;
     /^[\d&]/ ? $_ : qq!'$_'!;
   } @{$x0->{$valname}}, @filter;
   my(@r) = ev([@xx], $x0, $lang);
