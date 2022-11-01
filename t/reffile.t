@@ -40,7 +40,7 @@ while(<DATA>){
     my $file=$1;
     ($DEBUG) and print STDERR "output=$file\n";
     open($fho, '>:utf8', $file) or die "Cannot open $file";
-    push(@files, $file);
+    ($file=~/\.enw$/) and push(@files, $file);
   }elsif(/^---end/){
     close $fho;
     undef $fho;
@@ -57,6 +57,7 @@ for(my $i=0; $i<=$#files; $i++){
   ($DEBUG) and print STDERR "Test in $tempdir\n";
   copy("../$files[$i]", $files[$i]) or die "Failed to copy $files[$i] to $tempdir";
   my $cmd = "../Wini.pm --bibonly --bib $files[$i] 2> err.log";
+  ($DEBUG) and print STDERR "Try $cmd\n";
   my $r = system($cmd);
   if($r>0){
     $r = $r >> 8;
@@ -68,6 +69,13 @@ EOD
 
   my $outfiles = join(' ', sort <*.*>);
   is $outfiles, join(' ', sort ('err.log', $files[$i], "$files[$i].ref")), $files[$i];
+
+  open(my $fhi, '<:utf8', "$files[$i].ref") or die "$files[$i].ref not found";
+  my $got = join('', <$fhi>);
+  close $fhi;
+  open($fhi, '<:utf8', "../$files[$i].ref") or die "../$files[$i].ref not found";
+  my $exp = join('', <$fhi>);
+  is $got, $exp, "$files[$i]: output";
 
   ($DEBUG) or map{unlink $_} <*>;
   chdir $cwd;
@@ -93,6 +101,9 @@ __DATA__
 %@ 3110857618
 %D 2015
 %I Walter de Gruyter GmbH & Co KG
+---start reffile_book.enw.ref
+refid	type	cittype	source	url	inline_id	au	tau	ye	ti
+austerlitz2015_001	cit	ja	1			Austerlitz, Robert		2015	The Scope of American Linguistics: Papers of the First Golden Anniversary Symposium of the Linguistic Society of America, Held at the University of Massachusetts, Amherst, on July 24 and 25, 1974
 ---start reffile_bookchapter.enw
 %0 Book Section
 %T It’s DE-licious: a recipe for differential expression analyses of RNA-seq experiments using quasi-likelihood methods in edgeR
@@ -106,6 +117,9 @@ __DATA__
 %# (from the original content) Cite this protocol as:    Lun A.T.L., Chen Y., Smyth G.K. (2016) It’s DE-licious: A Recipe for Differential Expression Analyses of RNA-seq Experiments Using Quasi-Likelihood Methods in edgeR. In: Mathé E., Davis S. (eds) Statistical Genomics. Methods in Molecular Biology, vol 1418. Humana Press, New York, NY. https://doi.org/10.1007/978-1-4939-3578-9_19
 %# (from pubmed APA format)          Lun, A. T., Chen, Y., & Smyth, G. K. (2016). It's DE-licious: A Recipe for Differential Expression Analyses of RNA-seq Experiments Using Quasi-Likelihood Methods in edgeR. Methods in molecular biology (Clifton, N.J.), 1418, 391–416. https://doi.org/10.1007/978-1-4939-3578-9_19
 %# (from google scholoar APA format) Lun, A. T., Chen, Y., & Smyth, G. K. (2016). It’s DE-licious: a recipe for differential expression analyses of RNA-seq experiments using quasi-likelihood methods in edgeR. In Statistical genomics (pp. 391-416). Humana Press, New York, NY.
+---start reffile_bookchapter.enw.ref
+refid	type	cittype	source	url	inline_id	au	tau	ye	ti
+lun_2016_001	cit	ja	1			Lun, Aaron TL		2016	It’s DE-licious: a recipe for differential expression analyses of RNA-seq experiments using quasi-likelihood methods in edgeR
 ---start reffile_cirnii_jpn.enw
 %T 報告 2021年日本ベントス学会・日本プランクトン学会合同大会自由集会 「環境DNAを使ったベントス研究の現状：実際，どの程度使えるものなのか？」開催報告
 %J 日本ベントス学会誌
@@ -146,6 +160,10 @@ __DATA__
 %P 259-266
 %U https://cir.nii.ac.jp/crid/1390854882637686016
 %R 10.3825/ece.21-00011
+---start reffile_cirnii_jpn.enw.ref
+refid	type	cittype	source	url	inline_id	au	tau	ye	ti
+?2021_001	cit	ja	1	https://cir.nii.ac.jp/crid/1390009640044958464		"報告 2021年日本ベントス学会・日本プランクトン学会合同大会自由集会 「環境DNAを使ったベントス研究の現状：実際，どの程度使えるものなのか？」開催報告"		2021	
+miyazono_2021_001	cit	ja	1	https://cir.nii.ac.jp/crid/1390854882637686016		宮園, 誠二	Miyazono, Seiji	2021	環境 DNA 分析による江の川支流のアユ生息場としての評価
 ---start reffile_googlescholar.enw
 %0 Generic
 %T Statistical Genomics: Methods and Protocols
@@ -154,6 +172,9 @@ __DATA__
 %@ 1493935763
 %D 2016
 %I Humana Press
+---start reffile_googlescholar.enw.ref
+refid	type	cittype	source	url	inline_id	au	tau	ye	ti
+math_2016_001	cit	ja	1			Math, Ewy		2016	Statistical Genomics: Methods and Protocols
 ---start reffile_various.enw
 %0 Journal Article
 %T Enrichr: interactive and collaborative HTML5 gene list enrichment analysis tool
@@ -190,4 +211,9 @@ __DATA__
 %@ 1479900567
 %D 2013
 %I IEEE
+---start reffile_various.enw.ref
+refid	type	cittype	source	url	inline_id	au	tau	ye	ti
+chen_2013_001	cit	ja	1			Chen, Edward Y		2013	Enrichr: interactive and collaborative HTML5 gene list enrichment analysis tool
+nurminen_2013_001	cit	pc	1			Nurminen, Jukka K		2013	P2P media streaming with HTML5 and WebRTC
+riedel2008_001	cit	ja	1			Riedel, Sebastian		2008	Mojolicious. Real-time web framework
 ---end

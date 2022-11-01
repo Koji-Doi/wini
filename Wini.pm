@@ -445,6 +445,7 @@ sub stand_alone{
   if(defined $bibfiles[0]){
     read_bib(@bibfiles);
     if($bibonly){
+      save_bib("$bibfiles[0].ref");
       exit();
     }
   }
@@ -646,7 +647,8 @@ Wini.pm original specification: the text specified in %1 is regarded as an Refer
         $ref->[$i]{text}{$l} = cittxt($ref->[$i], $cit_form, $l);
       }
     }
-    open(my $fho, '>:utf8', $outbibfile) or die mes(txt('fnf', undef, {f=>$outbibfile}), {err=>1});
+    #open(my $fho, '>:utf8', $outbibfile) or die mes(txt('fnf', undef, {f=>$outbibfile}), {err=>1});
+    #print {$fho} join("\t", qw/id lang au tau ye ti/), "\n";
     foreach my $x (sort {$a->{id} cmp $b->{id}} @$ref){
       my $id = $x->{id};
       foreach my $k (grep {$_ ne 'text' and $_ ne 'id' and $_ ne 'type' and $_ ne 'cittype'} keys %$x){
@@ -658,11 +660,14 @@ Wini.pm original specification: the text specified in %1 is regarded as an Refer
       $REF{$id}{cittype} = $x->{cittype} || 'ja';
       $REF{$id}{text}    = $x->{text};
       (defined $REF{$id}{lang}) or $REF{$id}{lang}[0] = 'en';
-      my $au  = (defined $x->{au}[0])  ? join(' & ', grep {/\S/} @{$x->{au}})  : '';
-      my $tau = (defined $x->{tau}[0]) ? join(' & ', grep {/\S/} @{$x->{tau}}) : '';
-      print {$fho} join("\t", $id, $x->{lang}[0], $au, $tau, $x->{ye}[0]||'', $x->{ti}[0]||''), "\n";
+      #my $au  = (defined $x->{au}[0])  ? join(' & ', grep {/\S/} @{$x->{au}})  : '';
+      #my $tau = (defined $x->{tau}[0]) ? join(' & ', grep {/\S/} @{$x->{tau}}) : '';
+      #$REF{$id}{au} =  $au;
+      #$REF{$id}{tau} = $tau;
+      
+      #print {$fho} join("\t", $id, $x->{lang}[0], $au, $tau, $x->{ye}[0]||'', $x->{ti}[0]||''), "\n";
     }
-    close $fho;
+    #close $fho;
   } #foreach @bibfiles
 } # sub read_bib
 
@@ -701,10 +706,10 @@ sub save_bib{
   }else{
     $fho = *STDOUT;
   }
-  print {$fho} join("\t", qw/type refid source url inline_id au ye ti/), "\n";
+  print {$fho} join("\t", qw/refid type cittype source url inline_id au tau ye ti/), "\n";
   foreach my $type (qw/fig tbl cit/){
     foreach my $refid (sort grep {$REF{$_}{type} eq $type} keys %REF){
-      print {$fho} join("\t", $type, $refid, $REF{$refid}{source}, $REF{$refid}{url}[0]||'', $REF{$refid}{inline_id}{en}||'', $REF{$refid}{au}[0]||'', $REF{$refid}{ye}[0], $REF{$refid}{ti}[0]||''), "\n";
+      print {$fho} join("\t", $refid, $type, $REF{$refid}{cittype}||'', $REF{$refid}{source}, $REF{$refid}{url}[0]||'', $REF{$refid}{inline_id}{en}||'', $REF{$refid}{au}[0]||'', $REF{$refid}{tau}[0]||'', $REF{$refid}{ye}[0], $REF{$refid}{ti}[0]||''), "\n";
     }
   }
   ($outfile) and close $fho;
