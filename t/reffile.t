@@ -33,14 +33,22 @@ my @reflist;
 
 # save test enw files
 my @files;
+my %opt;
 my $fho;
 while(<DATA>){
-  if(/^---start (.*)/){
+  /^"/ and next;
+  if(/^---start ([^[\s]*)(?:\[(.*)\])?/){
     (defined $fho) and close $fho;
-    my $file=$1;
+    my($file, $mgfiles) = ($1, $2);
     ($DEBUG) and print STDERR "output=$file\n";
     open($fho, '>:utf8', $file) or die "Cannot open $file";
     ($file=~/\.enw$/) and push(@files, $file);
+    push(@{$opt{$file}}, '');
+    if($mgfiles){
+      foreach my $mgfile (split(" ", $mgfiles)){
+        push(@{$opt{$file}}, $mgfile);
+      }
+    }
   }elsif(/^---end/){
     close $fho;
     undef $fho;
@@ -52,36 +60,44 @@ while(<DATA>){
 
 my $cwd = cwd();
 for(my $i=0; $i<=$#files; $i++){
-  my $tempdir = tempdir('reffile_XXXX');
-  chdir $tempdir;
-  ($DEBUG) and print STDERR "Test in $tempdir\n";
-  copy("../$files[$i]", $files[$i]) or die "Failed to copy $files[$i] to $tempdir";
-  my $cmd = "../Wini.pm --bibonly --bib $files[$i] 2> err.log";
-  ($DEBUG) and print STDERR "Try $cmd\n";
-  my $r = system($cmd);
-  if($r>0){
-    $r = $r >> 8;
-    ($DEBUG) and print STDERR (<<"EOD");
+  foreach my $mgfile (@{$opt{$files[$i]}}){
+print "RRRR $mgfile.\n";
+    my $tempdir = tempdir('reffile_XXXX');
+    chdir $tempdir;
+    ($DEBUG) and print STDERR "Test in $tempdir\n";
+    copy("../$files[$i]", $files[$i]) or die "Failed to copy $files[$i] to $tempdir";
+    my $mg = ($mgfile ne '') ? "-i ${mgfile} -o ${mgfile}.html" : '';
+print "SSSS $mg.\n";
+    my $cmd = "../Wini.pm ${mg} --bibonly --bib $files[$i] 2> err.log";
+    ($DEBUG) and print STDERR "Try $cmd\n";
+    my $r = system($cmd);
+    if($r>0){
+      $r = $r >> 8;
+      ($DEBUG) and print STDERR (<<"EOD");
 Error occured in trying '$cmd'.
 Return=$r
 EOD
+    }
+
+    my $outfiles = join(' ', sort <*.*>);
+    is $outfiles, join(' ', sort ('err.log', $files[$i], "$files[$i].ref")), $files[$i];
+
+    open(my $fhi, '<:utf8', "$files[$i].ref") or die "$files[$i].ref not found";
+    my $got = join('', <$fhi>);
+    close $fhi;
+    open($fhi, '<:utf8', "../$files[$i].ref") or die "../$files[$i].ref not found";
+    my $exp = join('', <$fhi>);
+    is $got, $exp, "$files[$i]: output";
+
+    ($DEBUG) or map{unlink $_} <*>;
+    chdir $cwd;
+    ($DEBUG) or rmdir $tempdir;
   }
-
-  my $outfiles = join(' ', sort <*.*>);
-  is $outfiles, join(' ', sort ('err.log', $files[$i], "$files[$i].ref")), $files[$i];
-
-  open(my $fhi, '<:utf8', "$files[$i].ref") or die "$files[$i].ref not found";
-  my $got = join('', <$fhi>);
-  close $fhi;
-  open($fhi, '<:utf8', "../$files[$i].ref") or die "../$files[$i].ref not found";
-  my $exp = join('', <$fhi>);
-  is $got, $exp, "$files[$i]: output";
-
-  ($DEBUG) or map{unlink $_} <*>;
-  chdir $cwd;
-  ($DEBUG) or rmdir $tempdir;
 }
 
+
+
+=begin c
 while(<DATA>){
   /^"$/ and next;
   /^---start mg(?:\s*(.*))?$/ and ($i++, $mode='mg', $indata[$i]{tag}=$1, next);
@@ -91,9 +107,18 @@ while(<DATA>){
   $indata[$i]{$mode} .= $_;
 }
 
+=end c
+
+=cut
+print Dumper %opt;
+print Dumper @files;
 done_testing;
 
 __DATA__
+"
+---start a.mg
+  {{ref|riedel2008_001}}
+
 ---start reffile_book.enw
 %0 Book
 %T The Scope of American Linguistics: Papers of the First Golden Anniversary Symposium of the Linguistic Society of America, Held at the University of Massachusetts, Amherst, on July 24 and 25, 1974
@@ -175,7 +200,7 @@ miyazono_2021_001	cit	ja	1	https://cir.nii.ac.jp/crid/1390854882637686016		хоохЬ
 ---start reffile_googlescholar.enw.ref
 refid	type	cittype	source	url	inline_id	au	tau	ye	ti
 math_2016_001	cit	ja	1			Math, Ewy		2016	Statistical Genomics: Methods and Protocols
----start reffile_various.enw
+---start reffile_various.enw[a.mg]
 %0 Journal Article
 %T Enrichr: interactive and collaborative HTML5 gene list enrichment analysis tool
 %A Chen, Edward Y
