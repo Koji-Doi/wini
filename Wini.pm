@@ -460,10 +460,10 @@ sub stand_alone{
     (defined $inf->[0])
   ){
     mes(txt('fso'), {q=>1});
-  }else{
-    print STDERR "check inf  ", Dumper $inf;
-    print STDERR "check outd ", Dumper $outd;
-    print STDERR "check outf ", Dumper $outf;
+  #}else{
+  #  print STDERR "check inf  ", Dumper $inf;
+  #  print STDERR "check outd ", Dumper $outd;
+  #  print STDERR "check outf ", Dumper $outf;
   }
   if(defined $outd){
     (-f $outd) and unlink $outd;
@@ -566,7 +566,7 @@ Wini.pm original specification: the text specified in %1 is regarded as an Refer
       ($bibfiles[$i]=~/.nbib$/) and $fileformat = 'pubmed';
     }
     bib_id(); # reset ID
-    my $outbibfile = "$bibfiles[$i].ref";
+  #  my $outbibfile = "$bibfiles[$i].ref";
     if($fileformat eq 'endnote'){
       my %item = qw/A au B co C pp D ye E ed G lang 8 da T ti H tau I pu J jo R doi V vo N is U url/;
       my %current_rec;
@@ -1276,12 +1276,12 @@ sub deref{
       my $title = $REF{$id}{text}{$lang} || $REF{$id}{doi};
       $title=~s/<.*?>//g;
       # $REF{$id}{text}{$lang} = $REF{$id}{inline_id};
-      my $x = qq{<span id="${id}_$id_cnt_in_text{$id}" title="title">$REF{$id}{inline_id}{$lang}</span>};
-      if($type eq 'cit'){
-        $REF{$id}{inline_id}{$lang} = qq{<a href="#reflist_${id}">$x</a>};
-      }else{
-        sprintf(q|<a href="#%s">%s</a>|, $id, $REF{$id}{inline_id}{$lang});
-      }
+      #my $x = qq{<span id="${id}_$id_cnt_in_text{$id}" title="title">$REF{$id}{inline_id}{$lang}</span>};
+      #if($type eq 'cit'){
+      #  $REF{$id}{inline_id}{$lang} = qq{<a href="#reflist_${id}">$x</a>};
+      #}else{
+      #  sprintf(q|<a href="#%s">%s</a>|, $id, $REF{$id}{inline_id}{$lang});
+      #}
     }else{
       $REF{$id}{inline_id}{$lang};
     }

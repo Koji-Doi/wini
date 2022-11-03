@@ -60,15 +60,24 @@ while(<DATA>){
 
 my $cwd = cwd();
 for(my $i=0; $i<=$#files; $i++){
+  my $outhtmlfile;
   foreach my $mgfile (@{$opt{$files[$i]}}){
-print "RRRR $mgfile.\n";
     my $tempdir = tempdir('reffile_XXXX');
+    my $io;
+    my $outreffile;
     chdir $tempdir;
-    ($DEBUG) and print STDERR "Test in $tempdir\n";
-    copy("../$files[$i]", $files[$i]) or die "Failed to copy $files[$i] to $tempdir";
-    my $mg = ($mgfile ne '') ? "-i ${mgfile} -o ${mgfile}.html" : '';
-print "SSSS $mg.\n";
-    my $cmd = "../Wini.pm ${mg} --bibonly --bib $files[$i] 2> err.log";
+    ($DEBUG) and print STDERR "Test in ${tempdir}\n";
+    copy("../$files[$i]", $files[$i]) or die "Failed to copy $files[$i] to ${tempdir}";
+    if($mgfile ne ''){
+      copy("../${mgfile}", $mgfile) or die "Failed to copy ${mgfile} to ${tempdir}";
+      $outhtmlfile = "${mgfile}.html";
+      $outreffile  = "${outhtmlfile}.ref";
+      $io = " -i ${mgfile} -o ${outhtmlfile}";
+    }else{
+      $io = ' --bibonly';
+      $outreffile = "$files[$i].ref";
+    }
+    my $cmd = "../Wini.pm${io} --bib $files[$i] 2> err.log";
     ($DEBUG) and print STDERR "Try $cmd\n";
     my $r = system($cmd);
     if($r>0){
@@ -79,21 +88,29 @@ Return=$r
 EOD
     }
 
-    my $outfiles = join(' ', sort <*.*>);
-    is $outfiles, join(' ', sort ('err.log', $files[$i], "$files[$i].ref")), $files[$i];
+    my $outfiles = join(' ', sort grep {/\.(log|enw|ref|html)/} <*.*>);
+    my @expfiles = ('err.log', $files[$i], $outreffile);
+    ($outhtmlfile) and push(@expfiles, $outhtmlfile);
+    is $outfiles, join(' ', sort @expfiles);
 
-    open(my $fhi, '<:utf8', "$files[$i].ref") or die "$files[$i].ref not found";
+    open(my $fhi, '<:utf8', $outreffile) or die "${outreffile} not found";
     my $got = join('', <$fhi>);
     close $fhi;
-    open($fhi, '<:utf8', "../$files[$i].ref") or die "../$files[$i].ref not found";
+    open($fhi, '<:utf8', "../${outreffile}") or die "../${outreffile} not found";
     my $exp = join('', <$fhi>);
-    is $got, $exp, "$files[$i]: output";
+    is std($got), std($exp), "$files[$i]: output";
 
     ($DEBUG) or map{unlink $_} <*>;
     chdir $cwd;
     ($DEBUG) or rmdir $tempdir;
+
+    if($mgfile ne ''){
+      print "### $outhtmlfile ", ((-f cwd()."/".$outhtmlfile)?"exists.":"missed."), "\n";
+      
+#    is $outhtmlfile, 
+    }
   }
-}
+} # for $infile[$i]
 
 
 
@@ -118,6 +135,12 @@ __DATA__
 "
 ---start a.mg
   {{ref|riedel2008_001}}
+
+---start a.mg.html.ref
+refid	type	cittype	source	url	inline_id	au	tau	ye	ti
+chen_2013_001	cit	ja	1			Chen, Edward Y		2013	Enrichr: interactive and collaborative HTML5 gene list enrichment analysis tool
+nurminen_2013_001	cit	pc	1			Nurminen, Jukka K		2013	P2P media streaming with HTML5 and WebRTC
+riedel2008_001	cit	ja	1		 (1) 	Riedel, Sebastian		2008	Mojolicious. Real-time web framework
 
 ---start reffile_book.enw
 %0 Book
