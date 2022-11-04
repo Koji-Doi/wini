@@ -1276,12 +1276,13 @@ sub deref{
       my $title = $REF{$id}{text}{$lang} || $REF{$id}{doi};
       $title=~s/<.*?>//g;
       # $REF{$id}{text}{$lang} = $REF{$id}{inline_id};
-      #my $x = qq{<span id="${id}_$id_cnt_in_text{$id}" title="title">$REF{$id}{inline_id}{$lang}</span>};
-      #if($type eq 'cit'){
-      #  $REF{$id}{inline_id}{$lang} = qq{<a href="#reflist_${id}">$x</a>};
-      #}else{
-      #  sprintf(q|<a href="#%s">%s</a>|, $id, $REF{$id}{inline_id}{$lang});
-      #}
+      if($type eq 'cit'){
+        my $x = qq{<span id="${id}_$id_cnt_in_text{$id}" title="title">$REF{$id}{inline_id}{$lang}</span>};
+      #  $REF{$id}{inline_id}{$lang} =
+        qq{<a href="#reflist_${id}">$x</a>};
+      }else{
+        sprintf(q|<a href="#%s">%s</a>|, $id, $REF{$id}{inline_id}{$lang});
+      }
     }else{
       $REF{$id}{inline_id}{$lang};
     }

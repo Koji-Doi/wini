@@ -98,21 +98,23 @@ EOD
     close $fhi;
     open($fhi, '<:utf8', "../${outreffile}") or die "../${outreffile} not found";
     my $exp = join('', <$fhi>);
-    is std($got), std($exp), "$files[$i]: output";
+    is std($got), std($exp), "$files[$i]: ref";
+
+    if($mgfile ne ''){
+      open(my $fhi, '<:utf8', $outhtmlfile) or die "$outhtmlfile missed.";
+      $got = join('', <$fhi>);
+      close $fhi;
+      open($fhi, '<:utf8', "../${outhtmlfile}") or die "../${outhtmlfile} missed.";
+      $exp = join('', <$fhi>);
+      close $fhi;
+      is std($got), std($exp), "$files[$i]: html";
+    }
 
     ($DEBUG) or map{unlink $_} <*>;
     chdir $cwd;
     ($DEBUG) or rmdir $tempdir;
-
-    if($mgfile ne ''){
-      print "### $outhtmlfile ", ((-f cwd()."/".$outhtmlfile)?"exists.":"missed."), "\n";
-      
-#    is $outhtmlfile, 
-    }
   }
 } # for $infile[$i]
-
-
 
 =begin c
 while(<DATA>){
@@ -127,14 +129,25 @@ while(<DATA>){
 =end c
 
 =cut
-print Dumper %opt;
-print Dumper @files;
 done_testing;
 
 __DATA__
 "
 ---start a.mg
-  {{ref|riedel2008_001}}
+{{ref|riedel2008_001}}
+
+{{citlist}}
+
+---start a.mg.html
+<p>
+<a href="#reflist_riedel2008_001"><span id="riedel2008_001_1" title="title"> (1) </span></a>
+</p>
+
+
+<ul class="citlist">
+<li id="riedel2008_001"> [1]  <a href="#riedel2008_001_1">^1&nbsp; </a>  Riedel, S. (2008) Mojolicious. Real-time web framework.   </li>
+
+</ul>
 
 ---start a.mg.html.ref
 refid	type	cittype	source	url	inline_id	au	tau	ye	ti
