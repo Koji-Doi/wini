@@ -1377,11 +1377,15 @@ sub list{
   my @list;
   my $rootlisttype = '';
   foreach my $x (split("\n", $t)){
-    if($x=~/^([;:*#])([;:*#].*)/ and ($1 eq $rootlisttype)){
-      if($#list>=0){
-        $list[-1] = $list[-1]."\n$2";
+    if($x=~/^([;:*#])(([;:*#])(-)?(.*))/ and ($1 eq $rootlisttype)){
+      if($4 eq '-'){
+        push(@list, $1.$3.$5);
       }else{
-        push(@list, $2);
+        if($#list>=0){
+          $list[-1] .=  "\n$2"; 
+        }else{
+          push(@list, $2);
+        }
       }
       $rootlisttype = $1;
     }else{

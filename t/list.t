@@ -164,4 +164,61 @@ __DATA__
 </dt>
 </dl>
 
+---start mg G: nesded description list under ordered list
+# a
+# b
+# c
+
+#; 1 list1title
+#: 1 list1desc
+#; 1 list2title
+#: 1 list2desc
+
+#;  2 list1title
+#:  2 list1desc
+#;- 2 list2title
+#:  2 list2desc
+---start html G:
+<ol class="mglist">
+<li>a
+</li>
+<li>b
+</li>
+<li>c
+</li>
+</ol>
+
+
+<ol class="mglist">
+<li><dl class="mglist">
+<dt>1 list1title
+</dt>
+<dd>1 list1desc
+</dd>
+<dt>1 list2title
+</dt>
+<dd>1 list2desc
+</dd>
+</dl>
+</li>
+</ol>
+
+
+<ol class="mglist">
+<li><dl class="mglist">
+<dt>2 list1title
+</dt>
+<dd>2 list1desc
+</dd>
+</dl>
+</li>
+<li><dl class="mglist">
+<dt>2 list2title
+</dt>
+<dd>2 list2desc
+</dd>
+</dl>
+</li>
+</ol>
+
 ---end
