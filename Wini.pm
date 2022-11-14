@@ -270,7 +270,6 @@ strikes: {{s|striked text}}
  ?s aside
  ?n nav
 
-
 =cut
 
 package Text::Markup::Wini;
@@ -2364,10 +2363,19 @@ sub ev{ # <, >, %in%, and so on
   my(@token) = (ref $x eq '') ? split(/((?<!\\)[|])/, $x)
              : map{ (split(/((?<!\\)[|])/, $_)) } @$x;
   my @stack;
+  my %stack1;
   for(my $i=0; $i<=$#token; $i++){
     my $t  = $token[$i];
     my($ini, $sep0);
-    if($t eq '&uc_all'){
+    if($t=~/^&(move|copy)(<|<<|>|>>)\s*(\w+)/){
+      my($act, $dir, $v) = ($1, $2, $3);
+      if(($dir eq '<<' or $dir eq '<') and not exists $stack1{$v}){
+        die "undefined stack name :$v\n";
+      }
+      if($dir eq '>' or $dir eq '>>'){
+        push(@{$stack1{$v}}, @stack);
+      }
+    }elsif($t eq '&uc_all'){
       @stack = (map {uc $_} @stack);
       #      push(@stack, uc      $stack[-1]); # $token[$i-2]);
     }elsif(($ini, $sep0)=$t=~/\&last_first(_ini)?([,.])?/ or # "Lastname, Firstname"
@@ -2419,7 +2427,7 @@ sub ev{ # <, >, %in%, and so on
       }elsif($f eq 'ge'){
         @stack = ($x=~/^[.\d]+/) ? (grep {$_ >= $x} @stack) : (grep { $_ ge $x} @stack);
       }
-    }elsif($t=~/^\&sort([nr]*)/){ #sort #sortn #sortr #sortnr
+    }elsif($t=~/^\&sort([nr]*)/){ #sort #sortn #sortr #sortnr (n=numerical, r=reverse)
       my($x, $y) = ($1, $&);
       my($n, $r) = ($x=~/n/?1:0, $x=~/r/?1:0);
       if($r){
@@ -2451,11 +2459,11 @@ sub ev{ # <, >, %in%, and so on
                        : join($sep, @$yy);
       ($etal) and (scalar @stack > $n) and $j .= txt('etal', $lang);
       @stack  = ($j);
-    }elsif($t=~/^\&l_(.*)$/){ # "abc"|l_* -> "*abc"
-      my $p = $1 || '*';
+    }elsif($t=~/^\&l_(.*)$/){ # "abc"|l_&ast; -> "*abc"
+      my $p = $1 || '&ast;'; # default: "abc"|l_ -> "*abc"
       @stack = map {s/^\s*//; ($_ ne '') ? "$p$_" : ''} @stack;
     }elsif($t=~/^\&r_(.*)$/){ # "abc"|r_* -> "abc*"
-      my $p = $1 || '.';
+      my $p = $1 || '.'; # default: "abc"|r_ -> "abc."
       @stack = map {s/\s*$//; ($_ ne '') ? "$_$p" : ''} @stack;
     }elsif($t=~/^\&q_(.)?(.)?$/){ # "abc"|&q_ -> "'abc'"; "abc"|&q_() -> "(abc)"
       my($l, $r) = ($1||"'", $2||"'");

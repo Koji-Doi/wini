@@ -221,11 +221,13 @@ f, e, d, c, b, a
 ---start mg 8 quote
 
 {{ev|"abc"|&q_}}
+{{ev|"abc"|&q_()}}
 
 ---start html 8 quote
 
 <p>
 'abc'
+(abc)
 </p>
 
 ---start mg 9 numeric calc
@@ -272,13 +274,18 @@ f, e, d, c, b, a
 ---start mg 12 &l_, &r_
 
 {{ev|"a"|"b"|"c"|&l_&amp;|&join,,}}
+{{ev|"a"|"b"|"c"|&l_&ast;|&join,,}}
+{{ev|"a"|"b"|"c"|&l_|&join,,}}
 
 {{ev|"a"|"b"|"c"|&r_&amp;|&join,,}}
+{{ev|"a"|"b"|"c"|&r_&ast;|&join,,}}
+{{ev|"a"|"b"|"c"|&r_|&join,,}}
 
 ---start html 12
 
 <p>
 &amp;a, &amp;b, &amp;c
+&ast;a, &ast;b, &ast;c &ast;a, &ast;b, &ast;c
 </p>
 <p>
 a&amp;, b&amp;, c&amp;
