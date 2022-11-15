@@ -2563,6 +2563,32 @@ sub ev{ # <, >, %in%, and so on
   return(@stack);
 } # sub ev
 
+sub union{ # @a ∪ @b
+   my($x, $y) = @_; # array references
+   my %cnt = ();
+   return(sort (grep {++$cnt{$_} == 1 } (@$x, @$y)))
+}
+
+sub isec{ # @a ∩ @b 
+   my($x, $y) = @_; # array references
+   my %cnt = ();
+   return(sort (grep {++$cnt{$_} == 2 } (@$x, @$y)))
+}
+
+sub  sdiff{ # @a - @b
+  my($x, $y) = @_;
+  my %cnt = ();
+  map { $cnt{$_}-- } @$y;
+  return(sort (grep {++$cnt{$_}==1} @$x));
+}
+
+sub uniq{ # (a,b,b,c,d,a,e) -> (a,b,c,d,e)
+  my($x) = @_;
+  my %y;
+  map{ $y{$_}=1} @$x;
+  return(sort keys %y);
+}
+
 sub escape_metachar{
   my($x, $format) = @_;
   $format = $format || '&#0x%X;';
