@@ -289,6 +289,8 @@ f, e, d, c, b, a
 </p>
 <p>
 a&amp;, b&amp;, c&amp;
+a&ast;, b&ast;, c&ast;
+a., b., c.
 </p>
 
 ---start mg 13 &bold, &ita
