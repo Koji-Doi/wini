@@ -2363,17 +2363,25 @@ sub ev{ # <, >, %in%, and so on
   my(@token) = (ref $x eq '') ? split(/((?<!\\)[|])/, $x)
              : map{ (split(/((?<!\\)[|])/, $_)) } @$x;
   my @stack;
-  my %stack1;
+  my %stack1; # temporal stacks
   for(my $i=0; $i<=$#token; $i++){
     my $t  = $token[$i];
     my($ini, $sep0);
     if($t=~/^&(move|copy)(<|<<|>|>>)\s*(\w+)/){
       my($act, $dir, $v) = ($1, $2, $3);
       if(($dir eq '<<' or $dir eq '<') and not exists $stack1{$v}){
-        die "undefined stack name :$v\n";
+        mes(txt('snd', $lang, {s=>$v}), {err=>1});
       }
-      if($dir eq '>' or $dir eq '>>'){
+      if($dir eq '>' or $dir eq '>>'){ # stack -> stack1
         push(@{$stack1{$v}}, @stack);
+        if($act eq 'move'){
+          @stack = ();
+        }
+      }else{ # stack1 -> stack
+        @stack = @{$stack1{$v}};
+        if($act eq 'move'){
+          @{$stack1{$v}} = ();
+        }
       }
     }elsif($t eq '&uc_all'){
       @stack = (map {uc $_} @stack);
@@ -2445,20 +2453,23 @@ sub ev{ # <, >, %in%, and so on
       # ;&: a; b & c
       # 2e: a, b et al.
       # 3e: a, b, c et al.
-      my $sep = ($1) ? "$1 " : ', ';
-      my $and  = ($2 eq '') ? ' '
-               :  txt('cit_and', $lang, 
-                    {a => (($2 eq 'a') ? ' and ' : ($2 eq '&') ? ' &amp; ' : "$2 ")}
-                  );
+      if(scalar @stack==0){
+      }else{
+        my $sep = ($1) ? "$1 " : ', ';
+        my $and  = ($2 eq '') ? ' '
+                              :  txt('cit_and', $lang, 
+                                 {a => (($2 eq 'a') ? ' and ' : ($2 eq '&') ? ' &amp; ' : "$2 ")}
+                                 );
       #my $and = txt('cit_and', $lang, {a=>$a0});
-      my $n   = ($3 and $3<scalar @stack) ? $3 : scalar @stack;
-      my $etal= $4;
-      my $yy  = ($n) ? [(@stack)[0..($n-1)]] : [@stack];
-      my $j   = ($and) ? (($#$yy) ? join($sep, @$yy[0..$#$yy-1]) . $and . $yy->[-1]
+        my $n   = ($3 and $3<scalar @stack) ? $3 : scalar @stack;
+        my $etal= $4;
+        my $yy  = ($n) ? [(@stack)[0..($n-1)]] : [@stack];
+        my $j   = ($and) ? (($#$yy) ? join($sep, @$yy[0..$#$yy-1]) . $and . $yy->[-1]
                                   : $yy->[0])
-                       : join($sep, @$yy);
-      ($etal) and (scalar @stack > $n) and $j .= txt('etal', $lang);
-      @stack  = ($j);
+                         : join($sep, @$yy);
+        ($etal) and (scalar @stack > $n) and $j .= txt('etal', $lang);
+        @stack  = ($j);
+      }
     }elsif($t=~/^\&l_(.*)$/){ # "abc"|l_&ast; -> "*abc"
       my $p = $1 || '&ast;'; # default: "abc"|l_ -> "*abc"
       @stack = map {s/^\s*//; ($_ ne '') ? "$p$_" : ''} @stack;
@@ -3011,6 +3022,7 @@ __DATA__
 |ref_tbl|Table {{n}} | 表{{n}}|
 |rout|Output:  STDOUT|出力先: 標準出力|
 |secnames|part chapter section subsection|部 章 節 項|
+|snd|Temporal stack '{{s}}' not defined|一時スタック{{s}}が定義されていません|
 |snf|Searched {{t}}, but not found|{{t}}の内部を検索しましたが見つかりません|
 |stc|Specify template file correctly|テンプレートファイルを正しく設定してください|
 |time|%H:%M:%S|%H時%M分%S秒|
