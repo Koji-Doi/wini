@@ -180,7 +180,7 @@ f, e, d, c, b, a
 {{ev|"A"|"B"|"C"|"D"|"E"|&join;;3e}}
 
 ---start html 6-2
-<p>A, B, C, D E</p>
+<p>A, B, C, D, E</p>
 <p>A, B, C, D E</p>
 <p>A; B; C; D E</p>
 <p>A, B, C, D and E</p>

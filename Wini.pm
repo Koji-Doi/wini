@@ -2383,6 +2383,9 @@ sub ev{ # <, >, %in%, and so on
           @{$stack1{$v}} = ();
         }
       }
+    }elsif($t=~/&union\s*(\S)+\s+(\S)/){
+      my($x, $y) = (($1 eq '_')?\@stack:$stack1{$1}, ($2 eq '_')?\@stack:$stack1{$2});
+      @stack = union($x, $y);
     }elsif($t eq '&uc_all'){
       @stack = (map {uc $_} @stack);
       #      push(@stack, uc      $stack[-1]); # $token[$i-2]);
@@ -2453,16 +2456,20 @@ sub ev{ # <, >, %in%, and so on
       # ;&: a; b & c
       # 2e: a, b et al.
       # 3e: a, b, c et al.
+      my($m1, $m2, $m3, $m4) = ($1, $2, $3, $4);
+      if($t eq '&join'){
+        ($t, $m1, $m2) = qw/&join,, , ,/;
+      }
       if(scalar @stack==0){
       }else{
-        my $sep = ($1) ? "$1 " : ', ';
-        my $and  = ($2 eq '') ? ' '
+        my $sep = ($m1) ? "$m1 " : ', ';
+        my $and  = ($m2 eq '') ? ' '
                               :  txt('cit_and', $lang, 
-                                 {a => (($2 eq 'a') ? ' and ' : ($2 eq '&') ? ' &amp; ' : "$2 ")}
+                                 {a => (($m2 eq 'a') ? ' and ' : ($m2 eq '&') ? ' &amp; ' : "$m2 ")}
                                  );
       #my $and = txt('cit_and', $lang, {a=>$a0});
-        my $n   = ($3 and $3<scalar @stack) ? $3 : scalar @stack;
-        my $etal= $4;
+        my $n   = ($m3 and $m3<scalar @stack) ? $m3 : scalar @stack;
+        my $etal= $m4;
         my $yy  = ($n) ? [(@stack)[0..($n-1)]] : [@stack];
         my $j   = ($and) ? (($#$yy) ? join($sep, @$yy[0..$#$yy-1]) . $and . $yy->[-1]
                                   : $yy->[0])
