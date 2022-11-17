@@ -2383,9 +2383,13 @@ sub ev{ # <, >, %in%, and so on
           @{$stack1{$v}} = ();
         }
       }
-    }elsif($t=~/&union\s*(\S)+\s+(\S)/){
-      my($x, $y) = (($1 eq '_')?\@stack:$stack1{$1}, ($2 eq '_')?\@stack:$stack1{$2});
-      @stack = union($x, $y);
+    }elsif($t=~/&(union|isec|sdiff)\s*(\S)+\s+(\S)/){
+      my($f, $x, $y) = ($1, ($2 eq '_')?\@stack:$stack1{$2}, ($3 eq '_')?\@stack:$stack1{$3});
+      @stack = ($f eq 'union') ? union($x, $y)
+             : ($f eq 'isec')  ? isec($x, $y) : sdiff($x, $y);
+    }elsif($t eq '&uniq'){
+      @stack = uniq(\@stack);
+#---
     }elsif($t eq '&uc_all'){
       @stack = (map {uc $_} @stack);
       #      push(@stack, uc      $stack[-1]); # $token[$i-2]);
@@ -2494,14 +2498,18 @@ sub ev{ # <, >, %in%, and so on
       @stack = grep {defined and /./} @stack;
     }elsif($t=~/^\&(if|unless)_empty(?: +(\w+))?$/){ # if array($2) is empty,... exit
       my($if, $name) = ($1, $2);
-      if($name eq ''){
-        (scalar @stack > 0)  and ($if eq 'unless') and return(@stack);
-        (scalar @stack == 0) and ($if eq 'if')     and return();
-      }else{
-        (exists $v->{$name}) or mes(txt('vnd', $lang, {v=>$name}), {err=>1});
-        (scalar @{$v->{$name}} > 0)  and ($if eq 'unless') and return(@stack);
-        (scalar @{$v->{$name}} == 0) and ($if eq 'if')     and return();
-      }
+      my @x = ev_val($name, \@stack, \%stack1, $v);
+      ((scalar @x == 0) and ($if eq 'if'))     and return();
+      ((scalar @x >  0) and ($if eq 'unless')) and return(@stack);
+
+#      if($name eq ''){
+#        (scalar @stack > 0)  and ($if eq 'unless') and return(@stack);
+#        (scalar @stack == 0) and ($if eq 'if')     and return();
+#      }else{
+#        (exists $v->{$name}) or mes(txt('vnd', $lang, {v=>$name}), {err=>1});
+#        (scalar @{$v->{$name}} > 0)  and ($if eq 'unless') and return(@stack);
+#        (scalar @{$v->{$name}} == 0) and ($if eq 'if')     and return();
+#      }
     }elsif($t eq '&end'){
       return(@stack);
 #====
@@ -2581,23 +2589,46 @@ sub ev{ # <, >, %in%, and so on
   return(@stack);
 } # sub ev
 
+sub ev_val{ # evaluate $stack1 first, then $v
+  my($name, $stack, $stack1, $val) = @_; # references
+  if($name eq '_' or $name eq ''){
+    return(@$stack);
+  }
+  if(exists $stack1->{$name}){
+    return(@{$stack1->{$name}});
+  }elsif(exists $val->{$name}){
+    if(ref $val->{$name} eq 'ARRAY'){
+      return($val->{$name});
+    }else{
+      return($val->{$name});
+    }
+  }
+  return();
+}
+
 sub union{ # @a ∪ @b
    my($x, $y) = @_; # array references
    my %cnt = ();
-   return(sort (grep {++$cnt{$_} == 1 } (@$x, @$y)))
+   my @xx = uniq($x);
+   my @yy = uniq($y);
+   return(sort (grep {++$cnt{$_} == 1 } (@xx, @yy)))
 }
 
 sub isec{ # @a ∩ @b 
    my($x, $y) = @_; # array references
+   my @xx = uniq($x);
+   my @yy = uniq($y);
    my %cnt = ();
-   return(sort (grep {++$cnt{$_} == 2 } (@$x, @$y)))
+   return(sort (grep {++$cnt{$_} == 2 } (@xx, @yy)))
 }
 
 sub  sdiff{ # @a - @b
   my($x, $y) = @_;
   my %cnt = ();
-  map { $cnt{$_}-- } @$y;
-  return(sort (grep {++$cnt{$_}==1} @$x));
+  my @xx = uniq($x);
+  my @yy = uniq($y);
+  map { $cnt{$_}-- } @yy;
+  return(sort (grep {++$cnt{$_}==1} @xx));
 }
 
 sub uniq{ # (a,b,b,c,d,a,e) -> (a,b,c,d,e)

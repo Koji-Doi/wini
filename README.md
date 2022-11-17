@@ -2,13 +2,13 @@
 
 ## 概要 / Summary
 
-Markgaabとは、簡単にHTML5ベースの文書作成ができるように設計された、軽量マークアップ言語である。
+Markgaabとは、HTML(WHATWG Living Standard)出力に特化した高性能かつ軽量なマークアップ言語である。名称は"Markup Going Above And Beyond"に由来する。
 
 Wini.pmはmarkgaabで書かれたテキストをHTML Live Standard準拠のウェブページに変換するツールである。
 
 WINIという名称は”WIKI ni NIta nanika"に由来する。
 
-Markgaab is a lightweight markup language designed to make HTML5-based document creation easier.
+Markgaab is a lightweight markup language designed to make HTML(WHATWG Living Standard)-based document creation easier.
 
 Wini.pm is a tool that converts text written in markgaab into HTML Live Standard-compliant web pages.
 
