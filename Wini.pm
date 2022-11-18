@@ -305,6 +305,8 @@ our(@INDIR, @INFILE, $OUTFILE);
 our($TEMPLATE, $TEMPLATEDIR);
 my(@libs, @libpaths, $SCRIPTNAME, $VERSION, $debug);
 my @save;
+our %sectdata;
+our($sect_cnt, $sect_id) = (0, '_');
 my $FORCE;
 
 # barrier-free color codes: https://jfly.uni-koeln.de/html/manuals/pdf/color_blind.pdf
@@ -398,6 +400,22 @@ sub init{
     }
   }
   to_html_reset(); # reset footnote etc.
+
+# temp
+$MACROS{switch} = sub{
+  my($e0, @p) = @_; # {{macroname|p0|p1}}
+mes();
+print STDERR "QQQQQ '$e0'\n";
+  my $e = ev_val($e0);
+  my $n = ($e>=$#p) ? $#p : $e;
+  return($p[$n]);
+};
+
+$MACROS{if} = sub{
+  my($e, $true, $false) = @_;
+  return($e ? $true : $false);
+};
+
 } # sub init
 
 # Following function is executed when this script is called as stand-alone script
@@ -944,15 +962,16 @@ my($footnote_cnt, %footnotes);
 my(@auto_table_id);
 sub to_html_reset{
   undef $footnote_cnt; undef %footnotes; undef @auto_table_id;
+  undef $sect_cnt; undef $sect_id;
 }
 sub to_html{
   my($x, $opt) = @_;
   # $opt: mainly from commandline parameters
   (defined $opt) or $opt={};
-  my(%sectdata, $secttitle, @html);
+  my($secttitle, @html);
   my $htmlout              = '';
   my @sectdata_depth       = ([{sect_id=>'_'}]);
-  my ($sect_cnt, $sect_id) = (0, '_');
+#  my ($sect_cnt, $sect_id) = (0, '_');
   my ($depth, $lastdepth)  = (0, 0);
   my $ind                  = $opt->{indir};
   (defined $ind) or $ind   = '';
@@ -2368,19 +2387,19 @@ sub ev{ # <, >, %in%, and so on
     my $t  = $token[$i];
     my($ini, $sep0);
     if($t=~/^&(move|copy)(<|<<|>|>>)\s*(\w+)/){
-      my($act, $dir, $v) = ($1, $2, $3);
-      if(($dir eq '<<' or $dir eq '<') and not exists $stack1{$v}){
-        mes(txt('snd', $lang, {s=>$v}), {err=>1});
+      my($act, $dir, $val) = ($1, $2, $3);
+      if(($dir eq '<<' or $dir eq '<') and not exists $stack1{$val}){
+        mes(txt('snd', $lang, {s=>$val}), {err=>1});
       }
       if($dir eq '>' or $dir eq '>>'){ # stack -> stack1
-        push(@{$stack1{$v}}, @stack);
+        push(@{$stack1{$val}}, @stack);
         if($act eq 'move'){
           @stack = ();
         }
       }else{ # stack1 -> stack
-        @stack = @{$stack1{$v}};
+        @stack = @{$stack1{$val}};
         if($act eq 'move'){
-          @{$stack1{$v}} = ();
+          @{$stack1{$val}} = ();
         }
       }
     }elsif($t=~/&(union|isec|sdiff)\s*(\S)+\s+(\S)/){
@@ -2462,7 +2481,7 @@ sub ev{ # <, >, %in%, and so on
       # 3e: a, b, c et al.
       my($m1, $m2, $m3, $m4) = ($1, $2, $3, $4);
       if($t eq '&join'){
-        ($t, $m1, $m2) = qw/&join,, , ,/;
+        ($t, $m1, $m2) = ('&join,,', ',', ',');
       }
       if(scalar @stack==0){
       }else{
@@ -2603,7 +2622,8 @@ sub ev_val{ # evaluate $stack1 first, then $v
       return($val->{$name});
     }
   }
-  return();
+print STDERR "RRRR $name\n", Dumper %sectdata;
+  return($sectdata{$name});
 }
 
 sub union{ # @a ∪ @b
