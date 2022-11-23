@@ -32,6 +32,15 @@ sub std{
 
 =cut
 
+sub std1{
+  my($x) = @_;
+  $x=~s/ +/ /g;
+  $x=~s/\s+$//sg;
+  $x=~s/^\s+//;
+  $x=~s/\n+/\n/g;
+  return($x);
+}
+
 my @indata;
 my $basename = basename($0, qw/.t .pl .pm/);
 my($parfile0, $tmplfile0) = ($basename.'_tmpl.par', $basename.'_tmpl.wini');
@@ -68,7 +77,7 @@ SKIP: for(my $i=1; $i<=$#indata; $i++){
     $infile[$i]{"outhtml$whole"} = $outfile;
     $infile[$i]{outcss}          = "${parfile}.css";
     my $cmd = "perl Wini.pm ${whole} -q -i $parfile -o $outfile --outcssfile";
-    #print STDERR "$indata[$i]{tag}: $cmd\n";
+    ($DEBUG) and print STDERR "*** $indata[$i]{tag}: $cmd\n";
     my $r = system($cmd);
     if($r!=0){
       die "Failure: $cmd";
@@ -77,8 +86,9 @@ SKIP: for(my $i=1; $i<=$#indata; $i++){
     my $o = join('', <$phi>);
     $o=~s{.*<body>}{}s;
     $o=~s{</body>.*}{}s;
-    $o=~s/[\n\r]*//g;
-    is std($o, {spc=>0}), std($indata[$i]{html}, {spc=>0}), "$indata[$i]{tag} $whole";
+    #$o=~s/[\n\r]*//g;
+    is1( std1($o, {spc=>0}), std1($indata[$i]{html}, {spc=>0}), "$indata[$i]{tag} $whole");
+    #is1($o, $indata[$i]{html}, "$indata[$i]{tag} $whole");
     close $phi;
   }
 }
@@ -129,8 +139,13 @@ sect1text
 ---start html 2
 Var x from par file is abc, which should be 'abc'.
 Main text which should be 'main text':
-<p>main text</p>
-Section text which should be 'sect1text':<p>sect1text</p>
+<p>
+main text
+</p>
+Section text which should be 'sect1text':
+<p>
+sect1text
+</p>
 
 ---start tmpl mg text replace
 
@@ -144,6 +159,8 @@ main text in {{B|mg}}
 
 ---start html 3
 
-<p>main text in <b>mg</b></p>
+<p>
+main text in <b>mg</b>
+</p>
 
 ---end

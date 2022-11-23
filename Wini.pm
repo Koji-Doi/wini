@@ -283,7 +283,8 @@ use File::Basename;
 use File::Path 'mkpath';
 use FindBin;
 use Pod::Usage qw/pod2usage/;
-use Pod::Find;
+#use Pod::Find;
+use Pod::Simple;
 use Getopt::Long qw(:config no_ignore_case auto_abbrev);
 use Encode;
 use Cwd;
@@ -805,7 +806,8 @@ EOD
      : ($x eq 'opt' or $x eq 'opts')     ? 'OPTIONS' 
      : qw(SYNOPSIS USAGE OPTIONS)
     ];
-    print pod2usage(-verbose => 99,  -sections => $sect, -input => Pod::Find::pod_where({-inc => 1}, __PACKAGE__) );
+    #print pod2usage(-verbose => 99,  -sections => $sect, -input => Pod::Find::pod_where({-inc => 1}, __PACKAGE__) );
+    print pod2usage(-verbose => 99,  -sections => $sect); #, -input => $FindBin::Bin . "/"). $FindBin::Script;
   }
   exit();
 }
@@ -1230,8 +1232,7 @@ sub markgaab{
       ) or last; # no subst need, then escape inner loop
     } # loop while subst needed
 
-    $t=~s{(?:^|(?<=\n))([*#;:].*?(?:(?=\n[^*#;:])|$))}
-         {my($r,$o)=list($1, $cr, $ptype, $para, $myclass); $r}esg;
+    $t=~s{(?:^|(?<=\n))([*#;:].*?(?:(?=\n[^*#;:])|$))}{my($r,$o)=list($1, $cr, $ptype, $para, $myclass); $r}esg;
     $t = add_p($t, $cr, $para, $ptype, $myclass, $opt);
 
     push(@r, $t);
@@ -2599,7 +2600,9 @@ sub ev{ # <, >, %in%, and so on
       mes(txt('ilfi', $lang, {x=>$t}), {err=>1});
     }else{ # variables or formula
       if($t=~/^\w+$/){
-        push(@stack, $v->{$t});
+        #printf STDERR "v:%s ev_val:%s\n", $v->{$t}, ev_val($t, \@stack, \%stack1, $v); 
+        #push(@stack, $v->{$t});
+        push(@stack, ev_val($t, \@stack, \%stack1, $v));
       }else{
         ($t ne '|') and push(@stack, array($t));
       }
