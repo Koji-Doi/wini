@@ -1095,7 +1095,7 @@ sub to_html{
     # read parameters from input
     my %par;
     foreach my $html (@html){
-      my($id, $txt) = ($html->{sect_id}, $html->{txt});
+      my($id, $txt) = ($html->{sect_id}||'_', $html->{txt});
       $par{$id} = $txt;
     }
 
