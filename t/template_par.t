@@ -92,10 +92,13 @@ SKIP: for(my $i=1; $i<=$#indata; $i++){
     close $phi;
   }
 }
-foreach my $x (@infile){
-  foreach my $k (keys %$x){
-    ($DEBUG) and print STDERR "del $x->{$k}\n";
-    unlink $x->{$k};
+
+unless($DEBUG){
+  foreach my $x (@infile){
+    foreach my $k (keys %$x){
+      #print STDERR "del $x->{$k}\n";
+      unlink $x->{$k};
+    }
   }
 }
 
