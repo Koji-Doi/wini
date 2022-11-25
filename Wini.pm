@@ -1177,6 +1177,8 @@ sub markgaab{
   $t0 =~ s/(^```)\n(.*?)\n```$/         &save_quote('code', $1, $2)/esmg;
   $t0 =~ s/(^""")([\w =]*)\n(.*?)\n"""$/&save_quote("q $2", $1, $3)/esmg;
     
+  $t0 =~ s/'''(.*?)'''/&save_quote('pre', undef, $1)/esmg;
+
   # conv table to html
   $t0 =~ s/^\s*(\|.*?)[\n\r]+(?!\|)/table($1, {lang=>$lang})/esmg;
   # footnote
