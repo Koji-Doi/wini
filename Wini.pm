@@ -2377,13 +2377,13 @@ sub date{
 } # sub date
 
 sub ev{ # <, >, %in%, and so on
-  my($x, $v, $lang) = @_;
+  my($s, $v, $lang) = @_;
 
-  # $x: string or array reference. string: 'a,b|='
+  # $s: string or array reference. string: 'a,b|='
   # $v: reference of variables given from wini()
   
-  my(@token) = (ref $x eq '') ? split(/((?<!\\)[|])/, $x)
-             : map{ (split(/((?<!\\)[|])/, $_)) } @$x;
+  my(@token) = (ref $s eq '') ? split(/((?<!\\)[|])/, $s)
+             : map{ (split(/((?<!\\)[|])/, $_)) } @$s;
   my @stack;
   my %stack1; # temporal stacks
   for(my $i=0; $i<=$#token; $i++){
@@ -2570,7 +2570,7 @@ sub ev{ # <, >, %in%, and so on
       }
       $s{mean} = $s{total}/(scalar @stack);
       push(@stack, $s{$op});
-    }elsif(($op) = $t=~m{^(\+|-|/|\*|%|\&(?=eq|ne|lt|gt|le|ge)|==|!=|<|<=|>|>=)$}){
+    }elsif(($op) = $t=~m{^(\+|-|/|\*|%|\&(?:eq|ne|lt|gt|le|ge)|==|!=|<|<=|>|>=)$}){
       my($y) = pop(@stack);
       my($x) = pop(@stack);
       my $r=(
@@ -2596,7 +2596,7 @@ sub ev{ # <, >, %in%, and so on
     }elsif($t=~/(["'])(.*?)\1/){ # constants (string)
       $t=escape_metachar($t);
       push(@stack, $2 . '');
-    }elsif($t=~/^\d+$/){ # constants (numeral)
+    }elsif($t=~/^-?(?:\d+|\d+\.\d*)$/){ # constants (numeral)
       push(@stack, $t);
     }elsif($t=~/^\&/){ # illegal filter
       mes(txt('ilfi', $lang, {x=>$t}), {err=>1});
@@ -2627,7 +2627,6 @@ sub ev_val{ # evaluate $stack1 first, then $v
       return($val->{$name});
     }
   }
-print STDERR "RRRR $name\n", Dumper %sectdata;
   return($sectdata{$name});
 }
 

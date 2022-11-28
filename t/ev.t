@@ -21,6 +21,7 @@ my $mode="";
 my @reflist;
 $_=<DATA>;
 while(<DATA>){
+  if(/^=$/){next}
   if(/^---start reflist/ .. /---end reflist/){
     /^---/ or push(@reflist, $_);
   }else{
@@ -230,18 +231,51 @@ f, e, d, c, b, a
 (abc)
 </p>
 
----start mg 9 numeric calc
-
+---start mg 9-1 calc (num)
 {{ev|2022|1965|-}}
 {{ev|1|1|+}}
 {{ev|1|1|+|4|-}}
-
----start html 9 numeric calc
+{{ev|1.1|2.2|+}}
+  
+---start html 9-1 calc (num)
 
 <p>
 57
 2
 -2
+3.3
+</p>
+
+---start mg 9-2 calc (num cmp)
+{{ev|1|1|==}}
+{{ev|1.1|1.10|==}}
+{{ev|33|4|>}}
+{{ev|-1|-2|>}}
+
+---start html 9-2
+
+<p>
+1
+1
+1
+1
+</p>
+
+---start mg 9-3 calc (num cmp2)
+{{ev|1.0|1|!=}}
+{{ev|33|4|<}}
+{{ev|-1|1|>}}
+
+---start html 9-3 calc (num cmp2)
+
+---start mg 9-4 calc (char cmp)
+{{ev|"1"|"1"|&eq}}
+{{ev|"1.1"|"1.10"|&ne}}
+
+---start html 9-4
+<p>
+1
+1
 </p>
 
 ---start mg 10 &morethan
