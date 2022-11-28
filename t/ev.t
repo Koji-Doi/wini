@@ -51,7 +51,6 @@ for(my $i=1; $i<=$#indata; $i++){
   open(my $fho_h, '>:utf8', $htmlfile);
   print {$fho_h} $o1;
   close $fho_h;
-
   is1( std($o1), std($indata[$i]{html}), $indata[$i]{tag});
   unlink $mgfile, $htmlfile;
 }
@@ -426,4 +425,34 @@ Value of variable 'c' should be 444, is 444.
 
 </section></section>
 
+---start mg 16 move etc.
+
+join: {{ev|11|1|2|3|1|&uniq|&join}}
+
+union: {{ev|11|1|2|3|1|&move>x|2|3|4|&union _ x|&join}}
+
+isec: {{ev|11|1|2|3|1|&move>x|2|3|4|&isec _ x|&join}}
+
+sdiff1: {{ev|11|1|2|3|&move>x|2|3|4|&sdiff _ x|&join}}
+
+sdiff2: {{ev|11|1|2|3|1|&move>x|2|3|4|&sdiff x _|&join}}
+
+sdiff3: {{ev|11|1|2|3|1|&move>x|2|3|4|1|1|2|&sdiff x _|&join}}
+
+sdiff4: {{ev|11|1|2|3|1|&move>x|2|4|1|2|&sdiff x _|&join}}
+
+sdiff5: {{ev|11|1|2|3|1|&move>x|2|4|1|2|&move>y|&sdiff y x|&join}}
+
+sdiff6: {{ev|11|1|2|3|1|&move>x|2|4|1|2|&move>y|&sdiff x y|&join}}
+
+---start html 16
+<p>join: 1, 11, 2, 3</p>
+<p>union: 1, 11, 2, 3, 4</p>
+<p>isec: 2, 3</p>
+<p>sdiff1: 4</p>
+<p>sdiff2: 1, 11</p>
+<p>sdiff3: 11</p>
+<p>sdiff4: 11, 3</p>
+<p>sdiff5: 4</p>
+<p>sdiff6: 11, 3</p>
 ---end
