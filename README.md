@@ -1,5 +1,7 @@
 # WINI -- HTML live standard準拠の軽量高性能マークアップ言語Markgaabのサポートツール / Supporting tool of "Markgaab", a light-weight but powerful HTML-live-standard compartible markup language 
 
+Wini.pm ver.0を既に触って下さった方は、ver.0とver.1との違いをまとめたVersion0to1.mdも参照していただきたい。
+
 ## 概要 / Summary
 
 Markgaabとは、HTML(WHATWG Living Standard)出力に特化した高性能かつ軽量なマークアップ言語である。名称は"Markup Going Above And Beyond"に由来する。
@@ -30,7 +32,7 @@ This script is a perl library module file, and can also be used as a stand-alone
 
 ## スタートアップ / Start Up
 
-1. 何はともあれ、perl5.9.5以上が使える環境を用意する。winiを実装したwini.pmは、perl本体とperlの標準モジュールがあれば利用できる。
+1. 何はともあれ、perl5.9.5以上が使える環境を用意する。WindowsであればWindows Susystem for Linux (WSL)とubuntuの導入をお勧めする。これでperlと幾つもの有用なテキスト処理用ツールが使えるようになる。winiを実装したwini.pmは、perl本体とperlの標準モジュールがあれば利用できる。
 0. 次に当レポジトリをダウンロードして適当なディレクトリに展開する。
 0. 上記ディレクトリ内で、`perl wini.pm < test.wini > out.html`を実行する。test.htmlと同一内容のout.htmlができていれば、ひとまず環境設定に問題は無いだろう。perl.pmの詳しい使い方については`perl wini.pm -h`で表示されるヘルプを参照してほしい。winiマークアップの文法についてはwini-j.mdまたはwini.mdを参照してほしい。(In preparation)
 0. 必要に応じてwini.pmをperlのライブラリモジュールを格納しているディレクトリにコピーする。これで自作スクリプト中で`use wini;`することによりwini変換関数が利用できるようになる。
@@ -38,15 +40,15 @@ This script is a perl library module file, and can also be used as a stand-alone
 ```
 ```
 
-1. Prepare the environment where perl 5.9.5 or later can be used.
+1. Prepare the environment where perl 5.9.5 or later can be used. For Windows users, Windows Subsystem for Linux (WSL) and ubuntu are highly recommended.
 0. Download this registry, and extend (unzip) files in an appropriate directory.
-0. Try `perl wini.pm < test.wini > out.html`. If the result out.html is the same as test.html in the registry, it is ready to start wini operating. Try `perl wini.pm -h` to find out detailed usage of wini.pm. Refer wini.md to find out the detailed grammar of WINI. (In preparation)
-0. If necessary, copy wini.pm to the directory listed in @INC to use wini.pm as a module file.  WINI translation functions in wini.pm will be available in perl scripts, by adding `use wini;`.
+0. Try `perl Wini.pm < test.wini > out.html`. If the result out.html is the same as test.html in the registry, it is ready to start wini operating. Try `perl wini.pm -h` to find out detailed usage of wini.pm. Refer wini.md to find out the detailed grammar of WINI. (In preparation)
+0. If necessary, copy Wini.pm to the directory listed in @INC to use wini.pm as a module file.  Markgaab translation function named to_html() and supporting functions in Wini.pm will be available in perl scripts, by adding `use Wini;`.
 
 ## 詳しくは / For further information
 
-コマンドライン上でWini.pm --helpを実行すると簡単な使い方が表示される。WINI文法の詳細については [qiitaの解説記事](https://qiita.com/doikoji/items/f6139b7d91b48e50dcef) を参照してほしい。
+コマンドライン上で`Wini.pm -h wini`を実行するとWini.pmの簡単な使い方が表示される。また、`Wini.pm -h mg`を実行すると文法の概略が表示される。markgaabの詳細については [qiitaの解説記事](https://qiita.com/doikoji/items/f6139b7d91b48e50dcef) を参照してほしい。
 
-To find out the usage of wini.pm, try `wini.pm --help`. Detail of WINI grammar will be addressed in English in the document coming soon.
+To find out the usage of Wini.pm, try `Wini.pm -h wini`. To find out the outline of markgaab grammar, try `Wini.pm -h mg`. Details will be addressed in English in the document coming soon.
 
 Translated with www.DeepL.com/Translator (free version)
