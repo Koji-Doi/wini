@@ -34,15 +34,15 @@ This script is a perl library module file, and can also be used as a stand-alone
 
 1. 何はともあれ、perl5.9.5以上が使える環境を用意する。WindowsであればWindows Susystem for Linux (WSL)とubuntuの導入をお勧めする。これでperlと幾つもの有用なテキスト処理用ツールが使えるようになる。winiを実装したwini.pmは、perl本体とperlの標準モジュールがあれば利用できる。
 0. 次に当レポジトリをダウンロードして適当なディレクトリに展開する。
-0. 上記ディレクトリ内で、`perl wini.pm < test.wini > out.html`を実行する。test.htmlと同一内容のout.htmlができていれば、ひとまず環境設定に問題は無いだろう。perl.pmの詳しい使い方については`perl wini.pm -h`で表示されるヘルプを参照してほしい。winiマークアップの文法についてはwini-j.mdまたはwini.mdを参照してほしい。(In preparation)
-0. 必要に応じてwini.pmをperlのライブラリモジュールを格納しているディレクトリにコピーする。これで自作スクリプト中で`use wini;`することによりwini変換関数が利用できるようになる。
+0. 上記ディレクトリ内で、`perl Wini.pm < test.wini > out.html`を実行する。test.htmlと同一内容のout.htmlができていれば、ひとまず環境設定に問題は無いだろう。
+0. 必要に応じてwini.pmをperlのライブラリモジュールを格納しているディレクトリにコピーする。これで自作スクリプト中で`use Wini;`することによりwini変換関数が利用できるようになる。
 
 ```
 ```
 
 1. Prepare the environment where perl 5.9.5 or later can be used. For Windows users, Windows Subsystem for Linux (WSL) and ubuntu are highly recommended.
 0. Download this registry, and extend (unzip) files in an appropriate directory.
-0. Try `perl Wini.pm < test.wini > out.html`. If the result out.html is the same as test.html in the registry, it is ready to start wini operating. Try `perl wini.pm -h` to find out detailed usage of wini.pm. Refer wini.md to find out the detailed grammar of WINI. (In preparation)
+0. Try `perl Wini.pm < test.wini > out.html`. If the result out.html is the same as test.html in the registry, it is ready to start wini operating. Try `perl Wini.pm -h` to find out detailed usage of wini.pm. Refer wini.md to find out the detailed grammar of WINI. (In preparation)
 0. If necessary, copy Wini.pm to the directory listed in @INC to use wini.pm as a module file.  Markgaab translation function named to_html() and supporting functions in Wini.pm will be available in perl scripts, by adding `use Wini;`.
 
 ## 詳しくは / For further information
