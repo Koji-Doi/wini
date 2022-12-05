@@ -2259,7 +2259,7 @@ sub table{
           ($htmlitem[0][$_]{ctag}   and $htmlitem[0][$_]{ctag}   eq 'th') or
           ($htmlitem[$rn][0]{ctag}  and $htmlitem[$rn][0]{ctag}  eq 'th'))
         )?'th':'td';
-        sprintf("<$ctag$copt>%s</$ctag>", ($htmlitem[$rn][$_]{wini} || ''));
+        sprintf("<$ctag$copt>%s</$ctag>", (defined ($htmlitem[$rn][$_]{wini}) ? $htmlitem[$rn][$_]{wini} : ''));
       } # if {copt}{rowspan}<=1 or {copt}{colpan}<=1
     } (1 .. $#{$htmlitem[1]}) # map
     ); # join
