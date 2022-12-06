@@ -194,19 +194,13 @@ strikes: {{s|striked text}}
 
 =head2 listing
 
----
-
  # ordered list item 1
  # ordered list item 2
  # ordered list item 3
 
----
-
  * non-ordered list item 1
  * non-ordered list item 2
  * non-ordered list item 3
-
----
 
  # nested list item 1
  # nested list item 2
@@ -220,11 +214,7 @@ strikes: {{s|striked text}}
  : description list item 2 description 1
  : description list item 2 description 2
 
----
-
 =head2 images and hyperlinks
-
----
 
  [http://example.com]                   : very simple hyperlink
  [http://example.com damy description]  : hyperlink with description
@@ -232,16 +222,12 @@ strikes: {{s|striked text}}
  [http://example.com|@hoge description] : hyperlink to be opened in the window named 'hoge'
  [#hoge text]                           : hyperlink within page
 
----
-
  [!sample.png]       : very simple in-line image
  [!!sample.png]      : in-line image with <figure> and <figcaption> tags
  [!image.png|< text] : img with float:left
  [!sample.png desc]  : in-line image with alternative text
  [?sample.png]       : in-line image with hyperlink to the image file
  [??sample.png]      : in-line image with hyperlink to the image file as well as <figure> and <figcaption> tags
-
----
 
 =head2 table
 
@@ -255,8 +241,6 @@ strikes: {{s|striked text}}
  |<data6_1                     | data 6-2   | data 6-3   |
  |data6_1 This is the content of the cell "data6_1". Any markgaab codes can be included here. |
 
----
-
 =head2 sections and headdings
 
  ! header 1
@@ -269,6 +253,29 @@ strikes: {{s|striked text}}
  ?f footer
  ?s aside
  ?n nav
+
+=head2 list(stack) operation
+
+Operations as shown below are valid in ev macro and in variable definition block.
+
+ 1|2|3|         : a list containing 3 numbers
+ 'a'|'b'|'c'|   : a list containing 3 texts
+ 1|2|+|         : 1+2
+ 1|2|+|3|*|     : (1+2)*3
+ 3|10|2|&nsort| : {2,3,10}
+ 3|10|2|&rev|   : {2,10,3}
+ 3|10|2|&nmax|  : {10}
+
+ "a"|&ita       : <span style="font-style:italic">a</span>
+
+ "James Tiberius Kirk"|&last_first,      : "Kirk, James Tiberius"
+ "Kirk, James Tiberius"|&first_last      : "James Tiberius Kirk"
+ "Kirk, James Tiberius"|&first_last_ini. : "J. K."
+ "Kirk, James Tiberius"|&ini_f           : "Kirk, J. T."
+
+ "Aa, Bb"|"Cc, Dd"|"gg"|"HH"|"iI"|&uc_all|&join;; : "AA, BB; CC, DD; GG; HH; II"
+ "A"|"B"|"C"|"D"|"E"|&join,a                      : "A, B, C, D and E"
+ "A"|"B"|"C"|"D"|"E"|&join;;3e                    : "A; B; C et al."
 
 =cut
 
@@ -405,8 +412,6 @@ sub init{
 # temp
 $MACROS{switch} = sub{
   my($e0, @p) = @_; # {{macroname|p0|p1}}
-mes();
-print STDERR "QQQQQ '$e0'\n";
   my $e = ev_val($e0);
   my $n = ($e>=$#p) ? $#p : $e;
   return($p[$n]);
@@ -1585,6 +1590,8 @@ sub call_macro{
   ($macroname=~/^l$/i)               and return('&#x7b;'); # {
   ($macroname=~/^bar$/i )            and return('&#x7c;'); # |
   ($macroname=~/^r$/i)               and return('&#x7d;'); # }
+  ($macroname=~/^sl$/i)              and return('&#x5b;'); # [
+  ($macroname=~/^sr$/i)              and return('&#x5d;'); # ]
   ($macroname=~/^([=-]([fh*]*-)?+[>v^ud]+|[<v^ud]+[=-]([fh*]*-)?+)/i)
                                      and return(arrow($macroname, @f));
   ($macroname=~m{^[!-/:-@\[-~]$})    and (not defined $f[0]) and 
@@ -2420,13 +2427,20 @@ sub ev{ # <, >, %in%, and so on
       my $sep    = ($sep0 eq ',') ? ', ' : ' ';
       my $period = ($sep0 eq '.') ? '.'  : ''; # for initial
       @stack = map {
-         my($last, $first) = /([^,]*)(?:, *(.*))?/;
+         my($last, $first);
+         if(/,/){  # "Kirk, James Tiberius"
+           ($last, $first) = /([^,]*)(?:, *(.*))?/;
+         }else{    # "James Tiberius Kirk"
+           my @x = split;
+           ($first, $last) = (join(' ', @x[0..$#x-1]), $x[-1]);
+         }
          $ini and ($last, $first) = ((uc(substr($last,0,1))).$period, ((uc(substr($first,0,1))).$period));
          join($sep, ($t=~/\&last/) ? ($last, $first) : ($first, $last));
       } @stack;
     }elsif($t eq '&lastname'){
       map { s/([^,]*),.*/$1/; } @stack;
-    }elsif($t=~/^\&ini_[afl]$/){ # take first letter and capitalize. This should be used before 'fl' or 'fli' filter
+    }elsif($t=~/^\&ini_[afl](0)?$/){ # take first letter and capitalize. This should be used before 'fl' or 'fli' filter
+      my $sep = ($1 eq '') ? ', ' : ' ';
       @stack = map {
       my($last, $first) = /([^,]*), *(.*)/;
       if(defined $last){
@@ -2445,7 +2459,7 @@ sub ev{ # <, >, %in%, and so on
               $last  = join(' ', map {($_ eq '') ? '' : "$_."} @l);
             }
           }
-          join(', ', grep {/\S/} ($last, $first));
+          join($sep, grep {/\S/} ($last, $first));
         }else{
           ''
         }
@@ -2523,15 +2537,6 @@ sub ev{ # <, >, %in%, and so on
       my @x = ev_val($name, \@stack, \%stack1, $v);
       ((scalar @x == 0) and ($if eq 'if'))     and return();
       ((scalar @x >  0) and ($if eq 'unless')) and return(@stack);
-
-#      if($name eq ''){
-#        (scalar @stack > 0)  and ($if eq 'unless') and return(@stack);
-#        (scalar @stack == 0) and ($if eq 'if')     and return();
-#      }else{
-#        (exists $v->{$name}) or mes(txt('vnd', $lang, {v=>$name}), {err=>1});
-#        (scalar @{$v->{$name}} > 0)  and ($if eq 'unless') and return(@stack);
-#        (scalar @{$v->{$name}} == 0) and ($if eq 'if')     and return();
-#      }
     }elsif($t eq '&end'){
       return(@stack);
 #====
@@ -2569,7 +2574,8 @@ sub ev{ # <, >, %in%, and so on
         $s{sum}=$s{total}+=$stack[$i];
       }
       $s{mean} = $s{total}/(scalar @stack);
-      push(@stack, $s{$op});
+      #push(@stack, $s{$op});
+      @stack = ($s{$op});
     }elsif(($op) = $t=~m{^(\+|-|/|\*|%|\&(?:eq|ne|lt|gt|le|ge)|==|!=|<|<=|>|>=)$}){
       my($y) = pop(@stack);
       my($x) = pop(@stack);
@@ -2646,7 +2652,7 @@ sub isec{ # @a ∩ @b
    return(sort (grep {++$cnt{$_} == 2 } (@xx, @yy)))
 }
 
-sub  sdiff{ # @a - @b
+sub sdiff{ # @a - @b
   my($x, $y) = @_;
   my %cnt = ();
   my @xx = uniq($x);
