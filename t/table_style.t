@@ -243,13 +243,13 @@ frame of table
 Table
 
 |- capt.      | border="1"            |
-|!$        l3 |      e {{^|captE}}    |
-|!$        l4 |&b    f {{^|captF|+}}  |
-|!$        l5 |&b    f2{{^|captF2|+}} |
-|!$        l6 |&b    e2{{^|captE2}}   |
-|!$        l7 |&b    g {{^|captG|**}} |
-|!$        l8 |&b    h {{^|captH|d}}  |
-|!$        l9 |&b    i {{^|captI|**}} |
+|!        l3 |      e {{^|captE}}    |
+|!        l4 |&b    f {{^|captF|+}}  |
+|!        l5 |&b    f2{{^|captF2|+}} |
+|!        l6 |&b    e2{{^|captE2}}   |
+|!        l7 |&b    g {{^|captG|**}} |
+|!        l8 |&b    h {{^|captH|d}}  |
+|!        l9 |&b    i {{^|captI|**}} |
 |--- inner table footnote             |
 
 Main text with footnote{{^|main text footnote}}.
@@ -299,26 +299,26 @@ Main text with footnote<sup>&dagger;1</sup>.
 Table
 
 |- capt.      | &c b@2                |
-|!$        l3 |      e {{^|captE}}    |
-|!$        l4 |&b    f {{^|captF|+}}  |
-|!$        l5 |&b    f2{{^|captF2|+}} |
-|!$        l6 |&b    e2{{^|captE2}}   |
-|!$        l7 |&b    g {{^|captG|**}} |
-|!$        l8 |&b    h {{^|captH|d}}  |
-|!$        l9 |&b    i {{^|captI|**}} |
+|!        l3 |      e {{^|captE}}    |
+|!        l4 |&b    f {{^|captF|+}}  |
+|!        l5 |&b    f2{{^|captF2|+}} |
+|!        l6 |&b    e2{{^|captE2}}   |
+|!        l7 |&b    g {{^|captG|**}} |
+|!        l8 |&b    h {{^|captH|d}}  |
+|!        l9 |&b    i {{^|captI|**}} |
 |--- inner table footnote             |
 
 Main text with footnote{{^|main text footnote}}.
 Main text with footnote{{^|main text footnote2|d}}.
 
 |- capt2.     | &c b@2                |
-|!$        l3 |      e {{^|captE}}    |
-|!$        l4 |&b    f {{^|captF|+}}  |
-|!$        l5 |&b    f2{{^|captF2|+}} |
-|!$        l6 |&b    e2{{^|captE2}}   |
-|!$        l7 |&b    g {{^|captG|**}} |
-|!$        l8 |&b    h {{^|captH|d}}  |
-|!$        l9 |&b    i {{^|captI|**}} |
+|!        l3 |      e {{^|captE}}    |
+|!        l4 |&b    f {{^|captF|+}}  |
+|!        l5 |&b    f2{{^|captF2|+}} |
+|!        l6 |&b    e2{{^|captE2}}   |
+|!        l7 |&b    g {{^|captG|**}} |
+|!        l8 |&b    h {{^|captH|d}}  |
+|!        l9 |&b    i {{^|captI|**}} |
 |--- inner table footnote2            |
 
 Main text with footnote{{^|main text footnote3}}.
@@ -395,4 +395,118 @@ Main text with footnote<sup>&dagger;2</sup>.
 </ul>
 </footer>
 
+---start mg T10a cell width
+
+|$1 a | b |
+
+---start html T10a
+
+<table class="mgtable" style="border-collapse: collapse; ">
+<tbody>
+<tr><td style="width:1px;">a</td><td>b</td></tr>
+</tbody>
+</table>
+
+---start mg T10b cell height
+
+|$$1 a | b |
+
+---start html T10b
+
+<table class="mgtable" style="border-collapse: collapse; ">
+<tbody>
+<tr style="height:1px;"><td>a</td><td>b</td></tr>
+</tbody>
+</table>
+
+---start mg T10c cell width/height
+
+|$$1$2 a | b |
+
+---start html T10c
+
+<table class="mgtable" style="border-collapse: collapse; ">
+<tbody>
+<tr style="height:1px;"><td style="width:2px;">a</td><td>b</td></tr>
+</tbody>
+</table>
+
+---start mg T10c cell width/height 2
+
+|$2$$1 a | b |
+
+---start html T10c
+
+<table class="mgtable" style="border-collapse: collapse; ">
+<tbody>
+<tr style="height:1px;"><td style="width:2px;">a</td><td>b</td></tr>
+</tbody>
+</table>
+
+---start mg T11 colspan
+
+| a | b | c |
+| d |-  | e |
+
+---start html T11
+
+<table class="mgtable" style="border-collapse: collapse; ">
+<tbody>
+<tr><td>a</td><td>b</td><td>c</td></tr>
+<tr><td colspan="2">d</td><td>e</td></tr>
+</tbody>
+</table>
+
+---start mg T12 rowspan
+
+| a | b | c |
+|^  | d | e |
+| f |^  | g |
+
+---start html T12
+
+<table class="mgtable" style="border-collapse: collapse; ">
+<tbody>
+<tr><td rowspan="2">a</td><td>b</td><td>c</td></tr>
+<tr><td rowspan="2">d</td><td>e</td></tr>
+<tr><td>f</td><td>g</td></tr>
+</tbody>
+</table>
+
+---start mg T13a table macro
+
+| a | b |
+|<c | d |
+|c CCC |
+
+---start html T13a
+
+<table class="mgtable" style="border-collapse: collapse; ">
+<tbody>
+<tr><td>a</td><td>b</td></tr>
+<tr><td>CCC</td><td>d</td></tr>
+</tbody>
+</table>
+
+---start mg T13b table macro 2
+
+| a | b |
+|<c | d |
+|c  ; c1
+|^^ : c1
+|^^ : c2
+
+---start html T13b
+
+<table class="mgtable" style="border-collapse: collapse; ">
+<tbody>
+<tr><td>a</td><td>b</td></tr>
+<tr><td>
+<dl class="mglist">
+<dt>c1</dt><dd>c1</dd>
+<dd>c2</dd>
+</dl>
+</td><td>d</td></tr>
+</tbody>
+</table>
 ---end
