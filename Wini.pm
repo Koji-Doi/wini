@@ -387,7 +387,7 @@ sub init{
   $LANG or $LANG = 'en';
   $QUIET      = 0; # 1: suppress most of messages
   $SCRIPTNAME = basename($0);
-  $VERSION    = "ver. 1.0alpha rel. 20221011";
+  $VERSION    = "ver. 1.0 rel. 20221216";
   while(<Text::Markup::Wini::DATA>){
     chomp;
     while(s/\\\s*$//){
@@ -1697,7 +1697,7 @@ EOD
 
 sub cittxt{ # format text with '[]' -> matured reference text
   my($x, $f0, $lang) = @_; # $x: hash ref representing a cit; $f: format
-  (defined $x) or $x = {au=>['Kirk, James T.', 'Tanaka, Taro', 'Yamada-Suzuki, Hanako', 'McDonald, Ronald'], ti=>'XXX', ye=>2021}; # test
+  #(defined $x) or $x = {au=>['Kirk, James T.', 'Tanaka, Taro', 'Yamada-Suzuki, Hanako', 'McDonald, Ronald'], ti=>'XXX', ye=>2021}; # test
   #  (defined $f) or $f = "[au|1|lf][au|2-3|lf|l; |j] [au|4-|etal|r;] [ye]. [ti]. {{/|[jo]}} [vo][issue|p()]:[pp].";
   #(defined $f) or $f = '[au|j;&e2] %%%% [au|i]'."\n";
   ($lang) or $lang = $x->{lang}[0] || 'en';
