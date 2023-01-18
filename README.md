@@ -10,11 +10,11 @@ Wini.pmはmarkgaabで書かれたテキストをHTML Live Standard準拠のウ�
 
 WINIという名称は”WIKI ni NIta nanika"に由来する。
 
-Markgaab is a lightweight markup language designed to make HTML(WHATWG Living Standard)-based document creation easier.
+Markgaab is a lightweight markup language designed to facilitate the creation of HTML(WHATWG Living Standard)-based documents.
 
-Wini.pm is a tool that converts text written in markgaab into HTML Live Standard-compliant web pages.
+Wini.pm is a tool that converts text written in Markgaab into HTML Live Standard compliant web pages.
 
-This script is a perl library module file, and can also be used as a stand-alone perl script. Users easily can get HTML documents from markgaab source texts, by using Wini.pm as a filter command.
+This script is a Perl library module file, and can also be used as a filter command.
 
 ### markgaabとは / What is markgaab?
 
