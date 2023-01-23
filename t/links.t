@@ -123,61 +123,77 @@ links with <a href="http://example.com">link text in markdown-compartible format
 <span id="hoge">Paragraph with ID</span>
 </p>
 "
----start mg img1 simple
+---start mg img simple
 [!test.png]
 
----start html img1
+---start html img
 <p>
 <img src="test.png" alt="test.png">
 </p>
 
----start mg img2 with fig ID.
+---start mg img with double quotation marks
+[!"test.png"]
+
+---start html img
+<p>
+<img src="test.png" alt="test.png">
+</p>
+
+---start mg img with alt text
+[!test.png abc]
+
+---start html img with alt text
+<p>
+<img src="test.png" alt="abc">
+</p>
+
+---start mg img with double quotation marks & alt text
+[!"test.png" abc]
+
+---start html img with alt text
+<p>
+<img src="test.png" alt="abc">
+</p>
+
+---start mg img with fig ID.
 [!test.png|#fig1]
 
----start html img2
+---start html img
 <p>
 <img src="test.png" alt="test.png" id="fig1">
 </p>
 
----start mg img2 with fig ID.
-[!test.png|#fig1]
-
----start html img2
-<p>
-<img src="test.png" alt="test.png" id="fig1">
-</p>
-
----start mg img3 with figure tag
+---start mg img with figure tag
 
 [!!test.png]
 
----start html img3
+---start html img
 <figure><img src="test.png" alt="test.png"><figcaption>test.png</figcaption></figure>
 
----start mg img4 with anchor
+---start mg img with anchor
 [?test.png]
 
----start html img4
+---start html img
 <p>
 <a href="test.png" target="_self"><img src="test.png" alt="test.png"></a>
 </p>
 
----start mg img4 with ID and caption
+---start mg img with ID and caption
 [!!test.png|#fig1]
 
----start html img4
+---start html img
 <figure><img src="test.png" alt="test.png" id="fig1"><figcaption><a href="#fig1">Fig. 1 </a>test.png</figcaption></figure>
 
----start mg img5 with ID, caption, and figure
+---start mg img with ID, caption, and figure
 [??test.png|#fig1]
 
----start html img5
+---start html img
 <figure><a href="test.png" target="_self"><img src="test.png" alt="fig1" id="fig1"></a><figcaption><a href="#fig1">Fig. 1 </a>test.png</figcaption></figure>
 
----start mg img5 with ID, caption, and figure [ja]
+---start mg img with ID, caption, and figure [ja]
 [??test.png|#fig1]
 
----start html img5
+---start html img
 <figure><a href="test.png" target="_self"><img src="test.png" alt="fig1" id="fig1"></a><figcaption><a href="#fig1">図1 </a>test.png</figcaption></figure>
 
 ---end

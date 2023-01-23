@@ -1886,7 +1886,7 @@ sub anchor{
 
   my($t, $baseurl, $lang) = @_;
   ($lang) or $lang = 'en';
-  my($prefix, $url0, $text)          = $t=~m{([!?#]*)"(\S+)"\s+(.*)}s;
+  my($prefix, $url0, $text)          = $t=~m{([!?#]*)"([^"]+)"(?:\s+(.*))?}s;
   ($url0) or ($prefix, $url0, $text) = $t=~m{([!?#]*)([^\s"]+)(?:\s+(.*))?}s;
   my($url, $opts) = (split(/\|/, $url0, 2), '', '');
   ($prefix eq '#') and $url=$prefix.$url;
@@ -1928,7 +1928,7 @@ sub anchor{
       $caption = ref_txt($id, 'fig', $id_n, $caption, $lang);
       $img_id     = qq! id="$id"!; # ID for <img ...>
     }
-    my $alttext = $url;
+    my $alttext = $text||$url;
     if($prefix eq '!!'){
       return(qq!<figure$style><img src="$url" alt="$alttext"${img_id}$class$imgopt><figcaption>$caption</figcaption></figure>!);
     }elsif($prefix eq '??'){
