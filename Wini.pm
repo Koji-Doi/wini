@@ -2418,7 +2418,9 @@ sub ev{ # <, >, %in%, and so on
              : ($f eq 'isec')  ? isec($x, $y) : sdiff($x, $y);
     }elsif($t eq '&uniq'){
       @stack = uniq(\@stack);
-#---
+      #---
+    }elsif($t eq '&uc1_all'){
+      @stack = (map {ucfirst $_} @stack);
     }elsif($t eq '&uc_all'){
       @stack = (map {uc $_} @stack);
       #      push(@stack, uc      $stack[-1]); # $token[$i-2]);
@@ -2541,7 +2543,7 @@ sub ev{ # <, >, %in%, and so on
       return(@stack);
 #====
     }elsif($t eq '&ucase'){
-      push(@stack, ucfirst $stack[-1]); # $token[$i-2]);
+      push(@stack, uc      $stack[-1]); # $token[$i-2]);
     }elsif($t eq '&ucase1'){
       push(@stack, ucfirst $stack[-1]); # $token[$i-2]);
     }elsif($t eq '&lcase'){
