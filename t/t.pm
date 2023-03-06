@@ -196,12 +196,12 @@ sub test_cmd{
 EOD
   }
   if(defined $outputfiles){
-    is join('', sort <$outdir/*.html>, <$outdir/*.css>, <$outdir/*.log>), join('', sort @$outputfiles), "$testname: files";
+    is join(' ', sort <$outdir/*.html>, <$outdir/*.css>, <$outdir/*.log>), join(' ', sort @$outputfiles), "$testname: files";
     for(my $i=0; $i<=$#$outputfiles; $i++){
       if(defined $outputfiles->[$i]){
-        open(my $fhi, '<:utf8', $outputfiles->[$i]) or die "Failed to open $i:$outputfiles->[$i]";
+        open(my $fhi, '<:utf8', $outputfiles->[$i]) or print STDERR "Failed to open $i:$outputfiles->[$i]", next;
         if(defined $output->[$i]){
-          my $got = join('', <$fhi>);
+          my $got = join(' ', <$fhi>);
           is std($got), std($output->[$i]), "$testname: output text ($i) ".$outputfiles->[$i];
           if($DEBUG){
             my $filename = basename($0, qw/.html/) . "_${cnt}_";

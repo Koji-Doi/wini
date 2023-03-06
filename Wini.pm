@@ -296,6 +296,7 @@ use Getopt::Long qw(:config no_ignore_case auto_abbrev);
 use Encode;
 use Cwd;
 use Time::Piece;
+use File::Find;
 use Module::Load qw/mode/;
 our $ENVNAME;
 #our %EXT;
@@ -387,7 +388,7 @@ sub init{
   $LANG or $LANG = 'en';
   $QUIET      = 0; # 1: suppress most of messages
   $SCRIPTNAME = basename($0);
-  $VERSION    = "ver. 1.0 rel. 20221216";
+  $VERSION    = "ver. 1.0 rel. 20230225";
   while(<Text::Markup::Wini::DATA>){
     chomp;
     while(s/\\\s*$//){
@@ -899,7 +900,8 @@ sub winifiles{
   if(exists $mode_in{ef}){
     push(@infile, @in);
   }elsif(exists $mode_in{ed}){
-    push(@infile, map { <$_/*.wini>, <$_/*.par>, <$_/*.mg>} @in);
+    #push(@infile, map { <$_/*.wini>, <$_/*.par>, <$_/*.mg>} @in);
+    push(@infile, grep {/\.(?:mg|wini)$/} map{@{findfile($_)}} @in)
   }else{ # '--' = STDIN
   }
 
@@ -914,13 +916,17 @@ sub winifiles{
       $indir1=~s{/$}{};
       my $outdir1 = $out;
       $outdir1=~s{/$}{};
-      if(-e $outdir1){
-        (-d $outdir1) or mes(txt('dnw', undef, {d=>$outdir1}), {err=>1});
+      my $outdir2=$indir1;
+      $outdir2=~s{.*?/}{${outdir1}/};
+      $outdir2=~s{/$}{};
+      if(-e $outdir2){
+        (-d $outdir2) or mes(txt('dnw', undef, {d=>$outdir2}), {err=>1});
       }else{
-        (mkpath $outdir1) || mes(txt('dnw', undef, {d=>$outdir1}), {err=>1});
+        (mkpath $outdir2) || mes(txt('dnw', undef, {d=>$outdir2}), {err=>1});
       }
-      push(@outfile, "${outdir1}/${base}${ext}.html");
-      push(@cssfile, cssfilename("${outdir1}/${base}${ext}.css", $css, $outdir1));
+      #print STDERR "*** $outdir1 - $outdir2\n";
+      push(@outfile, "${outdir2}/${base}${ext}.html");
+      push(@cssfile, cssfilename("${outdir2}/${base}${ext}.css", $css, $outdir2));
     } # foreach @infile
   }
 
@@ -957,11 +963,11 @@ sub findfile{  # recursive file search.
   # Any files or dirs of which name begin with '_' are ignored.
   # &findfile('target_dir', sub{print "$_[0]\n"});
   my($dir, $p) = @_;
-  ($dir=~/^_/) and return();
-  my @files = grep {!m(/_)} <$dir/*>;
-  foreach my $file (@files) {
-    (-d $file) ? findfile($file, $p) : $p->($file);
-  }
+  my @files0;
+  find(sub{push(@files0, grep {!/^\./} $File::Find::name)}, $dir);
+  my @files = grep {-f $_ and !m{(?:^|/)\.}} @files0;
+  print STDERR Dumper @files;
+  return(\@files);
 }
 
 {
@@ -1626,6 +1632,21 @@ sub call_macro{
   return(sprintf(qq#\\{\\{%s}}<!-- $errmes -->#, join('|', $macroname, @f)));
 }
 
+sub test2303{
+  my $xx = readpars("a=5|ca=11", qw/a b|x|y|z|ccc cabc/);
+  print Dumper $xx;
+  $DB::single=$DB::single=1;
+  1;
+}
+sub kw{
+  my($r, $x)=@_;
+  my @r;
+  foreach my $w ((ref $r) eq 'ARRAY' ? @$r : keys %$r){
+    ($w eq $x) and return($x);
+    $w=~/^$x/ and push(@r, $w);
+  }
+  return((scalar @r == 1) ? $r[0] : undef);
+}
 sub readpars{
   my($p, @list)=@_;
   my %pars; my @pars;
@@ -1638,8 +1659,18 @@ sub readpars{
     push(@par0, ($a eq '') ? '' : split(/\|/,$a));
   } @$p;
 
+  my %alias;
+  foreach my $k0 (@list){
+    my($k, @kk) = split(/\|/, $k0);
+    $alias{$k} = $k;
+    foreach my $kk (@kk){
+      $alias{$kk} = $k;
+    }
+  }
+
   foreach my $x (@par0){
-    if(my($k,$v) = $x=~/(\w+)\s*=\s*(.*)\s*/){
+    if(my($k0,$v) = $x=~/(\w+)\s*=\s*(.*)\s*/){
+      my $k = kw(\%alias, $k0);
       $v=~s/^(['"])(.*)\1$/$2/;
       push(@{$pars{$k}}, $v);
     }else{
@@ -1647,9 +1678,21 @@ sub readpars{
     }
   }
 
-  foreach my $k (@list){
-    (exists $pars{$k}) or push(@{$pars{$k}}, shift(@pars));
+=begin c
+  foreach my $k0 (@list){
+    foreach my $k (split(/\|/, $k0)){
+      if(exists $alias{$k}){
+        (exists $pars{$k}) and $pars{$alias{$k}}=$pars{$k};
+        delete $pars{$k};
+        $k = $alias{$k};
+      } 
+      (exists $pars{$k}) or push(@{$pars{$k}}, shift(@pars));
+    }
   }
+=end c
+
+=cut
+
   return(\%pars);
 }
 
@@ -2361,6 +2404,11 @@ sub date{
   ($p->{date}[0]) or $p->{date}[0] = localtime->datetime;
   if($p->{date}[0]=~/\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d/){
     $t = Time::Piece->strptime($p->{date}[0], "%Y-%m-%dT%H:%M:%S");
+  }elsif($p->{date}[0]=~m!^(\d{4})[-/]?(\d{2})[-/]?(\d{2})$!){
+    my $t0 = "$1-$2-$3";
+    $t = Time::Piece->strptime($t0, "%Y-%m-%d");
+  }elsif($p->{date}[0]=~/^(\d{2}):?(\d{2}):?(\d{2})/){ # 020304, 02:03:04
+    $t = Time::Piece->strptime("$1-$2-$3", "%H-%M-%S");
   }else{
     my @n = split("[-/.T]", $p->{date}[0]);
     eval{ $t = Time::Piece->strptime("$n[0]-$n[1]-$n[2]", "%Y-%m-%d") };
