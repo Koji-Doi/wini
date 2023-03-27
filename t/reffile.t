@@ -8,6 +8,7 @@ use utf8;
 use Data::Dumper;
 use File::Temp qw(tempdir);
 use File::Copy qw(cp copy);
+use File::Path qw(remove_tree);
 use Cwd;
 
 use lib '.';
@@ -63,6 +64,7 @@ for(my $i=0; $i<=$#files; $i++){
   my $outhtmlfile;
   foreach my $mgfile (@{$opt{$files[$i]}}){
     my $tempdir = tempdir('reffile_XXXX');
+    print "mk $tempdir\n";
     my $io;
     my $outreffile;
     chdir $tempdir;
@@ -87,7 +89,6 @@ Error occured in trying '$cmd'.
 Return=$r
 EOD
     }
-
     my $outfiles = join(' ', sort grep {/\.(log|enw|ref|html)/} <*.*>);
     my @expfiles = ('err.log', $files[$i], $outreffile);
     ($outhtmlfile) and push(@expfiles, $outhtmlfile);
@@ -110,11 +111,18 @@ EOD
       is std($got), std($exp), "$files[$i]: html";
     }
 
-    ($DEBUG) or map{unlink $_} <*>;
+    ($DEBUG) or map{unlink $_} @expfiles;
     chdir $cwd;
-    ($DEBUG) or rmdir $tempdir;
+    ($DEBUG) or remove_tree($tempdir);
   }
 } # for $infile[$i]
+
+unless($DEBUG){
+  foreach my $file (@files, map {"$_.ref"} @files){
+    (-f $file) and unlink $file;
+  }
+}
+unlink $_ for <a.mg*>;
 
 =begin c
 while(<DATA>){

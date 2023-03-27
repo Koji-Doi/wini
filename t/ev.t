@@ -359,72 +359,6 @@ xxx: 'abc'
 
 <p>abc</p>
 
----start mg 15 section variables
-===
-cmd: --title test
-a:1
-b:2
- c:3
-===
-
-Value of variable 'a' should be 1, is {{va|a}}.
-Value of variable 'b' should be 2, is {{va|b}}.
-Env name is {{envname}}.
-
-? xxx
-
-===
-b:333
-===
-
-xxxx
-
-Value of variable 'a' should be 1, is {{va|a}}.
-Value of variable 'b' should be 333, is {{va|b}}.
-Env name is {{envname}}.
-
-?? yyy
-
-===
-c:444
-===
-
-Value of variable 'a' should be 1, is {{va|a}}.
-Value of variable 'b' should be 333, is {{va|b}}.
-Value of variable 'c' should be 444, is {{va|c}}.
-
----start html 15
-
-<p>
-Value of variable 'a' should be 1, is 1.
-Value of variable 'b' should be 2, is 2.
-Env name is _.
-</p>
-
-<section class="mg" id="sect1">
-<h1 class="sectiontitle">xxx</h1>
-
-<p>
-xxxx
-</p>
-
-<p>
-Value of variable 'a' should be 1, is 1.
-Value of variable 'b' should be 333, is 333.
-Env name is _.
-</p>
-
-<section class="mg" id="sect2">
-<h1 class="sectiontitle">yyy</h1>
-
-<p>
-Value of variable 'a' should be 1, is 1.
-Value of variable 'b' should be 333, is 333.
-Value of variable 'c' should be 444, is 444.
-</p>
-
-</section></section>
-
 ---start mg 16 move etc.
 
 join: {{ev|11|1|2|3|1|&uniq|&join}}
@@ -455,4 +389,94 @@ sdiff6: {{ev|11|1|2|3|1|&move>x|2|4|1|2|&move>y|&sdiff x y|&join}}
 <p>sdiff4: 11, 3</p>
 <p>sdiff5: 4</p>
 <p>sdiff6: 11, 3</p>
+
+---start mg 17 front matter
+===
+a: 123
+===
+
+a={{ev|a}} (123)
+
+---start html 17
+<p> a=123 (123)</p>
+
+---start mg 18 front matter with subsection
+===
+a: 123
+===
+
+?#sub1 subsection 1
+
+a={{ev|a}} (123)
+
+---start html 18
+<section class="mg" id="sub1">
+<h1 class="sectiontitle">
+subsection 1
+</h1>
+<p>a=123 (123)</p>
+</section>
+
+---start mg 19 front matter with subsection front matter
+===
+a: 123
+===
+
+? subsection 1
+
+===
+b: 456
+===
+
+a={{ev|a}} (123)
+b={{ev|b}} (456)
+
+---start html 19
+<section class="mg" id="sect1">
+<h1 class="sectiontitle">
+subsection 1
+</h1>
+<p>a=123 (123) b=456 (456)</p>
+</section>
+
+---start mg 20 front matter with subsubsection front matter
+===
+a: 123
+===
+
+sectid={{sectid}}
+
+? subsection 1
+
+===
+b: 456
+===
+
+a={{ev|a}} (123)
+b={{ev|b}} (456)
+c={{ev|c}}
+sectid={{sectid}}
+
+?? subsubsection 1
+
+===
+c: 789
+===
+
+a={{ev|a}} (123)
+b={{ev|b}} (456)
+c={{ev|c}}
+sectid={{sectid}}
+
+---start html 20
+<p>sectid=</p>
+<section class="mg" id="sect1">
+<h1 class="sectiontitle">subsection 1</h1>
+<p>a=123 (123) b=456 (456) c= sectid=sect1</p>
+<section class="mg" id="sect2">
+<h1 class="sectiontitle">subsubsection 1</h1>
+<p>a=123 (123) b=456 (456) c=789 sectid=sect2</p>
+</section>
+</section>
+
 ---end

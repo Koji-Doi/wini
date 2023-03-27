@@ -4,6 +4,7 @@ use warnings;
 use Cwd;
 use File::Temp qw(tempdir);
 use File::Basename;
+use File::Find;
 use Test::More;
 use lib '.';
 use Wini;
@@ -30,7 +31,7 @@ sub prepare{
   my($indata, $outdata) = @_; 
   # $indata:  array def containing input mg data
   # $outdata: array def containing output html data
-  $Indir    = tempdir('wini_in_XXXX');
+  $Indir    = tempdir('wini_in_t_XXXX');
   $Outdir   = outdir4indir($Indir);
 
   if(defined $indata){
@@ -196,7 +197,14 @@ sub test_cmd{
 EOD
   }
   if(defined $outputfiles){
-    is join(' ', sort <$outdir/*.html>, <$outdir/*.css>, <$outdir/*.log>), join(' ', sort @$outputfiles), "$testname: files";
+    my @files;
+    (-d $outdir) and find(sub{/\.(?:html|css|log)$/ and push(@files, $File::Find::name)}, $outdir);
+    my $r = is join(' ', sort @files), join(' ', sort @$outputfiles), "$testname: files";
+    #my $r = is join(' ', sort <$outdir/*.html>, <$outdir/*.css>, <$outdir/*.log>), join(' ', sort @$outputfiles), "$testname: files";
+    unless($r){
+      print STDERR "$cmd\n";
+      $DB::single=$DB::single=1;
+    }
     for(my $i=0; $i<=$#$outputfiles; $i++){
       if(defined $outputfiles->[$i]){
         open(my $fhi, '<:utf8', $outputfiles->[$i]) or print STDERR "Failed to open $i:$outputfiles->[$i]", next;

@@ -361,7 +361,7 @@ __PACKAGE__->stand_alone() if !caller() || caller() eq 'PAR';
 sub init{
   setlocale(LC_ALL, 'C');
   setlocale(LC_TIME, 'C');
-  undef %MACROS; undef %VARS; undef %REF; undef %REFASSIGN;
+  undef %MACROS; undef %VARS; undef %REF; undef %REFASSIGN; undef %sectdata;
   deref_init();
   no warnings;
   *Data::Dumper::qquote = sub { return encode "utf8", shift } ;
@@ -388,7 +388,7 @@ sub init{
   $LANG or $LANG = 'en';
   $QUIET      = 0; # 1: suppress most of messages
   $SCRIPTNAME = basename($0);
-  $VERSION    = "ver. 1.0 rel. 20230225";
+  $VERSION    = "ver. 1.0 rel. 20230328";
   while(<Text::Markup::Wini::DATA>){
     chomp;
     while(s/\\\s*$//){
@@ -748,9 +748,7 @@ sub txt{ # multilingual text from text id
   $lang = $lang || $LANG || 'en';
   (defined $TXT{$id}) or mes(txt('ut', $lang). ": '$id'", {warn=>1}), return(undef);
   my $t = $TXT{$id}{$lang} || $TXT{$id}{en} || '';
-  $t=~s/\{\{(.*?)}}/
-  (defined $par->{$1})        ? $par->{$1} : "??? $1"; 
-  /ge;
+  $t=~s/\{\{(.*?)}}/(defined $par->{$1}) ? $par->{$1} : "??? $1" /ge;
   return($t);
 } # sub txt
 
@@ -852,7 +850,7 @@ sub winifiles{
   # $in: string or array reference
   # $out: string (not array reference)
 #  my($indir, @infile, $outdir, @outfile, @cssfile);
-  my(@infile, $outdir, @outfile, @cssfile);
+  my($indir, @infile, $outdir, @outfile, @cssfile);
   my @in = (ref $in0 eq 'ARRAY') ? @$in0 : ($in0);
 
 =begin c
@@ -864,6 +862,7 @@ sub winifiles{
 |    | file  | <stdin >o           | <i >o             |^                      | <i/*.(wini|mg|par) >o        |^       |
 |    | dir   | <stdin >o/wini.html | <i >o/i.html      |^                      | <i/*.(wini|mg|par) >o/*.html |^       |
 
+file_io.t #6 をチェックせよ。-oにディレクトリを指定したときに出力先がそのディレクトリになっていない!!
 =end c
 
 =cut
@@ -901,7 +900,8 @@ sub winifiles{
     push(@infile, @in);
   }elsif(exists $mode_in{ed}){
     #push(@infile, map { <$_/*.wini>, <$_/*.par>, <$_/*.mg>} @in);
-    push(@infile, grep {/\.(?:mg|wini)$/} map{@{findfile($_)}} @in)
+    push(@infile, grep {/\.(?:mg|wini|par)$/} map{my $d=($_ eq '.')?cwd():$_; @{findfile($d)}} @in);
+    $indir = $in[0];
   }else{ # '--' = STDIN
   }
 
@@ -916,15 +916,15 @@ sub winifiles{
       $indir1=~s{/$}{};
       my $outdir1 = $out;
       $outdir1=~s{/$}{};
-      my $outdir2=$indir1;
-      $outdir2=~s{.*?/}{${outdir1}/};
+      my $outdir2=$indir1; # $outdir2 will show outdir (maybe subdir of $outdir1)
+      $outdir2=~s!^[^/]+!${outdir1}!;
       $outdir2=~s{/$}{};
       if(-e $outdir2){
         (-d $outdir2) or mes(txt('dnw', undef, {d=>$outdir2}), {err=>1});
       }else{
         (mkpath $outdir2) || mes(txt('dnw', undef, {d=>$outdir2}), {err=>1});
       }
-      #print STDERR "*** $outdir1 - $outdir2\n";
+      #print "*** $indir1 - $outdir1 - $outdir2\n";
       push(@outfile, "${outdir2}/${base}${ext}.html");
       push(@cssfile, cssfilename("${outdir2}/${base}${ext}.css", $css, $outdir2));
     } # foreach @infile
@@ -964,9 +964,8 @@ sub findfile{  # recursive file search.
   # &findfile('target_dir', sub{print "$_[0]\n"});
   my($dir, $p) = @_;
   my @files0;
-  find(sub{push(@files0, grep {!/^\./} $File::Find::name)}, $dir);
+  find(sub{push(@files0, grep {!/^\./} $File::Find::name)}, grep {!/^_/} $dir);
   my @files = grep {-f $_ and !m{(?:^|/)\.}} @files0;
-  print STDERR Dumper @files;
   return(\@files);
 }
 
@@ -1067,10 +1066,17 @@ sub to_html{
       my $v;
       $t=~s/===(.*)===/$v = &ylml($1, $opt); ''/es;
       foreach my $k (keys %$v){
-        $sectdata_depth[$depth][-1]{val}{$k} = $v->{$k};
-        $sectdata{$sect_id}{val}{$k}         = $v->{$k};
+        if(ref $v->{$k} eq 'ARRAY'){
+          $sectdata_depth[$depth][-1]{val}{$k} = $v->{$k};
+          $sectdata{$sect_id}{val}{$k}         = $v->{$k};          
+        }elsif(ref $v->{$k} eq 'HASH'){
+        }else{
+          $sectdata_depth[$depth][-1]{val}{$k} = $v->{$k};
+          $sectdata{$sect_id}{val}{$k}         = $v->{$k};
+        }
       }
-      
+      $t=~s/\{\{sectid}}/$sect_id/g;
+
       # WINI interpretation
       my $opt1 = { %$opt };
       $opt1->{_v} = $sectdata{$sect_id}{val};
@@ -1506,7 +1512,6 @@ sub term{
   # {{@|DNA}} -> <abbr>DNA</abbr>
   # {{@||DNA}} -> <dfn>DNA</dfn>
   my(@p) = @_;
-  $DB::single=$DB::single=1;
   my $par = readpars(\@p, qw/abbr text dfn list/);
   my $out;
   if($par->{list}[-1]){
@@ -1544,10 +1549,8 @@ sub span{ # text deco with <span></span>
       $style{"${prop}-style"} = 'solid';
       $style{"${prop}-width"} = '1px';
       $o2=~s/(\d+)/$style{"${prop}-width"} = $1."px"; ''/ge;
-      $o2=~s[^(dotted|dashed|solid|double|groove|ridge|inset|outset)$]
-            [$style{"${prop}-style"}=$o2; '']ge;
-      $o2=~s[^([a-z]+|#[0-9a-f]{3}|#[0-9a-f]{6})$]
-            [$style{"${prop}-color"} = color($1); '']ige;
+      $o2=~s!^(dotted|dashed|solid|double|groove|ridge|inset|outset)$]!$style{"${prop}-style"}=$o2; ''!ge;
+      $o2=~s!^([a-z]+|#[0-9a-f]{3}|#[0-9a-f]{6})$]!$style{"${prop}-color"} = color($1); ''!ige;
     }elsif($o=~/^
 ([\d.]+(?:em|rem|vw|vh|%|px|pt|pc|vmin|vmax))<
 ([\d.]+(?:em|rem|vw|vh|%|px|pt|pc|vmin|vmax))<
@@ -1615,7 +1618,7 @@ sub call_macro{
   ($macroname=~/^va$/i)              and return(
     (defined $opt->{_v}{$f[0]}) ? $opt->{_v}{$f[0]} : (mes(txt('vnd', undef, {v=>$f[0]}), {warn=>1}), '')
   );
-  ($macroname=~/^envname$/i)         and return($ENVNAME);
+  #($macroname=~/^envname$/i)         and return($ENVNAME);
   ($macroname=~/^([oun]l)$/i)        and return(listmacro($1, \@f));
   ($macroname=~/^[IBUS]$/)           and $_=lc($macroname), return("<$_${class_id}>$f[0]</$_>");
   ($macroname eq 'i')                and return(qq!<span${class_id} style="font-style:italic;">$f[0]</span>!);
@@ -1634,19 +1637,28 @@ sub call_macro{
 
 sub test2303{
   my $xx = readpars("a=5|ca=11", qw/a b|x|y|z|ccc cabc/);
-  print Dumper $xx;
   $DB::single=$DB::single=1;
   1;
 }
 sub kw{
   my($r, $x)=@_;
   my @r;
-  foreach my $w ((ref $r) eq 'ARRAY' ? @$r : keys %$r){
+  my @r0 = ((ref $r) eq 'ARRAY' ? @$r : keys %$r);
+  foreach my $w (@r0){
     ($w eq $x) and return($x);
     $w=~/^$x/ and push(@r, $w);
   }
-  return((scalar @r == 1) ? $r[0] : undef);
+  if(scalar @r == 1){ #no problem
+    return($r[0]);
+  }elsif(scalar @r == 0){ # no match
+    mes(txt('idnm', undef, {x=>$x, id=>join(',', @r0)}), {warn=>1});
+    return($x);
+  }else{# multiple candidates
+    mes(txt('idns', undef, {x=>$x, id=>join(',', @r0)}), {err=>1});
+    return(undef);
+  }
 }
+
 sub readpars{
   my($p, @list)=@_;
   my %pars; my @pars;
@@ -1667,7 +1679,6 @@ sub readpars{
       $alias{$kk} = $k;
     }
   }
-
   foreach my $x (@par0){
     if(my($k0,$v) = $x=~/(\w+)\s*=\s*(.*)\s*/){
       my $k = kw(\%alias, $k0);
@@ -1678,21 +1689,10 @@ sub readpars{
     }
   }
 
-=begin c
   foreach my $k0 (@list){
-    foreach my $k (split(/\|/, $k0)){
-      if(exists $alias{$k}){
-        (exists $pars{$k}) and $pars{$alias{$k}}=$pars{$k};
-        delete $pars{$k};
-        $k = $alias{$k};
-      } 
-      (exists $pars{$k}) or push(@{$pars{$k}}, shift(@pars));
-    }
+    my $k = (split(/\|/, $k0))[0]; # a|b|c -> a
+    (exists $pars{$k}) or push(@{$pars{$k}}, shift(@pars));
   }
-=end c
-
-=cut
-
   return(\%pars);
 }
 
@@ -2369,15 +2369,23 @@ sub ylml{ #ylml: yaml-like markup language
         #($v eq '') and next;
         if($v eq ''){
           
+=begin c
         }elsif($v=~/^\[(.*)\]$/){ # array
-          $val->{$k} = [map {s/^(["'])(.*)\1$/$2/; $_} split(/\s*,\s*/, $1)];
+          $val->{$k} = [map {s/^(["'])(.*)\1$/$2/; $_} split(/\s*[|,]\s*/, $1)];
         }elsif(my($v2) = $v=~/^\{(.*)\}$/){ # hash
           foreach my $token (split(/\s*,\s*/, $v2)){
             my($kk,$vv) = $token=~/(\S+)\s*:\s*(.*)/;
             $vv=~s/^(["'])(.*)\1$/$2/;
             $val->{$k}{$kk} = (ev($vv, $val))[-1];
           }
-        }else{ # simple variable
+=end c
+
+=cut
+
+        }else{
+          if($v=~/\|/){
+            $v.='&join';
+          }
           $val->{$k} = (ev($v, $val))[-1] ;
         }
       }
@@ -2676,7 +2684,7 @@ sub ev_val{ # evaluate $stack1 first, then $v
     return(@{$stack1->{$name}});
   }elsif(exists $val->{$name}){
     if(ref $val->{$name} eq 'ARRAY'){
-      return($val->{$name});
+      return($val->{$name}[-1]);
     }else{
       return($val->{$name});
     }
@@ -3124,6 +3132,8 @@ __DATA__
 |fso|File specification: OK|ファイル指定：有効|
 |ftf|Found {{t}} as template file|テンプレートファイル{{t}}が見つかりました|
 |idnd|ID {{id}} not defined|ID '{{id}}'は定義されていません|
+|idnm|No ID matched for {{x}} in {{id}}|{{x}}に該当するIDが見当たりません（{{id}}）|
+|idns|Multiple ID matched for {{x}} in {{id}}|{{x}}に該当するIDが複数あります（{{id}}）|
 |if|input file:|入力ファイル：|
 |ilfi|Illegal filter: {{x}}|不正なフィルター： {{x}}|
 |ll|loaded library: {{lib}}|ライブラリロード完了： {{lib}}|

@@ -41,38 +41,59 @@ test_cmd('-i -i > -o d', {i=>["$indir/0.wini", "$indir/1.wini"], o=>$outdir}, $o
 map {unlink $_} <$outdir/*>;
 
 #7,8
-test_cmd('-i d -o f', {i=>$indir, o=>"$outdir/0.html"},                       $outdir, ["$outdir/0.html"], ['<p>0</p><p>1</p><p>2</p><p>3</p>']);
+test_cmd('-i d -o f', {i=>$indir, o=>"$outdir/00.html"},                       $outdir, ["$outdir/00.html"], ['<p>0</p><p>1</p><p>2</p><p>3</p>']);
+map {unlink $_} <$outdir/*>;
 
 #9
 my $outdir2 = outdir4indir($indir);
 test_cmd('dir -> dir', {i=>$indir, o=>"$outdir2/"},          $outdir2, [map{"$outdir2/$_.wini.html"}(0..3)]);
 
 #10
-$outdir = tempdir('wini_testout_XXXX');
-my @outfiles = map {my $a = basename($_); ("$outdir/$a.css","$outdir/$a.html")} @infiles;
-test_cmd('"dir -> dir": with -outcssfile', {whole=>undef, outcssfile=>undef, i=>$indir, o=>"$outdir/"}, $outdir, \@outfiles);
+my $outdir3 = tempdir('wini_testout_XXXX');
+my @outfiles = map {my $a = basename($_); ("$outdir3/$a.css","$outdir3/$a.html")} @infiles;
+test_cmd('"dir -> dir": with -outcssfile', {whole=>undef, outcssfile=>undef, i=>$indir, o=>"$outdir3/"}, $outdir3, \@outfiles);
 
 #11
-map { unlink $_} <$outdir/*>;
+map { unlink $_} <$outdir3/*>;
 test_cmd('"file -> file in existing dir": with -outcssfile',
-          {whole=>undef, outcssfile=>undef, i=>"$indir/1.wini", o=>"$outdir/1.html", '2>'=>'{{err}}'}, $outdir, ["$outdir/1.html", "$outdir/1.wini.css"]);
+          {whole=>undef, outcssfile=>undef, i=>"$indir/1.wini", o=>"$outdir3/1.html", '2>'=>'{{err}}'}, $outdir3, ["$outdir3/1.html", "$outdir3/1.wini.css"]);
 
 #12
 my $newdir = tempdir("wini_out0_XXXX");
-rmdir $newdir; 
+remove_tree $newdir; 
 test_cmd('"file -> file in non-existing dir": with -outcssfile',
          {whole=>undef, outcssfile=>undef, i=>"$indir/1.wini", o=>"$newdir/1.html", '2>'=>'{{err}}'}, $newdir, []);
 
 #13
-$newdir = tempdir("wini_out_XXXX");
+$newdir = tempdir("wini_out_XXXXXX");
 test_cmd('"file -> dir in existing dir": with -outcssfile',
          {whole=>undef, outcssfile=>undef, i=>"$indir/1.wini", o=>"$newdir/", '2>'=>'{{err}}'}, $newdir, ["$newdir/1.wini.html", "$newdir/1.wini.css"]);
+remove_tree $newdir;
 
 #14
 $newdir = tempdir("wini_out0_XXXX");
 rmdir $newdir; 
 test_cmd('"file -> dir in non-existing dir": with -outcssfile',
          {whole=>undef, outcssfile=>undef, i=>"$indir/1.wini", o=>"$newdir/", '2>'=>'{{err}}'}, $newdir, ["$newdir/1.wini.html", "$newdir/1.wini.css"]);
+remove_tree $newdir;
+
+#15
+{
+  my $i=0;
+  remove_tree($indir);
+  mkdir($indir);
+  for my $d ("$indir/x", "$indir/y", "$indir/x/z"){
+    mkdir($d);
+    open(my $fho, '>', "$d/f$i.mg");
+    print "$d/f$i.mg\n";
+    print {$fho} "$i\n";
+    $i++;
+  }
+
+  test_cmd('dir -> dir in non-existing dir',
+         {whole=>undef, i=>$indir, o=>"$newdir/"}, $newdir, ["$newdir/x/f0.mg.html", "$newdir/y/f1.mg.html", "$newdir/x/z/f2.mg.html"]);
+
+}
 
 =begin c
 
@@ -88,9 +109,10 @@ my($outdir4) = test2('"file -> dir in non-existing dir": with -outcssfile',
 
 =cut
 
-(!$DEBUG) and (-d $indir)   and (print("remove $indir\n"),   remove_tree($indir));
-(!$DEBUG) and (-d $outdir)  and (print("remove $outdir\n"),  remove_tree($outdir));
-(!$DEBUG) and (-d $outdir2) and (print("remove $outdir2\n"), remove_tree($outdir2));
-(!$DEBUG) and (-d $newdir)  and (print("remove $newdir\n"),  remove_tree($newdir));
-(!$DEBUG) and map {unlink $_} <err*.log>;
+unless($DEBUG){
+  foreach my $d ($indir, $outdir, $outdir2, $outdir2, $outdir3, $newdir){
+    (-d $d) and remove_tree($d);
+  }
+  map {unlink $_} <err*.log>;
+}
 done_testing;

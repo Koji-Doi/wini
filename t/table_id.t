@@ -106,7 +106,7 @@ lang: 'en'
 lang: 'en'
 ===
 
-|- | #id1 @2 |
+|- | #id1xxx @2 |
 | a | b |
 
 |- (must be tbl2) | #2 @2 |
@@ -123,7 +123,7 @@ lang: 'en'
 
 ---start html 3
 
-<table id="id1" class="mgtable" style="border-collapse: collapse; border-left: solid 2px; border-right: solid 2px; border-bottom: solid 2px; border-top: solid 2px; "><caption><a href="#id1">Table 1</a></caption>
+<table id="id1xxx" class="mgtable" style="border-collapse: collapse; border-left: solid 2px; border-right: solid 2px; border-bottom: solid 2px; border-top: solid 2px; "><caption><a href="#id1xxx">Table 1</a></caption>
 <tbody><tr><td>a</td><td>b</td></tr>
 </tbody>
 </table>
@@ -170,9 +170,9 @@ lang: 'en'
 
 This is main.
 
-{{rr|id1|id2=a|lang=ja}} = id1 ja (must be tbl1) (mainsect: option ja in macro)
+{{rr|id1|lang=ja}} = id1 ja (must be tbl1) (mainsect: option ja in macro)
 
-{{rr|id1|id2=b|lang=en}} = id1 en (must be tbl1) (mainsect: option en in macro)
+{{rr|id1|lang=en}} = id1 en (must be tbl1) (mainsect: option en in macro)
 
 ? in jp
 
@@ -185,13 +185,13 @@ This is sub.
 |- Here is a caption, which should be in Ja | #id3 @2 |
 | a | b |
 
-{{rr|id1|id2=c|lang=ja}} = id1 ja (subsect: option ja in macro)
+{{rr|id1|lang=ja}} = id1 ja (subsect: option ja in macro)
 
-{{rr|id1|id2=d|lang=en}} = id1 en (subsect: option en in macro)
+{{rr|id1|lang=en}} = id1 en (subsect: option en in macro)
 
-{{rr|id1|id2=e}} = id1 ja from section val
+{{rr|id1}} = id1 ja from section val
 
-{{rr|id3|id2=f}} = id3 ja from section val
+{{rr|id3}} = id3 ja from section val
 
 ? in en
 
@@ -199,9 +199,9 @@ This is sub.
 lang: 'en'
 ===
 
-{{rr|id2|id2=g}} = id2 en from section val
+{{rr|id2}} = id2 en from section val
 
-{{rr|id1|id2=h}} = id1 en from section val
+{{rr|id1}} = id1 en from section val
 
 ---start html 4
 <table id="id1" class="mgtable" style="border-collapse: collapse; border-left: solid 2px; border-right: solid 2px; border-bottom: solid 2px; border-top: solid 2px; ">
