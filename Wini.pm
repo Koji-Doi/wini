@@ -2597,12 +2597,16 @@ sub ev{ # <, >, %in%, and so on
       return(@stack);
 #====
     }elsif($t eq '&ucase'){
-      push(@stack, ucfirst $stack[-1]); # $token[$i-2]);
+      @stack = map {uc}      @stack;
+      #push(@stack, uc      $stack[-1]); # $token[$i-2]);
     }elsif($t eq '&ucase1'){
-      push(@stack, ucfirst $stack[-1]); # $token[$i-2]);
+      @stack = map {ucfirst} @stack;
+      #push(@stack, ucfirst $stack[-1]); # $token[$i-2]);
     }elsif($t eq '&lcase'){
-      push(@stack, lc      $stack[-1]); # $token[$i-2]);
+      @stack = map {lc}      @stack;
+      #push(@stack, lc      $stack[-1]); # $token[$i-2]);
     }elsif($t eq '&lcase1'){
+      @stack = map {lcfirst} @stack;
       push(@stack, lcfirst $stack[-1]); # $token[$i-2]);
     }elsif($t=~/^\&cat([^|]*)$/){
       my $sep=$1;
