@@ -347,7 +347,32 @@ a., b., c.
 &nbsp;<span style="font-style:italic">a</span>
 </p>
 
----start mg 14 &if_empty
+---start mg 14 &ucase, &ucase1, &lcase, &lcase1
+
+{{ev|"abc"|"xyz"|&ucase|&join}}
+
+{{ev|"abc"|"xyz"|&ucase1|&join}}
+
+{{ev|"ABC"|"XYZ"|&lcase|&join}}
+
+{{ev|"ABC"|"XYZ"|&lcase1|&join}}
+
+---start html 14
+
+<p>
+ABC, XYZ
+</p>
+<p>
+Abc, Xyz
+</p>
+<p>
+abc, xyz
+</p>
+<p>
+aBC, xYZ
+</p>
+
+---start mg 15 &if_empty
 
 ===
 xxx: 'abc'
@@ -355,7 +380,7 @@ xxx: 'abc'
 
 {{ev|xxx}}
 
----start html 14
+---start html 15
 
 <p>abc</p>
 

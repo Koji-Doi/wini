@@ -2475,9 +2475,6 @@ sub ev{ # <, >, %in%, and so on
     }elsif($t eq '&uniq'){
       @stack = uniq(\@stack);
 #---
-    }elsif($t eq '&uc_all'){
-      @stack = (map {uc $_} @stack);
-      #      push(@stack, uc      $stack[-1]); # $token[$i-2]);
     }elsif(($ini, $sep0)=$t=~/\&last_first(_ini)?([,.])?/ or # "Lastname, Firstname"
            ($ini, $sep0)=$t=~/\&first_last(_ini)?([,.])?/){  # "Firstname Lastname"
       my $sep    = ($sep0 eq ',') ? ', ' : ' ';
@@ -2607,7 +2604,7 @@ sub ev{ # <, >, %in%, and so on
       #push(@stack, lc      $stack[-1]); # $token[$i-2]);
     }elsif($t eq '&lcase1'){
       @stack = map {lcfirst} @stack;
-      push(@stack, lcfirst $stack[-1]); # $token[$i-2]);
+      #push(@stack, lcfirst $stack[-1]); # $token[$i-2]);
     }elsif($t=~/^\&cat([^|]*)$/){
       my $sep=$1;
       $sep=~tr{csb}{, |};
@@ -2619,7 +2616,11 @@ sub ev{ # <, >, %in%, and so on
     }elsif(my($op) = $t=~/^\&([nlt](min|max|sort|rev)?i?|mean|total|sum|rev|cat\W*)$/){
       ($op eq 'n')     and (@stack = (scalar @stack)), next;
       ($op eq 'nsort') and (@stack = sort {$a<=>$b} @stack), next;
+      ($op eq 'rnsort' or $op eq 'nrsort') 
+                       and (@stack = sort {$b<=>$a} @stack), next;
       ($op eq 'tsort') and (@stack = sort {$a cmp $b} @stack), next;
+      ($op eq 'trsort' or $op eq 'trsort') 
+                       and (@stack = sort {$b cmp $a} @stack), next;
       ($op eq 'rev')   and (@stack = reverse @stack), next;
       my $op1; (($op1)=$op=~/cat\\?(.*)/) and (@stack = join($op1, @stack)), next;
       my %s;
