@@ -2623,14 +2623,20 @@ sub ev{ # <, >, %in%, and so on
       ($op eq 'rev')   and (@stack = reverse @stack), next;
       my $op1; (($op1)=$op=~/cat\\?(.*)/) and (@stack = join($op1, @stack)), next;
       my %s;
-      map {$s{$_}=$stack[1]} qw/tmin tmax nmin nmax lmax lmin/;
+      map {$s{$_}=$stack[0]} qw/tmin tmax nmin nmax lmax lmin/;
+      map {$s{$_}=length($stack[0])} qw/lmax lmin/;
+      map {$s{$_}=0} qw/nmaxi nmini tmaxi tmini lmaxi lmini/;
+
       for(my $i=0; $i<=$#stack; $i++){
+        printf ">> $i $stack[$i] %d lmax=%s lmaxi=%d lmin=%s lmini=%d\n", length($stack[$i]), $s{lmax}, $s{lmaxi}, $s{lmin}, $s{lmini};
         ($stack[$i]>$s{nmax})         and ($s{nmax}, $s{nmaxi}) = ($stack[$i], $i);
         ($stack[$i]<$s{nmin})         and ($s{nmin}, $s{nmini}) = ($stack[$i], $i);
         ($stack[$i] gt $s{tmax})      and ($s{tmax}, $s{tmaxi}) = ($stack[$i], $i);
         ($stack[$i] lt $s{tmin})      and ($s{tmin}, $s{tmini}) = ($stack[$i], $i);
-        (length($stack[$i])>$s{lmax}) and ($s{lmax}, $s{lmaxi}) = ($stack[$i], $i);
-        (length($stack[$i])<$s{lmin}) and ($s{lmin}, $s{lmini}) = ($stack[$i], $i);
+        (length($stack[$i])>length($s{lmax})) 
+                                      and ($s{lmax}, $s{lmaxi}) = ($stack[$i], $i);
+        (length($stack[$i])<length($s{lmin}))
+                                      and ($s{lmin}, $s{lmini}) = ($stack[$i], $i);
         $s{sum}=$s{total}+=$stack[$i];
       }
       $s{mean} = $s{total}/(scalar @stack);

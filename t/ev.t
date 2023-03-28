@@ -59,75 +59,93 @@ done_testing;
 
 __DATA__
 "
+---start mg 1 min,max
 
----start mg 1-1 &ini_f
+{{ev|1|3|2|44|5|&nmin}}
+{{ev|1|3|2|44|5|&nmini}}
+
+{{ev|1|3|2|44|5|&nmax}}
+{{ev|1|3|2|44|5|&nmaxi}}
+
+{{ev|"1"|"3"|"2"|"44"|"5"|&tmin}}
+{{ev|"1"|"3"|"2"|"44"|"5"|&tmini}}
+
+{{ev|"1"|"3"|"2"|"44"|"5"|&tmax}}
+{{ev|"1"|"3"|"2"|"44"|"5"|&tmaxi}}
+
+---start html 1
+
+<p>
+1 0
+</p>
+<p>
+44 3
+</p>
+<p>
+1 0
+</p>
+<p>
+5 4
+</p>
+
+---start mg 2-1 &ini_f
 
 {{ev|"Aa, Bb"|&ini_f}}
 
----start html 1-1
+---start html 2-1
 
 <p>
 Aa, B.
 </p>
 
----start mg 1-2 &ini_f|&join,;
+---start mg 2-2 &ini_f|&join,;
 
 {{ev|"Aa, Bb"|"Cc, Dd"|"Ee, Ff"|&ini_f|&join,;}}
 
----start html 1-2
+---start html 2-2
 
 <p>
 Aa, B., Cc, D.; Ee, F.
 </p>
 
----start mg 1-3 &ini_f|&join,&
+---start mg 2-3 &ini_f|&join,&
 
 {{ev|"Aa, Bb"|"Cc, Dd"|"Ee, Ff"|&ini_f|&join,&}}
 
----start html 1-3
+---start html 2-3
 
 <p>
 Aa, B., Cc, D. &amp; Ee, F.
 </p>
 
----start mg 1-4 &ini_f|&join,a
+---start mg 2-4 &ini_f|&join,a
 
 {{ev|"Aa, Bb"|"Cc, Dd"|"Ee, Ff"|&ini_f|&join,a}}
 
----start html 1-4
+---start html 2-4
 
 <p>
 Aa, B., Cc, D. and Ee, F.
 </p>
 
----start mg 2-1 &lastname|&join,a
+---start mg 3-1 &lastname|&join,a
 
 {{ev|"Aa, Bb"|"Cc, Dd"|"Ee, Ff"|&lastname|&join,a}}
 
----start html 2-1
+---start html 3-1
 
 <p>
 Aa, Cc and Ee
 </p>
 
----start mg 2-2 &lastname|&join,&
+---start mg 3-2 &lastname|&join,&
 
 {{ev|"Aa, Bb"|"Cc, Dd"|"Ee, Ff"|&lastname|&join,&}}
 
----start html 2-2
+---start html 3-2
 
 <p>
 Aa, Cc &amp; Ee
-</p>
-
----start mg 3 &uc_all
-
-  {{ev|"Aa, Bb"|"Cc, Dd"|"Ee, Ff"|"gg"|"HH"|"iI"|&uc_all|&join;;}}
-
----start html 3
-
-<p>
-AA, BB; CC, DD; EE, FF; GG; HH; II
 </p>
 
 ---start mg 4 &last_first
