@@ -862,7 +862,6 @@ sub winifiles{
 |    | file  | <stdin >o           | <i >o             |^                      | <i/*.(wini|mg|par) >o        |^       |
 |    | dir   | <stdin >o/wini.html | <i >o/i.html      |^                      | <i/*.(wini|mg|par) >o/*.html |^       |
 
-file_io.t #6 をチェックせよ。-oにディレクトリを指定したときに出力先がそのディレクトリになっていない!!
 =end c
 
 =cut
@@ -965,7 +964,7 @@ sub findfile{  # recursive file search.
   my($dir, $p) = @_;
   my @files0;
   find(sub{push(@files0, grep {!/^\./} $File::Find::name)}, grep {!/^_/} $dir);
-  my @files = grep {-f $_ and !m{(?:^|/)\.}} @files0;
+  my @files = sort grep {-f $_ and !m{(?:^|/)\.}} @files0;
   return(\@files);
 }
 
