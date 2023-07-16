@@ -180,4 +180,34 @@ links with <a href="http://example.com">link text in markdown-compartible format
 ---start html img5
 <figure><a href="test.png" target="_self"><img src="test.png" alt="fig1" id="fig1"></a><figcaption><a href="#fig1">図1 </a>test.png</figcaption></figure>
 
+---start mg picture1
+[!!!a.png]
+
+---start html picture1
+<p><picture><img src="a.png" alt="a.png"></picture></p>
+
+---start mg picture2
+[!!!a.png x]
+
+---start html picture2
+<p><picture><img src="a.png" alt="x"></picture></p>
+
+---start mg img srcset
+[!{a.png|400w|b.png|800w}def.png x]
+
+---start html img srcset
+<p><img srcset="a.png 400w, b.png 800w" src="def.png" alt="x"></p>
+
+---start mg picture srcset
+[!!!{a.png|400w}{b.png|800w}def.png x]
+
+---start html picture srcset
+<p><picture><source srcset="a.png 400w"> <source srcset="b.png 800w"><img src="def.png" alt="x"></picture></p>
+
+---start mg img with srcset and sizes
+[!{400w.png|400w|600w.png|600w|800w.png|800w|1000w.png|1000w|1200w.png|1200w|min1140|570|min640|50vw|100vw}x.png]
+
+---start html img with srcset and sizes
+<p><img srcset="400w.png 400w, 600w.png 600w, 800w.png 800w, 1000w.png 1000w, 1200w.png 1200w" sizes="(min-width: 1140px) 570px, (min-width: 640px) 50vw, 100vw" src="x.png" alt="x.png"></p>
+
 ---end

@@ -388,7 +388,7 @@ sub init{
   $LANG or $LANG = 'en';
   $QUIET      = 0; # 1: suppress most of messages
   $SCRIPTNAME = basename($0);
-  $VERSION    = "ver. 1.0 rel. 20230328";
+  $VERSION    = "ver. 1.0 rel. 20230716";
   while(<Text::Markup::Wini::DATA>){
     chomp;
     while(s/\\\s*$//){
@@ -1239,7 +1239,7 @@ sub markgaab{
       (
         $t =~ s!\[\[(\w+)(?:\|(.*))?\]\]!(defined $opt->{_v}{$1}) ? $opt->{_v}{$1} : ''!ge or
         $t =~ s!\[([^]]*?)\]\(([^)]*?)\)!anchor_from_md($1, $2, $baseurl)!eg or
-        $t =~ s!\[([^]]*?)\]!anchor($1, $baseurl, $lang)."\n"!esg or
+        $t =~ s!\[([^]]*?)\]!anchor($1, $baseurl, $lang)!esg or
         $t =~ s!(\{\{([^|]*?)(?:\|([^{}]*?))?}})!
         call_macro(
           ((defined $2) ? $2 : ''),
@@ -1928,8 +1928,37 @@ sub anchor{
 
   my($t, $baseurl, $lang) = @_;
   ($lang) or $lang = 'en';
+  my @source;
+  # {}{}{} ... -> source (or srcset) data
+  $t=~s{\{([^>]*?)\}}{
+    my $src0 = $1;
+    push(@source, {});
+    foreach my $t (split(/\|/, $src0)){
+      if($t=~/^(\d+)w$/){
+        push(@{$source[-1]{w}}, $1.'w');
+      }elsif($t=~/^(\d+)x$/){
+        push(@{$source[-1]{x}}, $1.'x');
+      }elsif($t=~/^(min|max)(\d+)(px|vw)?$/){
+        my($name, $val, $unit) = ($1, $2, $3||'px');
+        my $valunit = $val.$unit;
+        push(@{$source[-1]{$name}}, $valunit);
+        push(@{$source[-1]{mq_size}}, "($name-width: $valunit)"); # mediaquery and size for img size
+      }elsif($t=~/^(\d+)(px|vw)?$/){
+        my($val, $unit) = ($1, $2||'px');
+        my $valunit = $val.$unit;
+        push(@{$source[-1]{width}}, $valunit);
+        push(@{$source[-1]{mq_size}}, "$valunit,"); # mediaquery and size for img size
+      }elsif($t=~/^(webp)$/){
+        push(@{$source[-1]{type}}, $1);
+      }else{
+        push(@{$source[-1]{file}}, $t);
+      }  
+    }
+    '';
+  }ge;
   my($prefix, $url0, $text)          = $t=~m{([!?#]*)"(\S+)"\s+(.*)}s;
-  ($url0) or ($prefix, $url0, $text) = $t=~m{([!?#]*)([^\s"]+)(?:\s+(.*))?}s;
+  ($url0) or ($prefix, $url0, $text) = $t=~m{([!?#]*)([^\s"]+)(?:\s*(.*))?}s;
+
   my($url, $opts) = (split(/\|/, $url0, 2), '', '');
   ($prefix eq '#') and $url=$prefix.$url;
   my($caption) = markgaab($text, {nocr=>1, para=>'nb'});
@@ -1954,10 +1983,12 @@ sub anchor{
                        : ($crop0 eq 'cs')  ? '50% 100%'
                        : ($crop0 eq 'cse') ? '100% 100%' : '';
   ($crop ne '') and $crop = " object-fit: cover; object-position: $crop";
-  my $imgstyle         = ($crop ne '') ? qq{style="$crop"} : '';
-  my $imgopt           = ($width>0)?qq{ width="$width${width_u}"}:'';
-  $height and $imgopt .= qq{ height="$height${height_u}"};
-  ($crop ne '') and $imgopt .=qq{ style="$crop"};
+  my $imgstyle               = ($crop ne '') ? qq{style="$crop"} : '';
+  ($width)  and my $width1   = "$width${width_u}";
+  ($height) and my $height1  = "$height${height_u}";
+  $width    and my $imgopt   = qq{ width="$width1"};
+  $height   and   $imgopt   .= qq{ height="$height1"};
+  ($crop ne '') and $imgopt .= qq{ style="$crop"};
   my $target           = ($opts=~/@@/)?'_blank':($opts=~/@(\w+)/)?($1):'_self';
   my $img_id           = '';  # ID for <img ...>
   ($style) and $style  = qq{ style="$style"};
@@ -1970,15 +2001,53 @@ sub anchor{
       $caption = ref_txt($id, 'fig', $id_n, $caption, $lang);
       $img_id     = qq! id="$id"!; # ID for <img ...>
     }
-    my $alttext = $url;
+    my $alttext = $text || $url;
+    my $img;
+    my $srcset_picture = ''; # option for <figure>
+    my $srcset_img     = ''; # option for <img>
+    my($media0, $media, $type, $size);
+    for(my $i=0; $i<=$#source; $i++){
+      my @srcset;
+      $media0 = '';
+      ($source[$i]{min}[0]) and $media0 .= "(min-width: $source[$i]{min}[0])";
+      ($source[$i]{max}[0]) and $media0 .= "(max-width: $source[$i]{max}[0])";
+      ($media0) and $media = qq{ media="$media0"};
+      $type  = (defined $source[$i]{type}[0]) ? qq{ type="image/$source[$i]{type}[0]"} : '';
+
+      for(my $j=0; $j<=$#{$source[$i]{file}}; $j++){
+        push(@srcset, join(' ', grep {$_ ne ''} $source[$i]{file}[$j], ($source[$i]{w}[$j]||''), ($source[$i]{x}[$j]||'')));
+      }
+      (defined $srcset[0]) and $srcset_picture .= sprintf(qq{ <source srcset="%s"$media$type>}, join(', ', @srcset));
+      (defined $srcset[0]) and $srcset_img     .= join(', ', @srcset);
+      if($srcset_img){ # Sizes must be set if $srcset_img is defined
+        $size = ($width1) ? $width1 : '';
+        (defined $source[0]{width}) and $size .= " $source[0]{width}[0]";
+      }
+    } # foreach @source
+    my $sizes = ($source[0]{mq_size}[0]) ? join(' ', @{$source[0]{mq_size}}) : '';
+    if($sizes){
+      $sizes=~s/[,\s]*$//;
+      $sizes = qq{ sizes="$sizes"};
+    }
+    if($prefix eq '!!!'){
+      return(qq{<picture>$style${srcset_picture}<img src="$url" alt="$alttext"${img_id}$class$style$imgopt></picture>});
+    }
+    # make img with srcset
+    $img = ($srcset_img) 
+      ? qq!<img srcset="$srcset_img"!  
+      : qq!<img!;
+    ($sizes) and $img .= $sizes;
+    $img .= qq! src="$url" alt="$alttext"${img_id}$class$style$imgopt>!;
+    
     if($prefix eq '!!'){
-      return(qq!<figure$style><img src="$url" alt="$alttext"${img_id}$class$imgopt><figcaption>$caption</figcaption></figure>!);
+      return(qq!<figure$style>$img<figcaption>$caption</figcaption></figure>!);
     }elsif($prefix eq '??'){
       return(qq!<figure$style><a href="$url" target="$target"><img src="$url" alt="${id}"${img_id}$class$imgopt></a><figcaption>$caption</figcaption></figure>!);
     }elsif($prefix eq '?'){
-      return(qq!<a href="$url" target="$target"><img src="$url" alt="$alttext"${img_id}$class$style$imgopt></a>!);
+      return(qq!<a href="$url" target="$target">$img</a>!);
     }else{ # "!"
-      return(qq!<img src="$url" alt="$alttext"${img_id}$class$style$imgopt>!);
+    #  return(qq!<img src="$url" alt="$alttext"${img_id}$class$style$imgopt>!);
+      return($img);
     }
   }elsif($url=~/^[\d_]+$/){
     return(qq!<a href="$baseurl?aid=$url" target="$target">$caption</a>!);
