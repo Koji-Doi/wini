@@ -1635,8 +1635,11 @@ sub call_macro{
 }
 
 sub test2303{
-  my $xx = readpars("a=5|ca=11", qw/a b|x|y|z|ccc cabc/);
+  $VERSION or Text::Markup::Wini::init();
+  my $x = '[!!!{400w.png|400w|min1140|570:}{600w.png|600w|50vw}{800w.png|800w|100vw|}{1000w.png|1000w}x.png]';
+  my $y = to_html($x);
   $DB::single=$DB::single=1;
+  print "x=$x\ny=", Dumper $y;
   1;
 }
 sub kw{
@@ -1943,9 +1946,11 @@ sub anchor{
         my $valunit = $val.$unit;
         push(@{$source[-1]{$name}}, $valunit);
         push(@{$source[-1]{mq_size}}, "($name-width: $valunit)"); # mediaquery and size for img size
-      }elsif($t=~/^(\d+)(px|vw)?$/){
-        my($val, $unit) = ($1, $2||'px');
-        my $valunit = $val.$unit;
+      }elsif($t=~/^(?:(\d*)(px|vw)?)?:(?:(\d*)(px|vw)?)?$/){
+        my($val_w, $unit_w, $val_h, $unit_h) = 
+          ($1 eq '') ? (undef, undef, $3, $4||'px')
+                     : ($1, $2||'px', $3, $4||'px');
+        my $valunit = $val_w.$unit_w;
         push(@{$source[-1]{width}}, $valunit);
         push(@{$source[-1]{mq_size}}, "$valunit,"); # mediaquery and size for img size
       }elsif($t=~/^(webp)$/){
@@ -1958,7 +1963,7 @@ sub anchor{
   }ge;
   my($prefix, $url0, $text)          = $t=~m{([!?#]*)"(\S+)"\s+(.*)}s;
   ($url0) or ($prefix, $url0, $text) = $t=~m{([!?#]*)([^\s"]+)(?:\s*(.*))?}s;
-
+print STDERR "source = ", Dumper @source;
   my($url, $opts) = (split(/\|/, $url0, 2), '', '');
   ($prefix eq '#') and $url=$prefix.$url;
   my($caption) = markgaab($text, {nocr=>1, para=>'nb'});
@@ -2005,8 +2010,9 @@ sub anchor{
     my $img;
     my $srcset_picture = ''; # option for <figure>
     my $srcset_img     = ''; # option for <img>
-    my($media0, $media, $type, $size);
+    #my($media0, $media, $type, $size);
     for(my $i=0; $i<=$#source; $i++){
+      my($media0, $media, $type, $size);
       my @srcset;
       $media0 = '';
       ($source[$i]{min}[0]) and $media0 .= "(min-width: $source[$i]{min}[0])";
@@ -2017,7 +2023,8 @@ sub anchor{
       for(my $j=0; $j<=$#{$source[$i]{file}}; $j++){
         push(@srcset, join(' ', grep {$_ ne ''} $source[$i]{file}[$j], ($source[$i]{w}[$j]||''), ($source[$i]{x}[$j]||'')));
       }
-      (defined $srcset[0]) and $srcset_picture .= sprintf(qq{ <source srcset="%s"$media$type>}, join(', ', @srcset));
+      ($source[$i]{width}[0]) and my $width2 = qq! sizes="$source[$i]{width}[0]"!;
+      (defined $srcset[0]) and $srcset_picture .= sprintf(qq{ <source srcset="%s"$media$type$width2>}, join(', ', @srcset));
       (defined $srcset[0]) and $srcset_img     .= join(', ', @srcset);
       if($srcset_img){ # Sizes must be set if $srcset_img is defined
         $size = ($width1) ? $width1 : '';

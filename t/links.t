@@ -205,9 +205,21 @@ links with <a href="http://example.com">link text in markdown-compartible format
 <p><picture><source srcset="a.png 400w"> <source srcset="b.png 800w"><img src="def.png" alt="x"></picture></p>
 
 ---start mg img with srcset and sizes
-[!{400w.png|400w|600w.png|600w|800w.png|800w|1000w.png|1000w|1200w.png|1200w|min1140|570|min640|50vw|100vw}x.png]
+[!{400w.png|400w|600w.png|600w|800w.png|800w|1000w.png|1000w|1200w.png|1200w|min1140|570:|min640|50vw:|100vw:}x.png]
 
 ---start html img with srcset and sizes
 <p><img srcset="400w.png 400w, 600w.png 600w, 800w.png 800w, 1000w.png 1000w, 1200w.png 1200w" sizes="(min-width: 1140px) 570px, (min-width: 640px) 50vw, 100vw" src="x.png" alt="x.png"></p>
+
+---start mg picture with srcset and sizes
+[!!!{400w.png|400w|min1140|570:}{600w.png|600w|50vw:}{800w.png|800w|100vw:|}{1000w.png|1000w}x.png]
+
+---start html picture with srcset and sizes
+<p><picture><source srcset="400w.png 400w" media="(min-width: 1140px)" sizes="570px"> <source srcset="600w.png 600w" sizes="50vw">  <source srcset="800w.png 800w" sizes="100vw"> <source srcset="1000w.png 1000w"> <img src="x.png" alt="x.png"> </picture></p>
+
+---start mg img with both srcset and sizes
+[!{480w.jpg|480w|800w.jpg|800w|max600|480:|800:}x.jpg x]
+
+---start html img with both srcset and sizes
+<p><img srcset="480w.jpg 480w, 800w.jpg 800w" sizes="(max-width: 600px) 480px, 800px" src="x.jpg" alt="x"></p>
 
 ---end
