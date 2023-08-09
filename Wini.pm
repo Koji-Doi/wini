@@ -1963,7 +1963,6 @@ sub anchor{
   }ge;
   my($prefix, $url0, $text)          = $t=~m{([!?#]*)"(\S+)"\s+(.*)}s;
   ($url0) or ($prefix, $url0, $text) = $t=~m{([!?#]*)([^\s"]+)(?:\s*(.*))?}s;
-print STDERR "source = ", Dumper @source;
   my($url, $opts) = (split(/\|/, $url0, 2), '', '');
   ($prefix eq '#') and $url=$prefix.$url;
   my($caption) = markgaab($text, {nocr=>1, para=>'nb'});
