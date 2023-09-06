@@ -47,7 +47,7 @@ This script is a Perl library module file, and can also be used as a filter comm
 
 ## 詳しくは / For further information
 
-コマンドライン上で`Wini.pm -h wini`を実行するとWini.pmの簡単な使い方が表示される。また、`Wini.pm -h mg`を実行すると文法の概略が表示される。markgaabの詳細については [qiitaの解説記事](https://qiita.com/doikoji/items/f6139b7d91b48e50dcef) を参照してほしい。
+コマンドライン上で`Wini.pm -h wini`を実行するとWini.pmの簡単な使い方が表示される。また、`Wini.pm -h mg`を実行すると文法の概略が表示される。markgaabの詳細については [Zennに公開しているマニュアル](https://zenn.dev/kojidoi/books/6831494c86db9b)を参照してほしい。
 
 To find out the usage of Wini.pm, try `Wini.pm -h wini`. To find out the outline of markgaab grammar, try `Wini.pm -h mg`. Details will be addressed in English in the document coming soon.
 
