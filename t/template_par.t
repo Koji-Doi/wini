@@ -34,6 +34,7 @@ sub std{
 
 sub std1{
   my($x) = @_;
+  $x=~s/ +</</g;
   $x=~s/ +/ /g;
   $x=~s/\s+$//sg;
   $x=~s/^\s+//;
@@ -87,7 +88,7 @@ SKIP: for(my $i=1; $i<=$#indata; $i++){
     $o=~s{.*<body>}{}s;
     $o=~s{</body>.*}{}s;
     #$o=~s/[\n\r]*//g;
-    is1( std1($o, {spc=>0}), std1($indata[$i]{html}, {spc=>0}), "$indata[$i]{tag} $whole");
+    is1( std1($o), std1($indata[$i]{html}), "$indata[$i]{tag} $whole");
     #is1($o, $indata[$i]{html}, "$indata[$i]{tag} $whole");
     close $phi;
   }

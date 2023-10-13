@@ -388,7 +388,7 @@ sub init{
   $LANG or $LANG = 'en';
   $QUIET      = 0; # 1: suppress most of messages
   $SCRIPTNAME = basename($0);
-  $VERSION    = "ver. 1.0 rel. 20230716";
+  $VERSION    = "ver. 1.0 rel. 20231013";
   while(<Text::Markup::Wini::DATA>){
     chomp;
     while(s/\\\s*$//){
@@ -1148,12 +1148,13 @@ sub to_html{
       }
     !ge;
     (defined $opt->{whole}) and $tmpltxt = whole_html($tmpltxt, $opt);
-    return(deref($tmpltxt));
+    $htmlout = deref($tmpltxt);
   }else{ # non-template
     (defined $opt->{whole}) and $htmlout = whole_html($htmlout, $opt);
-    #$htmlout = deref($htmlout);
-    return(deref($htmlout));
+    $htmlout = deref($htmlout);
   }
+  $htmlout = fancy_html($htmlout);
+  return($htmlout);
 } # sub to_html
 
 sub parse{ # for CPAN
@@ -1267,6 +1268,74 @@ sub markgaab{
   $r=~s/^[\s\n\r]*//;
   return($r, $opt);
 } # sub markgaab
+
+sub fancy_html {
+  my ($html) = @_;
+  my $indc = ' ';
+  my $depth = 0;
+  # Arrays to store extracted substrings
+  my @escape;
+    
+  # Extract comments
+  $html =~ s{<!--\s*(.*?)\s*-->}{push(@escape, "\n\n<!--\n$1\n-->\n\n") && "<escape>" . $#escape . "</escape>"}gse;
+    
+  # Extract <code> and <pre> contents
+  $html =~ s{(<(code|pre)>(.*?)<\/\2>)}{push(@escape, "\n<$2>\n$3\n</$2>\n") && "<escape>" . $#escape . "</escape>"}gse;
+
+  # Remove all other line breaks
+  #$html =~ s/[\r\n]+//g;
+
+  # list of tags and text contents
+  my @htmls = grep {/\S/} split(/(<.*?>)/, $html);
+
+  my @o;
+  my $ind=0;
+  foreach (@htmls){
+    s/<\s+/</g;
+    s/\s+>/>/g;
+    if(my($m,$m2) = m{</([!\w]+)(.*)>}){ # close tag
+      if($m=~/^(html|head|body|div|section|header|footer|main|aside|nav|table|dl|ol|ul)$/i){
+        $ind--; ($ind<0) and $ind=0;                         #close -> indent--
+      }
+      my $t = "$_";
+      ($m =~ /^(html|head|body|div|p|section|header|footer|main|aside|nav|table|dl|ol|ul)$/i)
+        and ($o[-1]!~/\n$/) and push(@o, "\n");               #close -> pre \n
+      push(@o, ($o[-1]=~/\n$/) ? (($indc x $ind).$t) : $t);   #close -> indent+content
+      #push(@o, $t);
+      if($m=~/^(html|head|body|h\d|div|p|section|header|footer|main|aside|nav|table|dl|ol|ul|li|dt|dd|tr)$/i){
+        ($o[-1]!~/\n$/) and push(@o, "\n");                   #close -> post \n
+      }
+    }elsif(($m,$m2) = m{<([!\w]+)(.*)>}){ # open tag
+      if($m=~/^(html|head|body|h\d|div|p|section|header|footer|main|aside|nav|table|dl|ol|ul)$/i){
+        ($o[-1]!~/\n$/) and push(@o, "\n");                   #open  -> pre \n
+      }
+      my $t = "$_";
+      push(@o, (($o[-1]=~/\n/) ? (($indc x $ind).$t) : $t)); #open  -> indent+content
+      ($m =~ /^(html|head|body|div|p|section|header|footer|main|aside|nav|table|dl|ol|ul|br)$/i)
+        and ($o[-1]!~/\n$/)
+        and push(@o, "\n");                                  #open  -> post \n
+      if($m=~/^(html|head|body|div|section|header|footer|main|aside|nav|table|dl|ol|ul)$/i){
+        $ind++;                                              #open  -> indent++
+      }
+    }else{ # content
+      #push(@o, ($o[-1]=~/\n$/) ? (($indc x $ind).$_) : $_);   #cont -> indent+content
+      push(@o, $_);
+    }
+  }
+  $DB::single=1;
+  my $o = join('', @o);
+  $o =~ s{<escape>(\d+)</escape>}{$escape[$1]}ge;
+  $o =~ s/\n{2,}/\n/sg;
+  return($o);
+} # fancy_html
+
+sub tdump{
+  my($x) = @_;
+  for(my $i=0; $i<length($x); $i++){
+    my $y = substr($x, $i, 1);
+    printf STDERR "$i/%d: 0x%04x '$y'\n", length($x), ord($y);
+  }
+}
 
 sub add_p{
   my($t, $cr, $para, $ptype, $class, $opt) = @_;
