@@ -287,7 +287,7 @@ This is sub.
 <p>
 <a href="#id3"> 表4</a>= id3 ja from section val
 </p>
-</section> <!-- end of "sect1" d=1 -->
+</section> <!--end of "sect1" d=1-->
 
 <section class="mg" id="sect2">
 <h1 class="sectiontitle">in en</h1>

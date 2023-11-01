@@ -29,8 +29,10 @@ while(<DATA>){
     /^---start html/ and ($mode='html', next);
     /^---end/ and last;
     $indata[$i]{$mode} .= $_;
+    $indata[$i]{$mode} =~ s/^\s*$//s;
   }
 }
+
 
 for(my $i=1; $i<=$#indata; $i++){
   Text::Markup::Wini::init();

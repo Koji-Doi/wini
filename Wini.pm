@@ -388,7 +388,7 @@ sub init{
   $LANG or $LANG = 'en';
   $QUIET      = 0; # 1: suppress most of messages
   $SCRIPTNAME = basename($0);
-  $VERSION    = "ver. 1.0 rel. 20231013";
+  $VERSION    = "ver. 1.0 rel. 20231101";
   while(<Text::Markup::Wini::DATA>){
     chomp;
     while(s/\\\s*$//){
@@ -1277,10 +1277,10 @@ sub fancy_html {
   my @escape;
     
   # Extract comments
-  $html =~ s{<!--\s*(.*?)\s*-->}{push(@escape, "\n\n<!--\n$1\n-->\n\n") && "<escape>" . $#escape . "</escape>"}gse;
+  $html =~ s{<!--\s*(.*?)\s*-->}{push(@escape, "\n\n<!--\n$1\n-->\n\n") && "$MI" . $#escape . "$MO"}gse;
     
   # Extract <code> and <pre> contents
-  $html =~ s{(<(code|pre)>(.*?)<\/\2>)}{push(@escape, "\n<$2>\n$3\n</$2>\n") && "<escape>" . $#escape . "</escape>"}gse;
+  $html =~ s{(<(code|pre)>(.*?)<\/\2>)}{push(@escape, "\n<$2>\n$3\n</$2>\n") && "$MI" . $#escape . "$MO"}gse;
 
   # Remove all other line breaks
   #$html =~ s/[\r\n]+//g;
@@ -1318,13 +1318,13 @@ sub fancy_html {
         $ind++;                                              #open  -> indent++
       }
     }else{ # content
+      s/\s*$//;
       #push(@o, ($o[-1]=~/\n$/) ? (($indc x $ind).$_) : $_);   #cont -> indent+content
       push(@o, $_);
     }
   }
-  $DB::single=1;
   my $o = join('', @o);
-  $o =~ s{<escape>(\d+)</escape>}{$escape[$1]}ge;
+  $o =~ s{$MI(\d+)$MO}{$escape[$1]}ge;
   $o =~ s/\n{2,}/\n/sg;
   return($o);
 } # fancy_html
@@ -2772,7 +2772,7 @@ sub ev{ # <, >, %in%, and so on
       map {$s{$_}=0} qw/nmaxi nmini tmaxi tmini lmaxi lmini/;
 
       for(my $i=0; $i<=$#stack; $i++){
-        printf ">> $i $stack[$i] %d lmax=%s lmaxi=%d lmin=%s lmini=%d\n", length($stack[$i]), $s{lmax}, $s{lmaxi}, $s{lmin}, $s{lmini};
+        #printf ">> $i $stack[$i] %d lmax=%s lmaxi=%d lmin=%s lmini=%d\n", length($stack[$i]), $s{lmax}, $s{lmaxi}, $s{lmin}, $s{lmini};
         ($stack[$i]>$s{nmax})         and ($s{nmax}, $s{nmaxi}) = ($stack[$i], $i);
         ($stack[$i]<$s{nmin})         and ($s{nmin}, $s{nmini}) = ($stack[$i], $i);
         ($stack[$i] gt $s{tmax})      and ($s{tmax}, $s{tmaxi}) = ($stack[$i], $i);
