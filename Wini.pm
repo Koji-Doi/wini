@@ -2057,10 +2057,11 @@ sub anchor{
                        : ($crop0 eq 'cse') ? '100% 100%' : '';
   ($crop ne '') and $crop = " object-fit: cover; object-position: $crop";
   my $imgstyle               = ($crop ne '') ? qq{style="$crop"} : '';
-  ($width)  and my $width1   = "$width${width_u}";
-  ($height) and my $height1  = "$height${height_u}";
-  $width    and my $imgopt   = qq{ width="$width1"};
-  $height   and   $imgopt   .= qq{ height="$height1"};
+  my($width1, $height1, $imgopt);
+  ($width)  and $width1   = "$width${width_u}";
+  ($height) and $height1  = "$height${height_u}";
+  $width    and $imgopt   = qq{ width="$width1"};
+  $height   and $imgopt   .= qq{ height="$height1"};
   ($crop ne '') and $imgopt .= qq{ style="$crop"};
   my $target           = ($opts=~/@@/)?'_blank':($opts=~/@(\w+)/)?($1):'_self';
   my $img_id           = '';  # ID for <img ...>
