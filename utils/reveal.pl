@@ -155,11 +155,6 @@ EOD
 
     }else{ # normal slide
       $slide_no++;
-      if($slide_no>=6){
-        $DB::single=$DB::single=1;
-        1;
-      }
-      print STDERR "no: $slide_no\n", (scalar @$body00), "\n";
       ($body1) = Text::Markup::Wini::to_html(join('', @$body0));
       $body1=~s/^\s*//; $body1=~s/\s*$//;
       $body1 = qq!<div class="side${i}">${body1}</div>!;
