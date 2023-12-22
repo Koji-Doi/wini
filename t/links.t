@@ -117,12 +117,22 @@ links with <a href="http://example.com">link text in markdown-compartible format
 
 {{.hoge|Paragraph with ID}}
 
----start html 5
+---start html E
+
+<p>
+<span class="hoge">Paragraph with ID</span>
+</p>
+
+---start mg E2:ext ref
+
+{{#hoge|Paragraph with ID}}
+
+---start html E2
 
 <p>
 <span id="hoge">Paragraph with ID</span>
 </p>
-"
+
 ---start mg img1 simple
 [!test.png]
 

@@ -388,7 +388,7 @@ sub init{
   $LANG or $LANG = 'en';
   $QUIET      = 0; # 1: suppress most of messages
   $SCRIPTNAME = basename($0);
-  $VERSION    = "ver. 1.0 rel. 20231101";
+  $VERSION    = "ver. 1.0 rel. 20231223";
   while(<Text::Markup::Wini::DATA>){
     chomp;
     while(s/\\\s*$//){
@@ -1649,8 +1649,8 @@ smaller|larger| # relative kw
 sub call_macro{
   my($macroname, $opt, $baseurl, @f) = @_;
   my(@class, @id);
-  $macroname=~s/\.([^.#]+)/push(@id,    $1); ''/ge;
-  $macroname=~s/\#([^.#]+)/push(@class, $1); ''/ge;
+  $macroname=~s/\#([^.#]+)/push(@id,    $1); ''/ge;
+  $macroname=~s/\.([^.#]+)/push(@class, $1); ''/ge;
   my $class_id = join(' ', @class);
   ($class_id) and $class_id = qq{ class="${class_id}"};
   $class_id   .= ($id[0]) ? qq! id="$id[0]"! : '';
